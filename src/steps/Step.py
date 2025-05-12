@@ -58,11 +58,11 @@ class Step(Configurable):
         for name in self.output_slot_names:
             self.reset_buffer(name)
         
-    def reset_buffer(self, slot_name):
+    def reset_buffer(self, slot_name, slot_shape="shape"):
         if not self.is_dynamic:
             self.buffer[slot_name] = None
         else:
-            self.buffer[slot_name] = util_jax.zeros(self._params["shape"])
+            self.buffer[slot_name] = util_jax.zeros(self._params[slot_shape])
 
     def pre_compile(self, arch):
         if not self.is_source:
@@ -116,18 +116,18 @@ class Step(Configurable):
         # Save max incoming connections
         self._max_incoming_connections[slot_name] = max_incoming_connections
     
-    def register_buffer(self, buf_name):
+    def register_buffer(self, buf_name, slot_shape="shape"):
         if buf_name in self.buffer:
             raise ValueError(f"Buffer {buf_name} already registered ({self.get_name()})")
-        self.reset_buffer(buf_name)
+        self.reset_buffer(buf_name, slot_shape)
 
-    def update_input(self, arch):
+    def update_input(self, arch, input_slot_shape="shape"):
         input_sums = {}
         for input_slot in self.input_slot_names:
             input_sum = None
             incoming_steps = arch.get_incoming_steps(self.get_name() + "." + input_slot)
             if len(incoming_steps) == 0:
-                input_sum = util_jax.zeros(self._params["shape"])
+                input_sum = util_jax.zeros(self._params[input_slot_shape])
             else:
                 for step_slot in incoming_steps:
                     step, slot = step_slot.split(".")
