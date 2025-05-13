@@ -1,6 +1,7 @@
 from src import util_jax
 from src import util
 from src.Configurable import Configurable
+from src.Architecture import get_arch
 
 class Slot():
     def __init__(self, step, slot_name):
@@ -9,27 +10,28 @@ class Slot():
 
     def __rshift__(self, other):
         if isinstance(other, Step):
-            util.get_architecture().connect_to(self.name, other.get_name())
+            get_arch().connect_to(self.name, other.get_name())
         elif isinstance(other, str):
-            util.get_architecture().connect_to(self.name, other)
+            get_arch().connect_to(self.name, other)
         elif isinstance(other, Slot):
-            util.get_architecture().connect_to(self.name, other.name)
+            get_arch().connect_to(self.name, other.name)
         else:
             raise Exception(f"Cannot connect to unknown type ({type(other)})")
 
     def __lshift__(self, other):
         if isinstance(other, Step):
-            util.get_architecture().connect_to(other.get_name(), self.name)
+            get_arch().connect_to(other.get_name(), self.name)
         elif isinstance(other, str):
-            util.get_architecture().connect_to(other, self.name)
+            get_arch().connect_to(other, self.name)
         elif isinstance(other, Slot):
-            util.get_architecture().connect_to(other.name, self.name)
+            get_arch().connect_to(other.name, self.name)
         else:
             raise Exception(f"Cannot connect to unknown type ({type(other)})")
 
 class Step(Configurable):
     def __init__(self, name, params, mandatory_params, is_dynamic=False):
         super().__init__(params, mandatory_params)
+
         self._name = name
         if "." in name:
             raise ValueError(f"Step names cannot contain dots. ({name})")
@@ -41,9 +43,12 @@ class Step(Configurable):
         self.is_source = False
         self.buffer = {} # Stores matrices of internal and output buffers
         self.output_slot_names = []
-        self.input_slot_names = [] 
+        self.input_slot_names = []
+        get_arch().add_element(self)
+
         self.register_input(util.DEFAULT_INPUT_SLOT)
         self.register_output(util.DEFAULT_OUTPUT_SLOT)
+
 
     def compute(self, input_mats, **kwargs):
         raise NotImplementedError("Please override compute() in subclasses of Step.")
@@ -78,21 +83,21 @@ class Step(Configurable):
         
     def __rshift__(self, other):
         if isinstance(other, Step):
-            util.get_architecture().connect_to(self.get_name(), other.get_name())
+            get_arch().connect_to(self.get_name(), other.get_name())
         elif isinstance(other, str):
-            util.get_architecture().connect_to(self.get_name(), other)
+            get_arch().connect_to(self.get_name(), other)
         elif isinstance(other, Slot):
-            util.get_architecture().connect_to(self.get_name(), other.name)
+            get_arch().connect_to(self.get_name(), other.name)
         else:
             raise Exception(f"Cannot connect to unknown type ({type(other)})")
 
     def __lshift__(self, other):
         if isinstance(other, Step):
-            util.get_architecture().connect_to(other.get_name(), self.get_name())
+            get_arch().connect_to(other.get_name(), self.get_name())
         elif isinstance(other, str):
-            util.get_architecture().connect_to(other, self.get_name())
+            get_arch().connect_to(other, self.get_name())
         elif isinstance(other, Slot):
-            util.get_architecture().connect_to(other.name, self.get_name())
+            get_arch().connect_to(other.name, self.get_name())
         else:
             raise Exception(f"Cannot connect to unknown type ({type(other)})")
     
@@ -115,6 +120,7 @@ class Step(Configurable):
         self.input_slot_names.append(slot_name)
         # Save max incoming connections
         self._max_incoming_connections[slot_name] = max_incoming_connections
+        get_arch().register_element_input_slot(self.get_name(), slot_name)
     
     def register_buffer(self, buf_name, slot_shape="shape"):
         if buf_name in self.buffer:

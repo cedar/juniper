@@ -1,7 +1,6 @@
 from src.steps.GaussInput import GaussInput
 from src.steps.NeuralField import NeuralField
 from src.steps.StaticGain import StaticGain
-from src.Architecture import Architecture
 from src.AbsSigmoid import AbsSigmoid
 from src.GaussKernel import GaussKernel
 
@@ -27,20 +26,15 @@ def get_architecture(args):
     factor = 2
 
     # Build architecture
-    arch = Architecture()
     for i in range(num_fields):
         if i == 0 or not single_gauss:
             gi = GaussInput(f"gi{i}", {"shape": shape, "sigma": gauss_input_sigma, "amplitude": amplitude + i * 0.01})
             st = StaticGain(f"st{i}", {"factor": factor})
-            arch.add_element(gi)
-            arch.add_element(st)
-            arch.connect_to(f"gi{i}", f"st{i}")
+            gi >> st
         nf = NeuralField(f"nf{i}", {"resting_level": -0.7+i*0.001, "global_inhibition": -0.01+i*0.001, "tau": 0.1, 
                             "input_noise_gain": 0.1+i*0.001, "sigmoid": AbsSigmoid(100+i*0.001, 0+i*0.001),
                             "lateral_kernel_convolution": 
                             GaussKernel({"sigma": kernel_sigmas, "amplitude": kernel_amplitude, "normalized": True, "max_shape": shape}),
                             "shape": shape})
-        arch.add_element(nf)
         from_element = f"st0" if single_gauss else f"st{i}"
-        arch.connect_to(from_element, f"nf{i}")
-    return arch
+        nf << from_element

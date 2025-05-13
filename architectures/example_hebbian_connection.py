@@ -1,12 +1,10 @@
 from src.steps.GaussInput import GaussInput
 from src.steps.NeuralField import NeuralField
 from src.steps.HebbianConnection import HebbianConnection
-from src.Architecture import Architecture
 from src.AbsSigmoid import AbsSigmoid
 from src.GaussKernel import GaussKernel
 
 def get_architecture(args):
-    arch = Architecture()
     shape1 = (50,)
     shape2 = (50,)
 
@@ -26,17 +24,6 @@ def get_architecture(args):
     hc1 = HebbianConnection("hc1", {"shape": shape1, "target_shape": shape2, "tau": 0.1, "tau_decay": 0.1, "learning_rate": 0.1,
                         "learning_rule": "instar", "bidirectional": True, "reward_duration": (0.2,0.1)})
 
-
-    # Add steps to architecture
-    arch += gi0
-    arch += gi1
-    arch += gi2
-
-    # Dynamic steps
-    arch += nf1
-    arch += nf2
-    arch += hc1
-
     # Connections (different syntax possible)
     gi0 >> nf1
     gi1 >> nf2
@@ -47,5 +34,4 @@ def get_architecture(args):
     
     nf2 << "hc1.out0"
     nf1 << "hc1.out1"
-
-    return arch
+    

@@ -4,15 +4,21 @@ import jax
 from functools import partial
 import time
 import numpy as np
-from src.steps.NeuralField import NeuralField
-from src.steps.ExampleDynamicStep import ExampleDynamicStep
+
+_architecture_singleton = None
+def get_arch():
+    global _architecture_singleton
+    if _architecture_singleton is None:
+        _architecture_singleton = Architecture()
+    return _architecture_singleton
 
 class Architecture:
     def __init__(self):
         self.element_map = {}
         self.connection_map_reversed = {}
         self.compiled = False
-        util.set_architecture(self)
+        if not _architecture_singleton is None:
+            raise Exception("Do not instantiate this class, use Architecture::get_arch() instead.")
 
     def is_compiled(self):
         return self.compiled
@@ -87,12 +93,8 @@ class Architecture:
             raise Exception(f"Architecture::add_element(): Element {name} already exists in Architecture")
         self.element_map[name] = element
 
-        for slot in element.input_slot_names: # TODO improve?
-            self.connection_map_reversed[name + "." + slot] = []
-
-    def __add__(self, element):
-        self.add_element(element)
-        return self
+    def register_element_input_slot(self, element_name, slot_name):
+        self.connection_map_reversed[element_name + "." + slot_name] = []
 
     def get_elements(self):
         return self.element_map
@@ -205,4 +207,3 @@ class Architecture:
             step.post_compute(dynamic_output[i])
         dynamic_update_time = time.time() - (start_time + static_update_time)
         return static_update_time, dynamic_update_time
-    

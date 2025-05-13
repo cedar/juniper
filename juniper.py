@@ -5,6 +5,7 @@ from src.util import tprint
 import time
 import os
 from src import util
+from src.Architecture import get_arch
 
 if __name__ == "__main__":
 
@@ -45,8 +46,8 @@ if __name__ == "__main__":
     util_jax.get_config()["euler_step_static_precompile"] = args.static_euler_compilation == True
 
     ## --- Load architecture ---
-
-    arch = architecture_import.import_file(args.arch, args.arch_args)
+    arch = get_arch()
+    architecture_import.import_file(args.arch, args.arch_args)
     tprint("Architecture loaded")
 
     ## --- Compile architecture ---
