@@ -9,7 +9,6 @@ from src.AbsSigmoid import AbsSigmoid
 from src.GaussKernel import GaussKernel
 
 def get_architecture(args):
-    arch = Architecture()
     shape1 = (50,)
     shape2 = (50,50,25)
 
@@ -37,23 +36,6 @@ def get_architecture(args):
 
     sum0 = Sum("sum0", {})
 
-    # Add steps to architecture
-    arch += gi0
-    arch += gi1
-
-    arch += nf1
-
-    # Dynamic steps
-    arch += projection1
-    arch += projection0
-    arch += norm0
-    arch += norm1
-    arch += trans0
-    arch += sum0
-
-    arch += nf2
-    arch += projection2
-
     # Connections (different syntax possible)
     gi0 >> norm0
     gi1 >> projection1
@@ -70,4 +52,3 @@ def get_architecture(args):
     projection0 >> projection2
     projection2 >> nf2
 
-    return arch
