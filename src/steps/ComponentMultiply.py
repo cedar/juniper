@@ -11,7 +11,7 @@ class ComponentMultiply(Step):
         self.needs_input_connections = True
         self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = 2
 
-        self.register_input("in1", 0)
+        self.register_input("in1")
 
     @partial(jax.jit, static_argnames=['self'])
     def compute(self, input_mats, **kwargs):
