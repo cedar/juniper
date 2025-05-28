@@ -7,6 +7,7 @@ from src.steps.TransferFunction import TransferFunction
 from src.steps.NeuralField import NeuralField
 from src.AbsSigmoid import AbsSigmoid
 from src.GaussKernel import GaussKernel
+from src.steps.ComponentMultiply import ComponentMultiply
 
 def get_architecture(args):
     shape1 = (50,)
@@ -34,7 +35,7 @@ def get_architecture(args):
 
     trans0 = TransferFunction("trans0", {"function": "ExpSigmoid", "threshold": 0., "beta": 1.})
 
-    sum0 = Sum("sum0", {})
+    sum0 = ComponentMultiply("sum0", {})
 
     # Connections (different syntax possible)
     gi0 >> norm0
