@@ -12,9 +12,18 @@ class GaussKernel(Configurable):
         # Estimate width if not explicitly set
         if not "shape" in params:
             self._params["shape"] = self._estimate_size()
+
+        # Center of the kernel, default is the center of the shape
+        if not "center" in params:
+            self._params["center"] = [int(0) for dim in range(self._dimensionality)]
+
+        # materialize the kernel tensor
         self._kernel = self.gkern_for_all_shapes(params["normalized"])
+
+        # check if the kernel size is within the max_shape
         if "max_shape" in params:
             self.check_kernel_size()
+
         if len(params["shape"]) != len(params["sigma"]):
             raise ValueError(f"GaussKernel requires equal dimensionality of sigma ({len(params['sigma'])}) and shape ({len(params['shape'])})")
 
@@ -55,10 +64,11 @@ class GaussKernel(Configurable):
     def gkern_for_all_shapes(self, normalize):
         # creates gaussian kernel with specified side lenghts and sigma
         shape = self._params["shape"]
+        center = self._params["center"]
         kernel = None
         for dim in range(len(shape)):
             ax = jnp.linspace(-(shape[dim] - 1) / 2., (shape[dim] - 1) / 2., shape[dim], dtype=util_jax.cfg["jdtype"])
-            gauss_1d = jnp.exp(-0.5 * jnp.square(ax) / jnp.square(self._params["sigma"][dim]))
+            gauss_1d = jnp.exp(-0.5 * jnp.square(ax-center[dim]) / jnp.square(self._params["sigma"][dim]))
             if normalize:
                 gauss_1d /= jnp.sum(gauss_1d)
 

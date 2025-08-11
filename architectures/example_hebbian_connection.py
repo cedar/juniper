@@ -21,8 +21,8 @@ def get_architecture(args):
                         "input_noise_gain": 0.1, "sigmoid": AbsSigmoid(100, 0),
                         "lateral_kernel_convolution": GaussKernel({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
     
-    hc1 = HebbianConnection("hc1", {"shape": shape1, "target_shape": shape2, "tau": 0.1, "tau_decay": 0.1, "learning_rate": 0.1,
-                        "learning_rule": "instar", "bidirectional": True, "reward_duration": (0.2,0.1)})
+    hc1 = HebbianConnection("hc1", {"shape": shape1, "target_shape": shape2, "tau": 0.01, "tau_decay": 0.1, "learning_rate": 0.1,
+                        "learning_rule": "instar", "bidirectional": True, "reward_duration": "no_reward"})
 
     # Connections (different syntax possible)
     gi0 >> nf1
