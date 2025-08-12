@@ -82,8 +82,6 @@ if __name__ == "__main__":
 # Some static steps (e.g. sources and those following) don't have to be computed every tick.
 # License
 # refactor how sigmoids work
-# make it possible to have no lateral interaction kernel (saves computation time)
-# timed boost implementation
 
 # Remember:
 # In CEDAR if you create a Field and *then* change its resting_level, you might wanna hit reset before starting the simulation to fill the activation buffer with the desired resting_level values

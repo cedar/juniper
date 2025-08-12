@@ -6,38 +6,66 @@ import jax.scipy as jsp
 import jax
 from functools import partial
 
+def no_reward_gating(passedTime, reward_signal, reward_onset, reward_timer, reward_duration):
+    return util_jax.ones((1,)), util_jax.ones((1,)), util_jax.zeros((1,))
+
+def reward_gated(passedTime, reward_signal, reward_onset, reward_timer, reward_duration):
+    return reward_signal>0.9, (reward_signal>0.9), 0*reward_signal
+
+def reward_interval(passedTime, reward_signal, reward_onset, reward_timer, reward_duration):
+    cond1 = reward_onset == 1
+    cond2 = jnp.logical_and(reward_onset == 0, reward_signal > 0.9)
+
+    reward_onset = jnp.select(
+        condlist=[cond1, cond2],
+        choicelist=[1 - ( reward_timer >= (reward_duration[0] + reward_duration[1]) ), util_jax.ones((1))]
+    )
+    reward_timer = jnp.select(
+        condlist=[cond1, cond2],
+        choicelist=[reward_timer, util_jax.zeros((1))]
+    )
+
+    reward = reward_onset * jnp.logical_and(
+        reward_timer > reward_duration[0],
+        reward_timer < (reward_duration[0] + reward_duration[1])
+    )
+    return reward, reward_onset, reward_timer + passedTime
+
+def instar_learning_rule(target_exp, source_exp, w):
+    return (target_exp - w) * source_exp
+
+def outstar_learning_rule(target_exp, source_exp, w):
+    return (source_exp - w) * target_exp
+
+def reverse_output(w, target, source_ndim, weight_ndim):
+    return jnp.tensordot(w, target, axes=(list(range(source_ndim, weight_ndim)), list(range(0, target.ndim))))
+
+def no_reverse_output(w, target, *_):
+    return target * 0
+
+REWARD_MAP = {
+    "np_reward": no_reward_gating,
+    "reward_gated": reward_gated,
+    "reward_interval": reward_interval
+}
+LEARNING_RULE_MAP = {
+    "instar": instar_learning_rule,
+    "outstar": outstar_learning_rule
+}
+BIDIR_MAP = {
+    1: reverse_output,
+    0: no_reverse_output
+}
+
 def make_reward_func(params):
     static_argnames_rew = ['reward_duration']
-
-    # check what type of reward is specified...
-    if params["reward_duration"] == "no_reward":
-        def _reward_func(passedTime, reward_signal, reward_onset, reward_timer, reward_duration): 
-            return util_jax.ones((1,)), util_jax.ones((1,)), util_jax.zeros((1,))
-    elif params["reward_duration"] == "reward_gated":
-        def _reward_func(passedTime, reward_signal, reward_onset, reward_timer, reward_duration):
-            return reward_signal>0.9, (reward_signal>0.9), 0*reward_signal
-    elif len(params["reward_duration"]) == 2:
-        def _reward_func(passedTime, reward_signal, reward_onset, reward_timer, reward_duration):
-            cond1 = reward_onset == 1
-            cond2 = jnp.logical_and(reward_onset == 0, reward_signal > 0.9)
-
-            reward_onset = jnp.select(
-                condlist=[cond1, cond2],
-                choicelist=[1 - ( reward_timer >= (reward_duration[0] + reward_duration[1]) ), util_jax.ones((1))]
+    try:
+        _reward_func = REWARD_MAP[params["reward_duration"]]
+    except KeyError:
+        raise ValueError(
+            f"Unknown reward setting: {params['function']}. "
+            f"Supported settings are: {', '.join(REWARD_MAP)}"
             )
-            reward_timer = jnp.select(
-                condlist=[cond1, cond2],
-                choicelist=[reward_timer, util_jax.zeros((1))]
-            )
-
-            reward = reward_onset * jnp.logical_and(
-                reward_timer > reward_duration[0],
-                reward_timer < (reward_duration[0] + reward_duration[1])
-            )
-            return reward, reward_onset, reward_timer + passedTime
-    else:
-        raise ValueError("Invalid reward duration specified.")
-    
     return partial(jax.jit, static_argnames=static_argnames_rew)(_reward_func)
 
 def make_euler_func(params, static):
@@ -46,21 +74,22 @@ def make_euler_func(params, static):
         static_argnames_euler = ["tau", "tau_decay", "learning_rate", "learning_rule", "bidirectional"]
 
     # Choose update term based on learning rule
-    if params["learning_rule"] == "instar":
-        update_term = lambda target_exp, source_exp, w: (target_exp - w) * source_exp
-    elif params["learning_rule"] == "outstar":
-        update_term = lambda target_exp, source_exp, w: (source_exp - w) * target_exp
-    else:
-        raise ValueError("Invalid learning rule specified.")
+    try:
+        learning_rule = LEARNING_RULE_MAP[params["learning_rule"]]
+    except KeyError:
+        raise ValueError(
+            f"Unknown learning rule: {params['function']}. "
+            f"Supported learning rules are: {', '.join(LEARNING_RULE_MAP)}"
+            )
 
     # Choose reverse output calculation
-    if params["bidirectional"]:
-        output_rev_func = lambda w, target, source_ndim, weight_ndim: jnp.tensordot(
-            w, target,
-            axes=(list(range(source_ndim, weight_ndim)), list(range(0, target.ndim)))
-        )
-    else:
-        output_rev_func = lambda w, target, *_: target * 0
+    try:
+        output_rev_func = BIDIR_MAP[params["bidirectional"]]
+    except KeyError:
+        raise ValueError(
+            f"Invalid setting for bidirectionality: {params['function']}. "
+            f"Supported functions are: {', '.join(BIDIR_MAP)}"
+            )
 
     def eulerStep(passedTime, prng_key, wheight_mat, source_mat, target_mat, reward, learning_rate, tau, tau_decay):
         # buildup and decay time factors
@@ -78,7 +107,7 @@ def make_euler_func(params, static):
         timeFactor_expanded = timeFactor.reshape(*([1] * source_mat.ndim), *target_mat.shape)
 
         # update wheight matrix
-        wheight_mat += reward * timeFactor_expanded * learning_rate * update_term(target_expanded, source_expanded, wheight_mat)
+        wheight_mat += reward * timeFactor_expanded * learning_rate * learning_rule(target_expanded, source_expanded, wheight_mat)
         
         return output, output_rev, wheight_mat
 
