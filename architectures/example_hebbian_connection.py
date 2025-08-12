@@ -3,6 +3,7 @@ from src.steps.NeuralField import NeuralField
 from src.steps.HebbianConnection import HebbianConnection
 from src.AbsSigmoid import AbsSigmoid
 from src.GaussKernel import GaussKernel
+from src.steps.Projection import Projection
 
 def get_architecture(args):
     shape1 = (50,)
@@ -21,8 +22,16 @@ def get_architecture(args):
                         "input_noise_gain": 0.1, "sigmoid": AbsSigmoid(100, 0),
                         "lateral_kernel_convolution": GaussKernel({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
     
+    nf3 = NeuralField("nf3", {"shape": shape2, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.1, 
+                        "input_noise_gain": 0.1, "sigmoid": AbsSigmoid(100, 0),
+                        "lateral_kernel_convolution": GaussKernel({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
+    
     hc1 = HebbianConnection("hc1", {"shape": shape1, "target_shape": shape2, "tau": 0.01, "tau_decay": 0.1, "learning_rate": 0.1,
                         "learning_rule": "instar", "bidirectional": True, "reward_duration": "no_reward"})
+    
+    proj1 = Projection("proj1", {"input_shape": shape1, "output_shape": shape1*2, "mapping": ((0,1)), "compression_type": "Sum"})
+
+    proj2 = Projection("proj2", {"input_shape": shape1*2, "output_shape": shape1, "mapping": (1,), "compression_type": "Sum"})
 
     # Connections (different syntax possible)
     gi0 >> nf1
@@ -35,3 +44,8 @@ def get_architecture(args):
     nf2 << "hc1.out0"
     nf1 << "hc1.out1"
     
+    nf1 >> proj1
+
+    proj1 >> proj2
+
+    proj2 >> nf3

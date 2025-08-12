@@ -44,7 +44,7 @@ def no_reverse_output(w, target, *_):
     return target * 0
 
 REWARD_MAP = {
-    "np_reward": no_reward_gating,
+    "no_reward": no_reward_gating,
     "reward_gated": reward_gated,
     "reward_interval": reward_interval
 }
@@ -63,7 +63,7 @@ def make_reward_func(params):
         _reward_func = REWARD_MAP[params["reward_duration"]]
     except KeyError:
         raise ValueError(
-            f"Unknown reward setting: {params['function']}. "
+            f"Unknown reward setting: {params['reward_duration']}. "
             f"Supported settings are: {', '.join(REWARD_MAP)}"
             )
     return partial(jax.jit, static_argnames=static_argnames_rew)(_reward_func)
@@ -78,7 +78,7 @@ def make_euler_func(params, static):
         learning_rule = LEARNING_RULE_MAP[params["learning_rule"]]
     except KeyError:
         raise ValueError(
-            f"Unknown learning rule: {params['function']}. "
+            f"Unknown learning rule: {params['learning_rule']}. "
             f"Supported learning rules are: {', '.join(LEARNING_RULE_MAP)}"
             )
 
@@ -87,7 +87,7 @@ def make_euler_func(params, static):
         output_rev_func = BIDIR_MAP[params["bidirectional"]]
     except KeyError:
         raise ValueError(
-            f"Invalid setting for bidirectionality: {params['function']}. "
+            f"Invalid setting for bidirectionality: {params['bidirectional']}. "
             f"Supported functions are: {', '.join(BIDIR_MAP)}"
             )
 
