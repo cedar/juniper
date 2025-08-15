@@ -3,16 +3,7 @@ from functools import partial
 from src.steps.Step import Step
 import src.sigmoids as sigmoids
 from src import util
-
-# Map function names to their corresponding callable
-SIGMOID_MAP = {
-    "AbsSigmoid": sigmoids.AbsSigmoid,
-    "ExpSigmoid": sigmoids.ExpSigmoid,
-    "HeavySideSigmoid": sigmoids.HeavySideSigmoid,
-    "LinearSigmoid": sigmoids.LinearSigmoid,
-    "SemiLinearSigmoid": sigmoids.SemiLinearSigmoid,
-    "LogarithmicSigmoid": sigmoids.LogarithmicSigmoid,
-}
+from src.sigmoids import SIGMOID_MAP
 
 class TransferFunction(Step):
 

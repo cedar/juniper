@@ -1,7 +1,6 @@
 from src.steps.GaussInput import GaussInput
 from src.steps.NeuralField import NeuralField
 from src.steps.StaticGain import StaticGain
-from src.AbsSigmoid import AbsSigmoid
 from src.GaussKernel import GaussKernel
 
 # Supply args for this architecture using the --arch_args command line argument in the following format:
@@ -32,7 +31,8 @@ def get_architecture(args):
             st = StaticGain(f"st{i}", {"factor": factor})
             gi >> st
         nf = NeuralField(f"nf{i}", {"resting_level": -0.7+i*0.001, "global_inhibition": -0.01+i*0.001, "tau": 0.1, 
-                            "input_noise_gain": 0.1+i*0.001, "sigmoid": AbsSigmoid(100+i*0.001, 0+i*0.001),
+                                    "sigmoid": "AbsSigmoid", "beta": 100+i*0.001, "theta": 0+i*0.001,
+                            "input_noise_gain": 0.1+i*0.001, 
                             "lateral_kernel_convolution": 
                             GaussKernel({"sigma": kernel_sigmas, "amplitude": kernel_amplitude, "normalized": True, "max_shape": shape}),
                             "shape": shape})

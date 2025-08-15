@@ -1,7 +1,6 @@
 from src.steps.GaussInput import GaussInput
 from src.steps.NeuralField import NeuralField
 from src.steps.HebbianConnection import HebbianConnection
-from src.AbsSigmoid import AbsSigmoid
 from src.GaussKernel import GaussKernel
 from src.steps.Projection import Projection
 
@@ -16,14 +15,14 @@ def get_architecture(args):
 
 
     nf1 = NeuralField(f"nf1", {"shape": shape1, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.1, 
-                        "input_noise_gain": 0.1, "sigmoid": AbsSigmoid(100, 0),
+                        "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta": 1,
                         "lateral_kernel_convolution": GaussKernel({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape1}),})
     nf2 = NeuralField(f"nf2", {"shape": shape2, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.1, 
-                        "input_noise_gain": 0.1, "sigmoid": AbsSigmoid(100, 0),
+                        "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta": 1,
                         "lateral_kernel_convolution": GaussKernel({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
     
     nf3 = NeuralField("nf3", {"shape": shape2, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.1, 
-                        "input_noise_gain": 0.1, "sigmoid": AbsSigmoid(100, 0),
+                        "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta": 1,
                         "lateral_kernel_convolution": GaussKernel({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
     
     hc1 = HebbianConnection("hc1", {"shape": shape1, "target_shape": shape2, "tau": 0.01, "tau_decay": 0.1, "learning_rate": 0.1,

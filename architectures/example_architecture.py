@@ -4,7 +4,6 @@ from src.steps.StaticGain import StaticGain
 from src.steps.ExampleStaticStep import ExampleStaticStep
 from src.steps.ExampleDynamicStep import ExampleDynamicStep
 from src.Architecture import get_arch
-from src.AbsSigmoid import AbsSigmoid
 from src.GaussKernel import GaussKernel
 
 def get_architecture(args):
@@ -19,7 +18,7 @@ def get_architecture(args):
     # Dynamic steps
     ds0 = ExampleDynamicStep(f"ds0", {"shape": shape})
     nf0 = NeuralField(f"nf0", {"shape": shape, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.1, 
-                        "input_noise_gain": 0.1, "sigmoid": AbsSigmoid(100, 0),
+                        "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta":0,
                         "lateral_kernel_convolution": GaussKernel({"sigma": (3,3), "amplitude": 1, "normalized": True, "max_shape": shape}),})
 
 

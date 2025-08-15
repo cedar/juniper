@@ -24,3 +24,13 @@ def SemiLinearSigmoid(x, beta, theta):
 @jax.jit
 def LogarithmicSigmoid(x, beta, theta):
     return jnp.log( beta * x - theta )
+
+# Map function names to their corresponding callable
+SIGMOID_MAP = {
+    "AbsSigmoid": AbsSigmoid,
+    "ExpSigmoid": ExpSigmoid,
+    "HeavySideSigmoid": HeavySideSigmoid,
+    "LinearSigmoid": LinearSigmoid,
+    "SemiLinearSigmoid": SemiLinearSigmoid,
+    "LogarithmicSigmoid": LogarithmicSigmoid,
+}

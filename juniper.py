@@ -75,13 +75,13 @@ if __name__ == "__main__":
 
 
 
-# sigma 0
 # TODO
 # tau ms?
 # convolution? -> add fft convo
 # Some static steps (e.g. sources and those following) don't have to be computed every tick.
 # License
-# refactor how sigmoids work
+# add default params to every step where possible
+# sigma 0
 
 # Remember:
 # In CEDAR if you create a Field and *then* change its resting_level, you might wanna hit reset before starting the simulation to fill the activation buffer with the desired resting_level values

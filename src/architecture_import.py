@@ -4,7 +4,6 @@ from src.Architecture import get_arch
 from src.steps.GaussInput import GaussInput
 from src.steps.StaticGain import StaticGain
 from src.steps.NeuralField import NeuralField
-from src.AbsSigmoid import AbsSigmoid
 from src.GaussKernel import GaussKernel
 
 # TODO this creates lists for all keys, even if they are not duplicates. This is not a problem, but could be optimized
@@ -41,10 +40,15 @@ def _import_json_file(file_path):
                 st = StaticGain(step_elem["name"][0], {"factor": float(step_elem["gain factor"][0])})
             elif step_class == "cedar.dynamics.NeuralField":
                 nf = NeuralField(step_elem["name"][0], {"resting_level": float(step_elem["resting level"][0]), 
-                            "global_inhibition": float(step_elem["global inhibition"][0]), "tau": float(step_elem["time scale"][0]) / 1000, 
-                            "input_noise_gain": float(step_elem["input noise gain"][0]), "sigmoid": AbsSigmoid(float(step_elem["sigmoid"][0]["beta"][0]), float(step_elem["sigmoid"][0]["threshold"][0])),
+                            "global_inhibition": float(step_elem["global inhibition"][0]), 
+                            "tau": float(step_elem["time scale"][0]) / 1000, 
+                            "input_noise_gain": float(step_elem["input noise gain"][0]),
+                            "sigmoid": step_elem["sigmoid"], 
+                            "beta": float(step_elem["beta"]), 
+                            "theta": float(step_elem["theta"]),
                             "lateral_kernel_convolution": GaussKernel({"sigma": float(step_elem["lateral kernels"][0]["cedar.aux.kernel.Gauss"][0]["sigmas"][0][0]), 
-                            "amplitude": 0.018116}), "shape": [int(size) for size in step_elem["sizes"][0]]}) # float(step_elem["lateral kernels"][0]["cedar.aux.kernel.Gauss"][0]["amplitude"][0])
+                            "amplitude": 0.018116}), 
+                            "shape": [int(size) for size in step_elem["sizes"][0]]}) # float(step_elem["lateral kernels"][0]["cedar.aux.kernel.Gauss"][0]["amplitude"][0])
                 # TODO dont hardcode 0.018116, instead get amplitude and normalization attribute
             else:
                 raise Exception(f"Step {step_class} not known")
