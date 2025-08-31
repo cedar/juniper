@@ -44,6 +44,7 @@ if __name__ == "__main__":
     import src.architecture_import as architecture_import
 
     util_jax.get_config()["euler_step_static_precompile"] = args.static_euler_compilation == True
+    util_jax.get_config()["arch_file_path"] = args.arch
 
     ## --- Load architecture ---
     arch = get_arch()
@@ -74,16 +75,7 @@ if __name__ == "__main__":
         plot_history(args.num_ticks, plot_data_history, args.save_plot, args.recording)
 
 
-
 # TODO
-# tau ms?
+# check TODOs in source code
 # convolution? -> add fft convo
-# Some static steps (e.g. sources and those following) don't have to be computed every tick.
-# License
 # add default params to every step where possible
-# sigma 0
-
-# Remember:
-# In CEDAR if you create a Field and *then* change its resting_level, you might wanna hit reset before starting the simulation to fill the activation buffer with the desired resting_level values
-# If you don't do it, the activation buffer needs many ticks to adapt to the new resting_level
-# If you instead load the architecture from a file where a certain resting_level is already set for the field, the activation buffer will be initialized immediately (like in the reset case)

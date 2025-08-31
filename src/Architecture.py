@@ -4,6 +4,8 @@ import jax
 from functools import partial
 import time
 import numpy as np
+import json
+import os
 
 _architecture_singleton = None
 def get_arch():
@@ -32,13 +34,12 @@ class Architecture:
         if self.is_compiled():
             raise util.ArchitectureCompiledException
 
-    def construct_static_compilation_graph(self, permutation): # TODO remove permutation?
+    def construct_static_compilation_graph(self,):
         self.check_not_compiled()
         compiled_steps = []
         compilation_graph_static = []
-        dynamic_steps_permuted = [self.dynamic_steps_c[i] for i in permutation]
         # iterate through all dynamic steps and create a subgraph of the tree of incoming static steps to this dynamic step.
-        for dynamic_step in dynamic_steps_permuted:
+        for dynamic_step in self.dynamic_steps_c:
             subgraph = []
             incoming_steps = [step.split(".")[0] for step in self.get_incoming_steps(dynamic_step.get_name())]
             if len(incoming_steps) == 0:
@@ -66,7 +67,7 @@ class Architecture:
         self.cfg_c = util_jax.cfg
         self.dynamic_steps_c = [element for element in self.element_map.values() if element.is_dynamic]
         # Compute the compilation graph of static steps which determines the order in which they need to be executed.
-        self.construct_static_compilation_graph(range(len(self.dynamic_steps_c)))
+        self.construct_static_compilation_graph()
 
         # Precompile static steps
         for graph_elem in self.compilation_graph_static_c:
@@ -80,11 +81,18 @@ class Architecture:
         if warmup:
             self.tick()
             self.reset_steps()
+        
+        # Load buffers if any were saved during the last run
+        data_file = self.cfg_c["arch_file_path"] + ".data"
+        if os.path.exists(data_file):
+            print("Loading saved buffers...")
+            self.load_buffer(data_file)
 
     def reset_steps(self):
         self.check_compiled()
         for element in self.element_map.values():
             element.reset()
+        # TODO load saved buffers after reset?
 
     def add_element(self, element):
         self.check_not_compiled()
@@ -145,6 +153,32 @@ class Architecture:
                 incoming_steps += self.connection_map_reversed[dest + "." + slot]
         return incoming_steps
 
+    def save_buffer(self): 
+        tree = {}
+        # Retrieve all static and dynamic steps
+        steps = [self.get_element(graph_elem[0]) for graph_elem in self.compilation_graph_static_c]
+        steps += self.dynamic_steps_c
+        for step in steps:
+            step_tree = step.save_buffer()
+            if not step_tree is None:
+                # Add buffer dict to tree
+                tree.update(step_tree)
+        with open(f"{self.cfg_c['arch_file_path']}.data", "w") as f:
+            f.write(json.dumps(tree, indent=4))
+
+    def load_buffer(self, data_file):
+        with open(data_file, "r") as f:
+            tree = json.load(f)
+            steps = tree.keys()
+            for step in steps:
+                try:
+                    self.get_element(step).load_buffer(tree[step])
+                except Exception as e:
+                    print(f"-- Error during Architecture::load_buffer('{data_file}') --")
+                    print(e)
+                    print("Buffer for step " + step + " could not be loaded")
+                    
+
     def run_simulation(self, tick_func, steps_to_plot, num_steps, print_timing=True):
         history = []
         timing_all = []
@@ -170,6 +204,11 @@ class Architecture:
             print(f"{(end_time - start_time):6.2f} s total duration\n")
             print(f"{(1000 * timing[0]):6.2f} ms average time for computation of static steps")
             print(f"{(1000 * timing[1]):6.2f} ms average time for dynamic computation")
+        
+        print("Saving buffers... ", end="", flush=True)
+        self.save_buffer()
+        print("done")
+
         return history, ms_per_tick, timing
 
     def tick(self):

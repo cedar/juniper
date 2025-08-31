@@ -146,7 +146,7 @@ class HebbianConnection(Step):
         self.register_input("in2") # reward signal
         self.register_output("out1") # rev_output
 
-        self.register_buffer("wheights", "wheight_shape") # dynamic wheight parameter
+        self.register_buffer("wheights", "wheight_shape", save=True) # dynamic wheight parameter
         self.register_buffer("reward_timer", "scalar_shape") # time since reward onset
         self.register_buffer("reward_onset", "scalar_shape") # reward onset
 

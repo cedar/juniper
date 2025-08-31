@@ -51,3 +51,12 @@ def zeros(shape):
 def ones(shape):
     mat = jnp.ones(shape, dtype=cfg["jdtype"])
     return mat
+
+def dtype_CV_string():
+    dtype = cfg["dtype"]
+    if dtype == np.float32:
+        return "CV_32F"
+    elif dtype == np.float16:
+        return "CV_16F"
+    else:
+        return "CV_undefined"

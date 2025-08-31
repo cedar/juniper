@@ -2,6 +2,8 @@ from src import util_jax
 from src import util
 from src.Configurable import Configurable
 from src.Architecture import get_arch
+import numpy as np
+import jax.numpy as jnp
 
 class Slot():
     def __init__(self, step, slot_name):
@@ -42,6 +44,7 @@ class Step(Configurable):
         self.needs_input_connections = True
         self.is_source = False
         self.buffer = {} # Stores matrices of internal and output buffers
+        self.buffer_to_save = []
         self.output_slot_names = []
         self.input_slot_names = []
         get_arch().add_element(self)
@@ -56,7 +59,7 @@ class Step(Configurable):
     def get_max_incoming_connections(self, slot_name):
         return self._max_incoming_connections[slot_name]
 
-    def get_name(self): # TODO remove get methods?
+    def get_name(self):
         return self._name
     
     def reset(self):
@@ -122,10 +125,50 @@ class Step(Configurable):
         self._max_incoming_connections[slot_name] = max_incoming_connections
         get_arch().register_element_input_slot(self.get_name(), slot_name)
     
-    def register_buffer(self, buf_name, slot_shape="shape"):
+    def register_buffer(self, buf_name, slot_shape="shape", save=False):
         if buf_name in self.buffer:
             raise ValueError(f"Buffer {buf_name} already registered ({self.get_name()})")
         self.reset_buffer(buf_name, slot_shape)
+        if save:
+            self.buffer_to_save.append(buf_name)
+
+    def load_buffer(self, tree):
+        if not "BUFFER" in tree:
+            raise Exception(f"Invalid buffer format. Expected BUFFER, got {tree.keys()}")
+        buffer_tree = tree["BUFFER"]
+        # Iterate through every saved buffer of this step
+        for buffer in buffer_tree.keys():
+            # Check if the saved buffer exists in the current step
+            if not buffer in self.buffer:
+                raise Exception(f"Step {self.get_name()} has no buffer '{buffer}': {list(self.buffer.keys())}")
+            buf_str = buffer_tree[buffer]
+            metadata, data = buf_str.split("\n")
+            # Check metadata format
+            metadata = metadata.split(",")
+            if not metadata[0] == "Mat":
+                raise Exception(f"Invalid buffer format. Expected Mat, got {metadata[0]}")
+            # Check datatype
+            if not metadata[1] == util_jax.dtype_CV_string():
+                raise Exception(f"Datatype of saved buffer ({metadata[1]}) has to match the datatype of the current architecture ({util_jax.dtype_CV_string()})")
+            # Fill buffer
+            shape = tuple([int(value_str) for value_str in metadata[2:]])
+            arr = jnp.array([float(value_str) for value_str in data.split(",")]).reshape(shape)
+            self.buffer[buffer] = arr
+
+    def save_buffer(self):
+        if len(self.buffer_to_save) == 0:
+            return None
+        buffer_dict = {}
+        for buf_name in self.buffer_to_save:
+            mat = self.buffer[buf_name]
+            # Save metadata containing datatype and matrix shape
+            buf_str = f"Mat,{util_jax.dtype_CV_string()},{','.join([str(size) for size in mat.shape])}" + "\n"
+            # Add flattened matrix elements
+            buf_str += str(np.asarray(mat).flatten().tolist())[1:-1]
+            buffer_dict[buf_name] = buf_str
+        # return dict containing all saved buffers
+        tree = {self._name: {"BUFFER": buffer_dict}}
+        return tree
 
     def update_input(self, arch, input_slot_shape="shape"):
         input_sums = {}
