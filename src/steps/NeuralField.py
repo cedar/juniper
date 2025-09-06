@@ -22,7 +22,7 @@ def euler_func_singleton(static, params, sigmoid):
     @partial(jax.jit, static_argnames=static_argnames)
     def eulerStep(passedTime, input_mat, u_activation, prng_key, resting_level, global_inhibition, beta, theta, lateral_kernel_convolution_kernel, tau, input_noise_gain):
         sigmoided_u = sigmoid(u_activation, beta, theta) # Could be optimized, we don't need this sigmoid computation if we pass the value of the output buffer to this function (which effectively is the sigmoided_u)
-        lateral_interaction = jsp.signal.convolve(sigmoided_u, lateral_kernel_convolution_kernel, mode="same")
+        lateral_interaction = jsp.signal.fftconvolve(sigmoided_u, lateral_kernel_convolution_kernel, mode="same")
 
         sum_sigmoided_u = jnp.sum(sigmoided_u)
 

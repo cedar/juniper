@@ -14,6 +14,10 @@ def get_arch():
         _architecture_singleton = Architecture()
     return _architecture_singleton
 
+def delete_arch():
+    global _architecture_singleton
+    _architecture_singleton = None
+
 class Architecture:
     def __init__(self):
         self.element_map = {}
@@ -57,7 +61,7 @@ class Architecture:
             subgraph = subgraph[::-1]
             compilation_graph_static += subgraph
         self.compilation_graph_static_c = compilation_graph_static
-        print("\nStatic step compilation graph:\n" + "\n".join([f"{elem[0]:<8} <-- {str(elem[1])}" for elem in compilation_graph_static]) + "\n")
+        #print("\nStatic step compilation graph:\n" + "\n".join([f"{elem[0]:<8} <-- {str(elem[1])}" for elem in compilation_graph_static]) + "\n")
 
     # If warmup is set to true, the architecture is run once and then reset, effectively precompiling all JIT compilable functions in the architecture (e.g. euler step of fields)
     def compile(self, warmup=True):

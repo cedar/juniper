@@ -15,7 +15,7 @@ class GaussKernel(Configurable):
 
         # Center of the kernel, default is the center of the shape
         if not "center" in params:
-            self._params["center"] = [int(0) for dim in range(self._dimensionality)]
+            self._params["center"] = [x // 2 for x in self._params["shape"]]
 
         # materialize the kernel tensor
         self._kernel = self.gkern_for_all_shapes(params["normalized"])
@@ -62,20 +62,17 @@ class GaussKernel(Configurable):
                 self._params["shape"][dim] = new_size
 
     def gkern_for_all_shapes(self, normalize):
-        # creates gaussian kernel with specified side lenghts and sigma
         shape = self._params["shape"]
         center = self._params["center"]
-        kernel = None
-        for dim in range(len(shape)):
-            ax = jnp.linspace(-(shape[dim] - 1) / 2., (shape[dim] - 1) / 2., shape[dim], dtype=util_jax.cfg["jdtype"])
-            gauss_1d = jnp.exp(-0.5 * jnp.square(ax-center[dim]) / jnp.square(self._params["sigma"][dim]))
+        sigma = self._params["sigma"]
+        kernel = 1.0
+        for dim, s in enumerate(shape):
+            gauss_1d = jnp.exp(-0.5 * (jnp.square(jnp.arange(s, dtype=util_jax.cfg["jdtype"]) - center[dim]) / jnp.square(sigma[dim])))
             if normalize:
                 gauss_1d /= jnp.sum(gauss_1d)
-
-            if kernel is None:
-                kernel = gauss_1d
-            else:
-                kernel = jnp.outer(kernel, gauss_1d).reshape(shape[:dim+1])
+            shape_reshape = [1]*len(shape)
+            shape_reshape[dim] = s
+            kernel = kernel * gauss_1d.reshape(shape_reshape) 
         return self._params["amplitude"] * kernel
     
     def get_kernel(self):

@@ -13,10 +13,13 @@ class Slot():
     def __rshift__(self, other):
         if isinstance(other, Step):
             get_arch().connect_to(self.name, other.get_name())
+            return other
         elif isinstance(other, str):
             get_arch().connect_to(self.name, other)
+            return get_arch().get_element(other)
         elif isinstance(other, Slot):
             get_arch().connect_to(self.name, other.name)
+            return other
         else:
             raise Exception(f"Cannot connect to unknown type ({type(other)})")
 
@@ -87,10 +90,13 @@ class Step(Configurable):
     def __rshift__(self, other):
         if isinstance(other, Step):
             get_arch().connect_to(self.get_name(), other.get_name())
+            return other
         elif isinstance(other, str):
             get_arch().connect_to(self.get_name(), other)
+            return get_arch().get_element(other)
         elif isinstance(other, Slot):
             get_arch().connect_to(self.get_name(), other.name)
+            return other
         else:
             raise Exception(f"Cannot connect to unknown type ({type(other)})")
 

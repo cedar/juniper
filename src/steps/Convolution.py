@@ -24,7 +24,7 @@ class Convolution(Step):
         input_mat = input_mats[util.DEFAULT_INPUT_SLOT]
         
         # Computation
-        output = jsp.signal.convolve(input_mat, self._kernel, mode=self._params["mode"])
+        output = jsp.signal.fftconvolve(input_mat, self._kernel, mode=self._params["mode"])
 
         # Return output
         return {util.DEFAULT_OUTPUT_SLOT: output}

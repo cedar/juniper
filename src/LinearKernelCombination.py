@@ -11,7 +11,7 @@ class LinearKernelCombination(Configurable):
         mandatory_params = ["kernels"]
         # optional parameters: wheights
         super().__init__(params, mandatory_params)
-        self._shapes = [kernel._params["shape"] for kernel in params["kernels"]]
+        self._shapes = [kernel.get_kernel().shape for kernel in params["kernels"]]
         self._dimensionalities = [len(shape) for shape in self._shapes]
         self._input_kernels = [kernel.get_kernel() for kernel in params["kernels"]]
         
@@ -44,7 +44,7 @@ class LinearKernelCombination(Configurable):
         # pad each kernel to the target shape
         padded_kernels = []
         for kernel, shape in zip(kernels, shapes):
-            padding = [(target_shape[dim]-shape[dim] // 2, target_shape[dim]-shape[dim] // 2) for dim in range(len(shape))]
+            padding = [((target_shape[dim]-shape[dim]) // 2, (target_shape[dim]-shape[dim]) // 2) for dim in range(len(shape))]
             padded_kernels.append(jnp.pad(kernel, padding, mode='constant', constant_values=0))
 
         return padded_kernels
