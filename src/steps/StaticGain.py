@@ -16,4 +16,4 @@ class StaticGain(Step):
         super().__init__(name, params, mandatory_params)
 
     def compute(self, input_mats, **kwargs):
-        _static_gain_compute(input_mats, self._params["factor"])
+        return _static_gain_compute(input_mats, self._params["factor"])
