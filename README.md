@@ -3,9 +3,10 @@ Welcome to JUNIPER, the GPU Accelerated Python Implementation of CEDAR
 
 ## Requirements
 
-- Insert your root path (folder that contains run_config.json) at the top of util.py, or leave it empty if you plan to run the main script from the root path
-- Install the required pip packages by running `pip install -r requirements.txt`
-- Run juniper.py (see Usage)
+- Install juniper and the required dependencies by running `pip install -e /path/to/repo`
+- For GPU support install juniper by running `pip install -e /path/to/repo[gpu]`. Make sure to check the JAX documentation to check for gpu support for your system.
+- Run run.py (see Usage)
+- Check the demo files to see how to run juniper from a jupyter-notebook.
 
 ## Usage
 
@@ -25,7 +26,7 @@ The reduction performed may not give a meaningful representation of the actual m
 
 If you want to pass arguments to your python architecture file you can use the `--arch_args` argument.
 
-The `--cache_jitted_funcs` argument can be passed to allow JIT compiled functions to be saved to disk, reducing compile time in subsequent runs of, but requiring disk space. This makes sense if large architectures with long compile times are compiled multiple times (i.e., juniper.py is executed multiple times) without big changes to the architecture.
+The `--cache_jitted_funcs` argument can be passed to allow JIT compiled functions to be saved to disk, reducing compile time in subsequent runs of, but requiring disk space. This makes sense if large architectures with long compile times are compiled multiple times (i.e., run.py is executed multiple times) without big changes to the architecture.
 
 When the architecture is tuned and should now be run for a large number of iterations, the `--static_euler_compilation` argument can be set. This often improves runtime performance of the simulation but may increase compilation time, as it pre-compiles *every* individual euler function of neural fields so that their parameters can stay constant.
 

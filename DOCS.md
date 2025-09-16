@@ -2,12 +2,12 @@
 
 ## Using juniper.py
 
-Several arguments can be passed to juniper.py to customize the simulation of architectures with JUNIPER.
+Several arguments can be passed to run.py to customize the simulation of architectures with JUNIPER.
 
 ### Mandatory Arguments
 
 - `arch`\
-The only mandatory argument to juniper.py is the path to the architecture file.
+The only mandatory argument to run.py is the path to the architecture file.
 This can be a JSON file (e.g. exported by CEDAR) or a python file that implements the get_architecture(args) method.
 This method should create an Architecture and return it.
 Examples for architecture files can be found in the `architectures` folder and a tutorial on creating architecture files can be found below.

@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "juniper"              
+version = "0.1.0"
+description = "JUNIPER, the GPU Accelerated Python Implementation of CEDAR"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["jax", "jaxlib", "matplotlib"]
+
+[project.optional-dependencies]
+cpu = []
+
+gpu = [
+  "jax[cuda12]"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# Include non-.py files inside the package (config.json, misc/, some_folder/)
+[tool.setuptools.package-data]
+package = [
+  "run_config.json",
+  "misc/**",
+  "steps/**"
+]
