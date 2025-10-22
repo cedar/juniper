@@ -1,7 +1,7 @@
 from juniper.steps.GaussInput import GaussInput
 from juniper.steps.NeuralField import NeuralField
 from juniper.steps.HebbianConnection import HebbianConnection
-from juniper.GaussKernel import GaussKernel
+from juniper.Gaussian import Gaussian
 from juniper.steps.Projection import Projection
 
 def get_architecture(args):
@@ -16,14 +16,14 @@ def get_architecture(args):
 
     nf1 = NeuralField(f"nf1", {"shape": shape1, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.1, 
                         "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta": 1,
-                        "lateral_kernel_convolution": GaussKernel({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape1}),})
+                        "lateral_kernel_convolution": Gaussian({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape1}),})
     nf2 = NeuralField(f"nf2", {"shape": shape2, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.1, 
                         "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta": 1,
-                        "lateral_kernel_convolution": GaussKernel({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
+                        "lateral_kernel_convolution": Gaussian({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
     
     nf3 = NeuralField("nf3", {"shape": shape2, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.1, 
                         "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta": 1,
-                        "lateral_kernel_convolution": GaussKernel({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
+                        "lateral_kernel_convolution": Gaussian({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
     
     hc1 = HebbianConnection("hc1", {"shape": shape1, "target_shape": shape2, "tau": 0.01, "tau_decay": 0.1, "learning_rate": 0.1,
                         "learning_rule": "instar", "bidirectional": True, "reward_duration": "no_reward"})

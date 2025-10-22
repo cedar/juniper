@@ -4,7 +4,7 @@ from juniper.steps.StaticGain import StaticGain
 from juniper.steps.ExampleStaticStep import ExampleStaticStep
 from juniper.steps.ExampleDynamicStep import ExampleDynamicStep
 from juniper.Architecture import get_arch
-from juniper.GaussKernel import GaussKernel
+from juniper.Gaussian import Gaussian
 
 def get_architecture(args):
     shape = (50, 50)
@@ -19,7 +19,7 @@ def get_architecture(args):
     ds0 = ExampleDynamicStep(f"ds0", {"shape": shape})
     nf0 = NeuralField(f"nf0", {"shape": shape, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.1, 
                         "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta":0,
-                        "lateral_kernel_convolution": GaussKernel({"sigma": (3,3), "amplitude": 1, "normalized": True, "max_shape": shape}),})
+                        "lateral_kernel_convolution": Gaussian({"sigma": (3,3), "amplitude": 1, "normalized": True, "max_shape": shape}),})
 
 
     # Connections (different syntax possible)

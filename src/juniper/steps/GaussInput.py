@@ -1,5 +1,5 @@
 from .Step import Step
-from ..GaussKernel import GaussKernel
+from ..Gaussian import Gaussian
 from .. import util
 import jax
 from functools import partial
@@ -26,7 +26,7 @@ class GaussInput(Step):
         self._max_incoming_connections = {}
 
         # Compute kernel once and save it
-        kernel = GaussKernel({"shape": params["shape"], "sigma": params["sigma"], "amplitude": params["amplitude"], "normalized": False, "center": params["center"]})
+        kernel = Gaussian({"shape": params["shape"], "sigma": params["sigma"], "amplitude": params["amplitude"], "normalized": False, "center": params["center"]})
         self._kernel = kernel.get_kernel()
 
     @partial(jax.jit, static_argnames=['self'])

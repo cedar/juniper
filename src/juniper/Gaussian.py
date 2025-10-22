@@ -3,19 +3,23 @@ import jax
 from . import util_jax
 from .Configurable import Configurable
 
-class GaussKernel(Configurable):
+class Gaussian(Configurable):
 
     def __init__(self, params):
         mandatory_params = ["sigma", "amplitude", "normalized"]
         super().__init__(params, mandatory_params)
         self._dimensionality = len(params["sigma"])
         # Estimate width if not explicitly set
-        if not "shape" in params:
+        if "shape" not in params:
             self._params["shape"] = self._estimate_size()
 
         # Center of the kernel, default is the center of the shape
-        if not "center" in params:
+        if "center" not in params:
             self._params["center"] = [x // 2 for x in self._params["shape"]]
+
+        # per default we use a factorized kernel
+        if "factorized" not in params:
+            self._params["factorized"] = True
 
         # materialize the kernel tensor
         self._kernel = self.gkern_for_all_shapes(params["normalized"])
@@ -25,7 +29,7 @@ class GaussKernel(Configurable):
             self.check_kernel_size()
 
         if len(params["shape"]) != len(params["sigma"]):
-            raise ValueError(f"GaussKernel requires equal dimensionality of sigma ({len(params['sigma'])}) and shape ({len(params['shape'])})")
+            raise ValueError(f"Gaussian requires equal dimensionality of sigma ({len(params['sigma'])}) and shape ({len(params['shape'])})")
 
     def _estimate_size(self):
         limit = 5

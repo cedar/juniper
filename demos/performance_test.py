@@ -1,7 +1,7 @@
 from juniper.steps.GaussInput import GaussInput
 from juniper.steps.NeuralField import NeuralField
 from juniper.steps.StaticGain import StaticGain
-from juniper.GaussKernel import GaussKernel
+from juniper.Gaussian import Gaussian
 
 # Supply args for this architecture using the --arch_args command line argument in the following format:
 # num_fields shape kernel_sigma_shape gauss_mode
@@ -34,7 +34,7 @@ def get_architecture(args):
                                     "sigmoid": "AbsSigmoid", "beta": 100+i*0.001, "theta": 0+i*0.001,
                             "input_noise_gain": 0.1+i*0.001, 
                             "lateral_kernel_convolution": 
-                            GaussKernel({"sigma": kernel_sigmas, "amplitude": kernel_amplitude, "normalized": True, "max_shape": shape}),
+                            Gaussian({"sigma": kernel_sigmas, "amplitude": kernel_amplitude, "normalized": True, "max_shape": shape}),
                             "shape": shape})
         from_element = f"st0" if single_gauss else f"st{i}"
         nf << from_element

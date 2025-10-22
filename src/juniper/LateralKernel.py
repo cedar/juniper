@@ -3,7 +3,7 @@ import jax.numpy as jnp
 from . import util_jax
 from .Configurable import Configurable
 
-class LinearKernelCombination(Configurable):
+class LateralKernel(Configurable):
     # This class generates a wheighted linear combination of a list of input kernels. Inputs should all be of the kernel type (include a get_kernel() method) and have the same dimensionality.
     # if the dimension sizes are not the same, the kernel with the largest dim size will be used and the others will be padded with zeros.
     def __init__(self, params):

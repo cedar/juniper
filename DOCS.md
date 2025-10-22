@@ -119,7 +119,7 @@ Every Step has to be added to the architecture (Architecture::add_element()), an
 The Step class can be considered an abstract class that gives a basic interface for steps and provides functions like register_input/output or update_input.
 Each individual step should be a class that inherits the Step class and implements the compute() method.
 
-The Step class itself inherits the Configurable class, that handles all parameterizable objects (e.g., steps and GaussKernel).
+The Step class itself inherits the Configurable class, that handles all parameterizable objects (e.g., steps and Gaussian).
 
 The sigmoid used, e.g., by the NeuralField class, is currently handled by the class AbsSigmoid.
 The actual sigmoid computation is, however, happening in sigmoids.py.
