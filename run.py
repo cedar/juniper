@@ -78,7 +78,6 @@ if __name__ == "__main__":
 
 # TODO
 # check TODOs in source code
-# convolution? -> add fft convo
-# add default params to every step where possible
-# make params of each step compatible with cedar params, to make json importable
-# make uniper a package for easy import and installation
+# port over factorized convolve and kernel class
+# refactor sigmoids
+# test the shit like in old code

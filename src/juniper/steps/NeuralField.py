@@ -5,7 +5,7 @@ import jax.numpy as jnp
 import jax.scipy as jsp
 import jax
 from functools import partial
-from ..sigmoids import SIGMOID_MAP
+from ..Sigmoid import Sigmoid
 
 # This singleton construct is needed as we need to specify the static_argnames in the compiler directive depending on the user input
 euler_func = None
@@ -56,13 +56,7 @@ class NeuralField(Step):
                     raise ValueError(f"NeuralField {name} requires shape {self._params['shape']} to be larger than lateral kernel "\
                                     f"shape {self._lateral_kernel.shape} in every dimension. Reduce lateral kernel sigma.")
 
-        try:
-            self.sigmoid = SIGMOID_MAP[self._params["sigmoid"]]
-        except KeyError:
-            raise ValueError(
-                f"Unknown sigmoid parameter: {self._params['sigmoid']}. "
-                f"Supported non-linearities are: {', '.join(SIGMOID_MAP)}"
-                )
+        self.sigmoid = Sigmoid(self._params["sigmoid"]).sigmoid
 
         self._euler_func = euler_func_singleton(util_jax.cfg['euler_step_static_precompile'], self._params, self.sigmoid)
 

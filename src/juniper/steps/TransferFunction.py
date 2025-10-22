@@ -2,20 +2,14 @@ import jax
 from functools import partial
 from .Step import Step
 from .. import util
-from ..sigmoids import SIGMOID_MAP
+from ..Sigmoid import Sigmoid
 
 class TransferFunction(Step):
 
     def __init__(self, name, params):
         mandatory_params = ["threshold", "beta", "function"]
         super().__init__(name, params, mandatory_params)
-        try:
-            self._trans_func = SIGMOID_MAP[self._params["function"]]
-        except KeyError:
-            raise ValueError(
-                f"Unknown function: {self._params['function']}. "
-                f"Supported functions are: {', '.join(SIGMOID_MAP)}"
-                )
+        self._trans_func = Sigmoid(self._params["function"]).sigmoid
 
     @partial(jax.jit, static_argnames=['self'])
     def compute(self, input_mats, **kwargs):
