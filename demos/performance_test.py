@@ -33,7 +33,7 @@ def get_architecture(args):
         nf = NeuralField(f"nf{i}", {"resting_level": -0.7+i*0.001, "global_inhibition": -0.01+i*0.001, "tau": 0.1, 
                                     "sigmoid": "AbsSigmoid", "beta": 100+i*0.001, "theta": 0+i*0.001,
                             "input_noise_gain": 0.1+i*0.001, 
-                            "lateral_kernel_convolution": 
+                            "LateralKernel": 
                             Gaussian({"sigma": kernel_sigmas, "amplitude": kernel_amplitude, "normalized": True, "max_shape": shape}),
                             "shape": shape})
         from_element = f"st0" if single_gauss else f"st{i}"

@@ -27,11 +27,11 @@ class DemoInput(Step):
         self._max_incoming_connections = {}
 
 
-        kernel = Gaussian({"shape": params["shape"], "sigma": params["sigma"], "amplitude": params["amplitude"], "normalized": False, "center": params["center"]})
+        kernel = Gaussian({"shape": params["shape"], "sigma": params["sigma"], "amplitude": params["amplitude"], "normalized": False, "center": params["center"], "factorized": False})
         self._kernel = kernel.get_kernel()
 
     def compute(self, input_mats, **kwargs):
 
-        kernel = Gaussian({"shape": self._params["shape"], "sigma": self._params["sigma"], "amplitude": self._params["amplitude"], "normalized": False, "center": self._params["center"]})
+        kernel = Gaussian({"shape": self._params["shape"], "sigma": self._params["sigma"], "amplitude": self._params["amplitude"], "normalized": False, "center": self._params["center"], "factorized": False})
         self._kernel = kernel.get_kernel()
         return {util.DEFAULT_OUTPUT_SLOT: self._kernel}

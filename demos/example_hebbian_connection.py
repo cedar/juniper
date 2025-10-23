@@ -16,17 +16,17 @@ def get_architecture(args):
 
     nf1 = NeuralField(f"nf1", {"shape": shape1, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.1, 
                         "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta": 1,
-                        "lateral_kernel_convolution": Gaussian({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape1}),})
+                        "LateralKernel": Gaussian({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape1}),})
     nf2 = NeuralField(f"nf2", {"shape": shape2, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.1, 
                         "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta": 1,
-                        "lateral_kernel_convolution": Gaussian({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
+                        "LateralKernel": Gaussian({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
     
     nf3 = NeuralField("nf3", {"shape": shape2, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.1, 
                         "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta": 1,
-                        "lateral_kernel_convolution": Gaussian({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
+                        "LateralKernel": Gaussian({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
     
     hc1 = HebbianConnection("hc1", {"shape": shape1, "target_shape": shape2, "tau": 0.01, "tau_decay": 0.1, "learning_rate": 0.1,
-                        "learning_rule": "instar", "bidirectional": True, "reward_duration": "no_reward"})
+                        "learning_rule": "instar", "bidirectional": True, "reward_type": "no_reward", "reward_duration": [0,1]})
     
     proj1 = Projection("proj1", {"input_shape": shape1, "output_shape": shape1*2, "axis": (0,), "order":(0,1), "compression_type": "Sum"})
 

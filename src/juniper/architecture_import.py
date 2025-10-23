@@ -46,7 +46,7 @@ def _import_json_file(file_path):
                             "sigmoid": step_elem["sigmoid"], 
                             "beta": float(step_elem["beta"]), 
                             "theta": float(step_elem["theta"]),
-                            "lateral_kernel_convolution": Gaussian({"sigma": float(step_elem["lateral kernels"][0]["cedar.aux.kernel.Gauss"][0]["sigmas"][0][0]), 
+                            "LateralKernel": Gaussian({"sigma": float(step_elem["lateral kernels"][0]["cedar.aux.kernel.Gauss"][0]["sigmas"][0][0]), 
                             "amplitude": 0.018116}), 
                             "shape": [int(size) for size in step_elem["sizes"][0]]}) # float(step_elem["lateral kernels"][0]["cedar.aux.kernel.Gauss"][0]["amplitude"][0])
                 # TODO dont hardcode 0.018116, instead get amplitude and normalization attribute

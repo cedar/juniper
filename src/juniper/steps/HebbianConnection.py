@@ -2,7 +2,6 @@ from .Step import Step
 from .. import util
 from .. import util_jax
 import jax.numpy as jnp
-import jax.scipy as jsp
 import jax
 from functools import partial
 
@@ -57,13 +56,15 @@ BIDIR_MAP = {
     0: no_reverse_output
 }
 
-def make_reward_func(params):
-    static_argnames_rew = ['reward_duration']
+def make_reward_func(params, static):
+    static_argnames_rew = []
+    if static:
+        static_argnames_rew = ['reward_duration']
     try:
-        _reward_func = REWARD_MAP[params["reward_duration"]]
+        _reward_func = REWARD_MAP[params["reward_type"]]
     except KeyError:
         raise ValueError(
-            f"Unknown reward setting: {params['reward_duration']}. "
+            f"Unknown reward setting: {params['reward_type']}. "
             f"Supported settings are: {', '.join(REWARD_MAP)}"
             )
     return partial(jax.jit, static_argnames=static_argnames_rew)(_reward_func)
@@ -71,7 +72,7 @@ def make_reward_func(params):
 def make_euler_func(params, static):
     static_argnames_euler = []
     if static:
-        static_argnames_euler = ["tau", "tau_decay", "learning_rate", "learning_rule", "bidirectional"]
+        static_argnames_euler = ["tau", "tau_decay", "learning_rate"]
 
     # Choose update term based on learning rule
     try:
@@ -99,7 +100,7 @@ def make_euler_func(params, static):
 
         # output and reverse output
         output = jnp.tensordot(wheight_mat, source_mat,
-            axes=(list(range(0, source_mat.ndim)), list(range(source_mat.ndim))))
+            axes=(list(range(0, source_mat.ndim)), list(range(0,source_mat.ndim))))
         output_rev = output_rev_func(wheight_mat, target_mat, source_mat.ndim, wheight_mat.ndim)
 
         source_expanded = source_mat.reshape(*source_mat.shape, *([1] * target_mat.ndim))
@@ -115,12 +116,12 @@ def make_euler_func(params, static):
 
 euler_func = None
 reward_func = None
-def generate_euler_func(static, params):
+def euler_func_singleton(static, params):
     global euler_func, reward_func
 
     # generates euler func based on the geiven params
     if reward_func is None:
-        reward_func = make_reward_func(params)
+        reward_func = make_reward_func(params, static)
     if euler_func is None:
         euler_func = make_euler_func(params, static)
 
@@ -128,14 +129,14 @@ def generate_euler_func(static, params):
 
 class HebbianConnection(Step):
 
-    def __init__(self, name, params):
-        mandatory_params = ["shape", "target_shape", "tau", "tau_decay", "learning_rate", "learning_rule", "bidirectional", "reward_duration"]
-
-        super().__init__(name, params, mandatory_params, is_dynamic=True)
+    def __init__(self, name, params=None):
+        mandatory_params = ["shape", "target_shape", "tau", "tau_decay", "learning_rate", "learning_rule", "bidirectional", "reward_type", "reward_duration"]
+        super().__init__(name, params, mandatory_params=mandatory_params, is_dynamic=True)
         self._params["wheight_shape"] = self._params["shape"] + self._params["target_shape"]
         self._params["scalar_shape"] = (1,)
+        self._params["reward_duration"] = tuple(self._params["reward_duration"]) 
 
-        self._euler_func, self._reward_func = generate_euler_func(util_jax.cfg['euler_step_static_precompile'], self._params)
+        self._euler_func, self._reward_func = euler_func_singleton(util_jax.cfg['euler_step_static_precompile'], self._params)
 
         self.needs_input_connections = True
         self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = 3
@@ -154,7 +155,7 @@ class HebbianConnection(Step):
         
 
     def compute(self, input_mats, **kwargs):
-        if not "prng_key" in kwargs:
+        if "prng_key" not in kwargs:
             raise Exception("prng_key is a mandatory kwarg to dynamic compute()")
 
         prng_key = kwargs["prng_key"]
@@ -175,4 +176,4 @@ class HebbianConnection(Step):
         self.buffer["reward_timer"] = util_jax.zeros((1,))
         self.buffer["reward_onset"] = util_jax.zeros((1,))
         self.reset_buffer(util.DEFAULT_OUTPUT_SLOT, slot_shape="target_shape")
-        self.reset_buffer("out2", slot_shape="shape")
+        self.reset_buffer("out1", slot_shape="shape")

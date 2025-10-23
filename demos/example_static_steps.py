@@ -14,11 +14,11 @@ def get_architecture(args):
 
     nf1 = NeuralField(f"nf1", {"shape": shape1, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.01, 
                         "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta": 1,
-                        "lateral_kernel_convolution": Gaussian({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape1}),})
+                        "LateralKernel": Gaussian({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape1}),})
                         
     nf2 = NeuralField(f"nf2", {"shape": (50,50), "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.01, 
                         "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta": 1,
-                        "lateral_kernel_convolution": Gaussian({"sigma": (3,3), "amplitude": 1, "normalized": True, "max_shape": (50,50)}),})
+                        "LateralKernel": Gaussian({"sigma": (3,3), "amplitude": 1, "normalized": True, "max_shape": (50,50)}),})
 
     # Static steps
     gi0 = GaussInput("gi0", {"shape": shape1, "sigma": (2,), "amplitude": 2})
