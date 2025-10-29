@@ -1,9 +1,6 @@
 import socket
 import threading
 import jax.numpy as jnp
-import jax.debug as jdbg
-
-import numpy as np
 import time
 
 from .Step import Step
