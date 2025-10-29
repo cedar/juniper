@@ -17,7 +17,7 @@ class GaussInput(Step):
         # Check if a center for the gaussian is given, otherwise default to (0, 0) (center of the shape)
         if "center" not in params:
             warnings.warn(f"GaussInput {name} does not have a center parameter. Defaulting to (0, 0).")
-            params["center"] = (0,) * len(params["shape"])
+            self._params["center"] = [x // 2 for x in self._params["shape"]]
         
         self.is_source = True
         
