@@ -78,6 +78,3 @@ if __name__ == "__main__":
 
 # TODO
 # check TODOs in source code
-# port over factorized convolve and kernel class
-# refactor sigmoids
-# test the shit like in old code

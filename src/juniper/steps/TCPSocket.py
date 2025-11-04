@@ -104,8 +104,10 @@ class TCPSocket(Step): # TODO: Remove dependency on shape and dynamic step setti
     # Currently this step is primarily for communication with Cedar. The checksum computation and format are specific to work with Cedar's TCP read and write sockets.
     def __init__(self, name, params):
         mandatory_params = ['ip', 'port', 'mode']
-        if params["mode"] == "write":
-                params["shape"] = (0,)  # in write mode, no output, so shape can be zero
+        if "mode" == "read":
+            mandatory_params += ["shape"]
+        if params["mode"] == "write" and "shape" not in params:
+                params["shape"] = (0,)  # in write mode, no output, so shape can be zero... actually, sometimes it can be necessary to have output shape (eg for debugging)
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.needs_input_connections = False
 
@@ -137,7 +139,8 @@ class TCPSocket(Step): # TODO: Remove dependency on shape and dynamic step setti
         self.server_sock = None
         self.conn = None
         self.addr = None
-        self.data = jnp.zeros((10,10))
+        self.shape = params["shape"]
+        self.data = jnp.zeros(self.shape)
         self.data_lock = threading.Lock()
 
         self.send_buffer = b''
