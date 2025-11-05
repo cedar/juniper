@@ -118,7 +118,7 @@ class TCPSocket(Step): # TODO: Remove dependency on shape and dynamic step setti
             params['buffer_size'] = 32768
 
         if 'time_step' not in params:
-            params['time_step'] = 0.02
+            params['time_step'] = 1
 
         if params['mode'] not in ['read', 'write']:
             raise ValueError(f"TCPSocket {name} has invalid mode {params['mode']}. Must be 'read' or 'write'.")
