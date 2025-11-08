@@ -4,6 +4,7 @@ from .. import util
 import jax.numpy as jnp
 import jax
 
+import jax.debug as jgdb
 
 def vectors_to_field(vectors, field_shape):
     v = jnp.asarray(vectors, dtype=jnp.float32)
@@ -12,6 +13,9 @@ def vectors_to_field(vectors, field_shape):
     (xmin, xmax), (ymin, ymax), (zmin, zmax) = ((0,Nx),(0,Ny),(0,Nz))
 
     x, y, z = v[:, 0], v[:, 1], v[:, 2]
+    jgdb.print('x_min,x_max: {}, {}', jnp.min(x), jnp.max(x))
+    jgdb.print('y_min,y_max: {}, {}', jnp.min(y), jnp.max(y))
+    jgdb.print('z_min,z_max: {}, {}', jnp.min(z), jnp.max(z))
     eps = 1e-8
     ix = jnp.floor((x - xmin) / (xmax - xmin + eps) * Nx).astype(jnp.int32)
     iy = jnp.floor((y - ymin) / (ymax - ymin + eps) * Ny).astype(jnp.int32)
