@@ -15,5 +15,9 @@ class StaticGain(Step):
         mandatory_params = ["factor"]
         super().__init__(name, params, mandatory_params)
 
+    @partial(jax.jit, static_argnames=['self'])
     def compute(self, input_mats, **kwargs):
-        return _static_gain_compute(input_mats, self._params["factor"])
+        input = input_mats[util.DEFAULT_INPUT_SLOT]
+        factor = self._params["factor"]
+        output = input * factor
+        return {util.DEFAULT_OUTPUT_SLOT:  output}

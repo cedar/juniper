@@ -78,3 +78,6 @@ if __name__ == "__main__":
 
 # TODO
 # check TODOs in source code
+# Add documentation to each class 
+# Reorganize steps into categories dynamic, processing, sinks, sources, robotics, auxillaries
+# use needs_incoming_connections to check if income slots needs to be specified and deal with bug when it is not.

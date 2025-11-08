@@ -1,4 +1,3 @@
-import jax
 import jax.numpy as jnp
 
 def AbsSigmoid(x, beta, theta):
