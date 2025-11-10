@@ -1,13 +1,14 @@
 from juniper.steps.GaussInput import GaussInput
-from juniper.steps.TCPSocket import TCPSocket
 from juniper.steps.NeuralField import NeuralField
+from juniper.steps.TCPReader import TCPReader
+from juniper.steps.TCPWriter import TCPWriter
 
 
 
 def get_architecture(args):
     # TCP Socket Steps
-    tcp_reader = TCPSocket("tcp_reader", {"mode": "read", "ip": "127.0.0.1", "port": 50000, "shape": (51,51)})
-    tcp_writer = TCPSocket("tcp_writer", {"mode": "write", "ip": "127.0.0.1", "port": 50001})
+    tcp_reader = TCPReader("tcp_reader", {"ip": "127.0.0.1", "port": 50000, "shape": (51,51)})
+    tcp_writer = TCPWriter("tcp_writer", {"ip": "127.0.0.1", "port": 50001})
 
     # Neural Field Step
     nf1 = NeuralField(f"nf1", {"shape": (51, 51), "resting_level": -0.5, "global_inhibition": -0.0, "tau": 0.1, 
