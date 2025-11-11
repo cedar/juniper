@@ -22,7 +22,7 @@ M_base_2_cam = M_base_2_cam.at[:,3].set(v_base_to_cam)
 def base_to_cam_joint(joint_angles):
     return M_base_2_cam
 
-v_joint_to_cam = jnp.array([0,0,0.097])
+v_joint_to_cam = jnp.array([0,0,0.097])*0
 def joint_to_cam_base(joint_angles):
     tilt = joint_angles[1][0] / 180 * jnp.pi 
     pan =  -joint_angles[0][0] / 180 * jnp.pi 
@@ -31,7 +31,7 @@ def joint_to_cam_base(joint_angles):
     pan_mat = jnp.array([[jnp.cos(pan),-jnp.sin(pan),0], [jnp.sin(pan), jnp.cos(pan), 0], [0, 0, 1]])
     Rot_mat = tilt_mat @ pan_mat
     Rot_mat = Rot_mat
-    cam_offset = Rot_mat @ v_joint_to_cam
+    cam_offset = jnp.linalg.inv(Rot_mat) @ v_joint_to_cam
 
     M = jnp.eye(4)
     M = M.at[:3, :3].set(Rot_mat)
@@ -93,7 +93,8 @@ def get_architecture(args):
 
     field_shape = (60,180,20)
     origin = (-0.10, -1.99, -0.03)
-    field_units_per_meter = (60., 60., 60.)
+    origin = (0.10, -0.99, 0.04)
+    field_units_per_meter = (100., 100., 100.)
     fm1 = VectorsToField("fm1", params={"field_shape": field_shape, "origin": origin, "field_units_per_meter": field_units_per_meter})
     fm2 = FieldToVectors("fm2", params={"origin": origin, "field_units_per_meter": field_units_per_meter})
     comp = CompressAxes("comp", params={"axis":(2,), "compression_type": "Maximum"})

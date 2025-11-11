@@ -7,6 +7,11 @@ from juniper.steps.NeuralField import NeuralField
 from juniper.Gaussian import Gaussian
 from juniper.steps.ComponentMultiply import ComponentMultiply
 
+from juniper.steps.SpaceToRateCode import SpaceToRateCode
+from juniper.steps.RateToSpaceCode import RateToSpaceCode
+
+from juniper.steps.CompressAxes import CompressAxes
+
 def get_architecture(args):
     shape1 = (50,)
     shape2 = (50,50,25)
@@ -19,6 +24,9 @@ def get_architecture(args):
     nf2 = NeuralField(f"nf2", {"shape": (50,50), "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.01, 
                         "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta": 1,
                         "LateralKernel": Gaussian({"sigma": (3,3), "amplitude": 1, "normalized": True, "max_shape": (50,50)}),})
+    
+    nf3 = NeuralField(f"nf3", {"shape": shape2, "resting_level": -0.7, "global_inhibition": -0.01, "tau": 0.01, 
+                        "input_noise_gain": 0.1, "sigmoid": "AbsSigmoid", "beta": 100, "theta": 1,})
 
     # Static steps
     gi0 = GaussInput("gi0", {"shape": shape1, "sigma": (2,), "amplitude": 2})
@@ -37,6 +45,11 @@ def get_architecture(args):
 
     comp_multiply = ComponentMultiply("comp_multiply", {})
 
+    s2r = SpaceToRateCode('s2r', params={"shape": shape2, "limits": tuple([(0,shape2[i]) for i in range(len(shape2))])})
+    r2s = RateToSpaceCode('r2s', params={'shape': shape2, "limits": tuple([(0,shape2[i]) for i in range(len(shape2))]), "amplitude":2, "sigma": (2,2,2)})
+    comp1 = CompressAxes('comp1', params={"axis": (2,), "compression_type": "Maximum"})
+    comp2 = CompressAxes('comp2', params={"axis": (2,), "compression_type": "Maximum"})
+
     # Connections (different syntax possible)
     gi0 >> norm0
     gi1 >> projection1
@@ -53,3 +66,6 @@ def get_architecture(args):
     projection0 >> projection2
     projection2 >> nf2
 
+    gi1 >> s2r >> r2s >> nf3
+    gi1 >> comp1 >> nf2
+    r2s >> comp2 >> nf2
