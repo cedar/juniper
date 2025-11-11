@@ -42,10 +42,6 @@ class VectorsToField(Step):
         ix = jnp.floor((v[:, 0] - ox) * dx).astype(jnp.int32)
         iy = jnp.floor((v[:, 1] - oy) * dy).astype(jnp.int32)
         iz = jnp.floor((v[:, 2] - oz) * dz).astype(jnp.int32)
-        jgdb.print('x_min,x_max: {}, {}', jnp.min(ix), jnp.max(ix))
-        jgdb.print('y_min,y_max: {}, {}', jnp.min(iy), jnp.max(iy))
-        jgdb.print('z_min,z_max: {}, {}', jnp.min(iz), jnp.max(iz))
-        jgdb.print('{}', self._params)
 
         # in-bounds mask (no boolean indexing!)
         inb = (

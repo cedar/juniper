@@ -45,7 +45,7 @@ def cam_base_to_joint(joint_angles):
     return T
 
 R_base_to_field = jnp.array([[1.0,0,0,0], [0,-1,0,0], [0,0,-1,0], [0,0,0,1]])
-jdbg.print('{}', R_base_to_field)
+#jdbg.print('{}', R_base_to_field)
 def base_to_field(joint_angles):
     return R_base_to_field
 
