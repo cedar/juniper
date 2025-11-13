@@ -5,7 +5,23 @@ import jax.numpy as jnp
 import jax
 
 class PinHoleBackProjector(Step):
-    def __init__(self, name, params):
+    """
+    Description
+    ---------
+    Takes the depth image of a pinhole camera as input and transforms the image into polar coordinates.
+
+    Parameters
+    ---------    
+    - img_shape : tuple(H,W)
+    - focal_length : float
+    - frustrum_angles : tuple(dphi, dtheta)
+
+    Step Input/Output slots
+    ---------
+    - Input: jnp.array(img_shape)
+    - output: jnp.ndarray(H*W,3)
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["img_shape", "focal_length", "frustrum_angles"]
         super().__init__(name, params, mandatory_params)
         self._params = params.copy()

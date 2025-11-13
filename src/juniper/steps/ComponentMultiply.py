@@ -6,8 +6,20 @@ import jax.numpy as jnp
 from functools import partial
 
 class ComponentMultiply(Step):
+    """
+    Description
+    ---------
+    Componentwise multiplication of incoming steps.
 
-    def __init__(self, name, params):
+    Parameters
+    ---------
+
+    Step Input/Output slots
+    ---------
+    - in0 : jnp.array()
+    - out0 : jnp.array()
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
         self.needs_input_connections = True

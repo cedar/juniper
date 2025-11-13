@@ -5,8 +5,20 @@ import jax
 from functools import partial
 
 class Sum(Step):
+    """
+    Description
+    ---------
+    Adds incoming steps component wise.
 
-    def __init__(self, name, params):
+    Parameters
+    ----------
+
+    Step Input/Output slots
+    ----------
+    - in0 : jnp.ndarray 
+    - out0 : jnp.ndarray 
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
         self.needs_input_connections = True

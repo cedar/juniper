@@ -39,5 +39,14 @@ def sigmoid_func_singleton(func):
     return sigmoid
 
 class Sigmoid:
+    """
+    Description
+    ---------
+    A wrapper for sigmoid objects. Not intended to be used directly
+
+    Parameters
+    ----------
+    - type : str(AbsSigmoid, HeavySideSigmoid, ExpSigmoid, LinearSigmoid, SemiLinearSigmoid, LogarithmicSigmoid)
+    """
     def __init__(self, type=None):
         self.sigmoid = sigmoid_func_singleton(type)

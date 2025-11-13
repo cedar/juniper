@@ -50,6 +50,8 @@ def serialize_cv_mat(mat: jnp.ndarray) -> bytes:
 
 class TCPWriter(Step): 
     """
+    Description
+    ---------
     Launches a TCP write communication thread. Currently deprecated due to blocking gat/set calls.
     
     TODO: Remove dependency on shape and dynamic step setting. This requires reworking how the buffers and shapes re allocated and it requires rethinking how the computational graph is constructed.
@@ -58,16 +60,26 @@ class TCPWriter(Step):
     ----------
     - ip :
     - port : 
-    - shape (optional) : (Nx,Ny,...) (Default: (0,))
-    - timeout [s] (optional) : float (Default: 1.0)
+    - shape (optional) : (Nx,Ny,...)
+        - Default = (0,)
+    - timeout [s] (optional) : float
         - Time until connection times out
-    - buffer_size [byte] (optional) : int (Default: 32768)
+        - Default = 1.0
+    - buffer_size [byte] (optional) : int
         - size of send packets
-    - time_step [s] (optional) : float (Default: 1.0)
+        - Default = 32768
+    - time_step [s] (optional) : float
         - wait time between send calls
+        - Default = 1.0
+
+    Step Input/Output slots
+    ----------
+    - in0 : jnp.ndarray
+    - out0 : jnp.ndarray
+        - this output is mostly for debugging. May be removed in the future.
     """
     
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ['ip', 'port']
         if "shape" not in params:
                 params["shape"] = (0,)  # no output, so shape can be zero... actually, sometimes it can be necessary to have output shape (eg for debugging)

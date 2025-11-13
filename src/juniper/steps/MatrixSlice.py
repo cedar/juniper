@@ -6,6 +6,8 @@ from .. import util
 
 class MatrixSlice(Step):
     """
+    Description
+    ---------
     Slices Matrix according to specified slice ranges.
 
     TODO: Add ability to choose center cutout as a slice mode
@@ -16,13 +18,13 @@ class MatrixSlice(Step):
         - For each dimension slices specifies the lower and upper indice bounds for slicing. 
         - Absolute indice coordinates are used. So (0,10) will slice the first 10 elements (not 10 in the center).
 
-    Step Computation
+    Step Input/Output slots
     ---------
     - Input: jnp.ndarray 
     - output: jnp.ndarray 
     """
 
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["slices"]
         super().__init__(name, params, mandatory_params)
         

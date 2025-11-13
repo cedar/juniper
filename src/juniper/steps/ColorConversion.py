@@ -8,8 +8,22 @@ import jax.numpy as jnp
 import numpy as np
 
 class ColorConversion(Step):
+    """
+    Description
+    ---------
+    Converts an RGB image into a HSV image
 
-    def __init__(self, name, params):
+    Parameters
+    ---------
+
+    Step Input/Output slots
+    ---------
+    - in0 : jnp.array((H,W,3))
+    - out0 : jnp.array((H,W))
+    - out1 : jnp.array((H,W))
+    - out2 : jnp.array((H,W))
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
 

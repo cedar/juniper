@@ -57,6 +57,8 @@ def parse_cv_mat(data: bytes):
 
 class TCPReader(Step): 
     """
+    Description
+    ---------
     Launches a TCP read communication thread. Currently deprecated due to blocking gat/set calls.
     
     TODO: Remove dependency on shape and dynamic step setting. This requires reworking how the buffers and shapes re allocated and it requires rethinking how the computational graph is constructed.
@@ -65,15 +67,23 @@ class TCPReader(Step):
     ----------
     - ip :
     - port : 
-    - shape (optional) : (Nx,Ny,...) (Default: (0,))
-    - timeout [s] (optional) : float (Default: 1.0)
+    - shape (optional) : (Nx,Ny,...)
+    - Default = (0,)
+    - timeout [s] (optional) : float
         - Time until connection times out
-    - buffer_size [byte] (optional) : int (Default: 32768)
+        - Default = 1.0
+    - buffer_size [byte] (optional) : int
         - size of send packets
-    - time_step [s] (optional) : float (Default: 1.0)
+        - Default = 32768
+    - time_step [s] (optional) : float
         - wait time between send calls
+        - Default = 1.0
+
+    Step Input/Output slots
+    ----------
+    - out0 : jnp.ndarray 
     """
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ['ip', 'port', 'shape']
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.needs_input_connections = False

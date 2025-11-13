@@ -10,6 +10,8 @@ import jax.debug as jgdb
 
 class SpaceToRateCode(Step):
     """
+    Description
+    ---------
     Takes field like array and produces a vector centered at field peak position coordinates. Assumes at most one peak in the input field.
 
     TODO: make multiple peaks possible? Make cyclic possible? Implement expoential convergance to attractor
@@ -31,7 +33,7 @@ class SpaceToRateCode(Step):
     - in0 : jnp.array((Nx,Ny,...))
     - out0 : jnp.array(len(Nx,Ny,...))
     """
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ['limits', 'shape']
         super().__init__(name, params, mandatory_params, is_dynamic=True)
 

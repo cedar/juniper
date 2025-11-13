@@ -10,8 +10,21 @@ def _static_gain_compute(input_mats, factor):
     return {util.DEFAULT_OUTPUT_SLOT: output}
 
 class StaticGain(Step):
+    """
+    Description
+    ---------
+    Multiplies input with constant factor.
 
-    def __init__(self, name, params):
+    Parameters
+    ----------
+    - factor : float
+
+    Step Input/Output slots
+    ----------
+    - in0 : jnp.ndarray 
+    - out0 : jnp.ndarray 
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["factor"]
         super().__init__(name, params, mandatory_params)
 

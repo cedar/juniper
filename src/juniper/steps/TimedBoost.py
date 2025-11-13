@@ -5,8 +5,21 @@ from functools import partial
 from .. import util_jax
 
 class TimedBoost(Step):
+    """
+    Description
+    ---------
+    Applies a homogenous boost to connected steps. Start and end of the boost can be specified.
 
-    def __init__(self, name, params):
+    Parameters
+    ----------
+    - amplitude : float
+    - duration [ms] : [start,stop]
+
+    Step Input/Output slots
+    ----------
+    - out0 : jnp.ndarray((1,))
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["amplitude", "duration"]
         params["shape"] = (1,)
         super().__init__(name, params, mandatory_params, is_dynamic=True)

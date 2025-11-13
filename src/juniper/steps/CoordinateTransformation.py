@@ -8,7 +8,24 @@ import jax.debug as jdbg
 
 
 class CoordinateTransformation(Step):
-    def __init__(self, name, params):
+    """
+    Description
+    ---------
+    Rigid coordinate transformation of incoming set of 3D vectors.
+
+    Parameters
+    ---------
+    - FrameGraph : FrameGraph
+    - source_frame : str
+    - target_frame : str
+
+    Step Input/Output slots
+    ---------
+    - in0 : jnp.array((N,3))
+    - in1 : jnp.array((3,))
+    - out0 : jnp.array((N,3))
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["FrameGraph", "source_frame", "target_frame"]
         super().__init__(name, params, mandatory_params)
 

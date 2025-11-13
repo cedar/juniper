@@ -9,8 +9,23 @@ import numpy as np
 from PIL import Image
 
 class ImageInput(Step):
+    """
+    Description
+    ---------
+    Step that passes
 
-    def __init__(self, name, params):
+    Parameters
+    ---------
+    - shape : tuple((Nx,Ny,...))
+    - sigma : tuple((sx,sy,...))
+    - amplitude : float
+
+    Step Input/Output slots
+    ---------
+    - in0: jnp.array(shape)
+    - out0: jnp.array(shape)
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["image_path"]
         super().__init__(name, params, mandatory_params)
         

@@ -8,7 +8,7 @@ from functools import partial
 
 class ExampleDynamicStep(Step):
 
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["shape"]
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = jnp.inf

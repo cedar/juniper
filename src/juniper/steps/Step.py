@@ -35,7 +35,7 @@ class Slot():
             raise Exception(f"Cannot connect to unknown type ({type(other)})")
 
 class Step(Configurable):
-    def __init__(self, name, params, mandatory_params, is_dynamic=False):
+    def __init__(self, name : str, params : dict, mandatory_params : list, is_dynamic : bool = False):
         super().__init__(params, mandatory_params)
 
         self._name = name

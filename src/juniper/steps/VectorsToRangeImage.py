@@ -7,6 +7,8 @@ import jax
 
 class VectorsToRangeImage(Step):
     """
+    Description
+    ---------
     Converts a set of Vectors into a range image.
 
     Parameters
@@ -14,8 +16,13 @@ class VectorsToRangeImage(Step):
       - pan (azimuth) : [pan_low, pan_high]
       - tilt (polar) :  [tilt_low, tilt_high]
       - image_shape : (n_tilt, n_pan)  [Y, X]
+
+    Step Input/Output slots
+    ---------
+    - in0: jnp.ndarray(H*W,3)
+    - out0: jnp.ndarray(image_shape)
     """
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["image_shape", "pan_range", "tilt_range"]
         super().__init__(name, params, mandatory_params)
     

@@ -128,10 +128,60 @@ def euler_func_singleton(static, params):
     return euler_func, reward_func
 
 class HebbianConnection(Step):
+    """
+    Description
+    ---------
+    Implements synaptic connections between the source and target field. Synaptic plasticity 
+    is implemented using either the instar or outstar hebbian learning rules, that may be gated 
+    by a reward signal. Length and delay of the reward signal can be customized. 
 
-    def __init__(self, name, params=None):
+    Parameters
+    ---------
+    - shape : tuple((Nx,Ny,...))
+    - target_shape : tuple((Nx,...))
+    - tau (optional) : float
+        - Default = 0.01
+    - tau_decay (optional) : float
+        - Default = 0.1
+    - learning_rate (optional) : float
+        - Default = 0.1
+    - learning_rule (optional) : str("instar", "outstar")
+        - Default = instar
+    - bidirectional (optional) : bool
+        - Default = True
+    - reward_type (optional) : str("no_reward", "reward_gated", "reward_interval")
+        - Default = no_reward
+    - reward_duration (optional) : list[start,stop]
+        - Default = [0,1]
+
+    Step Input/Output slots
+    ---------
+    - in0: jnp.array(shape)
+    - in1: jnp.array(target_shape)
+    - in3: jnp.array((1,))
+    - out0: jnp.array(target_shape)
+    - out1: jnp.array(shape)
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["shape", "target_shape", "tau", "tau_decay", "learning_rate", "learning_rule", "bidirectional", "reward_type", "reward_duration"]
         super().__init__(name, params, mandatory_params=mandatory_params, is_dynamic=True)
+
+        if "tau" not in self._params.keys():
+            self._params["tau"] = 0.01
+        if "tau_decay" not in self._params.keys():
+            self._params["tau_decay"] = 0.1
+        if "learning_rate" not in self._params.keys():
+            self._params["learnig_rate"] = 0.1
+        if "learning_rule" not in self._params.keys():
+            self._params["learning_rule"] = "instar"
+        if "bidirectional" not in self._params.keys():
+            self._params["bidirectional"] = True
+        if "reward_type" not in self._params.keys():
+            self._params["reward_type"] = "no_reward"
+        if "reward_duration" not in self._params.keys():
+            self._params["reward_duration"] = [0,1]
+
+
         self._params["wheight_shape"] = self._params["shape"] + self._params["target_shape"]
         self._params["scalar_shape"] = (1,)
         self._params["reward_duration"] = tuple(self._params["reward_duration"]) 

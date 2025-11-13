@@ -63,6 +63,15 @@ def find_path(edges, start, goal):
     return nodes_path, transforms_path
 
 class FrameGraph(Configurable):
+    """
+    Description
+    ---------
+    A wrapper object to construct a frame graph. The frame graph is a directed graph with coordinate frames as vertices and transformations between frames as edges.
+    New frames and transformations can be added by calling the add_edge() function. Once all frames are specified the frame graph can be used to find a 'path' from 
+    a source frame to a target frame. Individual transformations will automatically be chained (and inverted if necessary) to produce the transformation from any 
+    source to any reachable target frame.
+
+    """
     def __init__(self, params):
         mandatory_params = []
         super().__init__(params, mandatory_params)
@@ -72,7 +81,13 @@ class FrameGraph(Configurable):
         else:
             self.edges = params["edges"]
 
-    def add_edge(self, source, target, transform):
+    def add_edge(self, source : str, target : str, transform : Transform):
+        """
+        Description
+        ---------
+        Adds an edge to the frame graph. Source and target frame do not already need to be known. The edge is given in the form of a Transform objbect.
+
+        """
         self.edges[(source, target)] = transform
         if (source, target) not in self.edges.keys():
             self.edges[(source, target)] = transform

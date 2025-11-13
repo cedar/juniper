@@ -12,8 +12,22 @@ COMPRESSION_TYPE_MAP = {
 }
 
 class CompressAxes(Step):
+    """
+    Description
+    ---------
+    Compress incoming step along specified dimension.
 
-    def __init__(self, name, params):
+    Parameters
+    ---------
+    - axis : tuple(ax0,ax1,...)
+    - compression_type : str(Sum,Average,Maximum,Minimum)
+
+    Step Input/Output slots
+    ---------
+    - in0 : jnp.array()
+    - out0 : jnp.array()
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["axis", "compression_type"]
         super().__init__(name, params, mandatory_params)
         try:

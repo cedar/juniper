@@ -10,6 +10,8 @@ import jax.debug as jgdb
 
 class RateToSpaceCode(Step):
     """
+    Description
+    ---------
     Takes a vector and produces a Gaussian centered at corresponding field coordinates.
 
     TODO: Implement cyclic mode.
@@ -27,10 +29,10 @@ class RateToSpaceCode(Step):
 
     Step Input/Output slots
     -----------
-    - in0 : jnp.array(len(shape))
-    - out0 : jnp.array(shape)
+    - in0 : jnp.ndarray(len(shape))
+    - out0 : jnp.ndarray(shape)
     """
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ['shape', 'limits']
         super().__init__(name, params, mandatory_params)
 
@@ -59,11 +61,9 @@ class RateToSpaceCode(Step):
     @partial(jax.jit, static_argnames=['self'])
     def compute(self, input_mats, **kwargs):
         input_vec = jnp.asarray(input_mats[util.DEFAULT_INPUT_SLOT], dtype=jnp.float32)
-        jgdb.print('input vec{}', input_vec)
 
         # calculate centers
         center = (input_vec - self._limits[:,0])
-        jgdb.print('center{}', center)
 
         # update gaussian centers
         self._gaussian._params["center"] = center

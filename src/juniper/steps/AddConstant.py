@@ -7,19 +7,20 @@ from .. import util
 
 class AddConstant(Step):    
     """
+    Description
+    ---------
     Adds a constant.
 
     Parameters
     ---------
-    - constant: float
+    - constant : float
 
-    Step Computation
+    Step Input/Output slots
     ---------
-    - Input: jnp.ndarray 
-    - output: jnp.ndarray 
+    - in0 : jnp.array()
+    - out0 : jnp.array()
     """
-
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["constant"]
         super().__init__(name, params, mandatory_params)
 

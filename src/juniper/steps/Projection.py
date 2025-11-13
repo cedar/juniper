@@ -28,7 +28,7 @@ def reorder_wrapper(reorder_obj):
 
 class Projection(Step):
 
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["input_shape", "output_shape", "axis", "order", "compression_type"]
         super().__init__(name, params, mandatory_params)
         in_dim = len(self._params["input_shape"])

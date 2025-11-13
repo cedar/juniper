@@ -7,6 +7,8 @@ from .. import util
 
 class ScalarsToVector(Step):
     """
+    Description
+    ---------
     Turns a number of scalars into a 1d-Array (vector).
 
     TODO: Make it possible to have incomplete incoming connections.
@@ -16,15 +18,15 @@ class ScalarsToVector(Step):
     - N_scalars: int 
         - Number of scalars (length of output Vector)
 
-    Step Computation
+    Step Input/Output slots
     ----------
-    - Input: jnp.ndarray 
+    - [in0, in1, ..., in{N_scalars-1}] : jnp.ndarray 
         - N_scalars separate inputs indexed by 'in{i}'
-    - output: jnp.ndarray 
+    - out0 : jnp.ndarray 
         - Vector of length N_scalars
     """
 
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["N_scalars"]
         super().__init__(name, params, mandatory_params)
 

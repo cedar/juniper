@@ -7,20 +7,22 @@ from .. import util
 
 class Flip(Step):
     """
+    Description
+    ---------
     Flips an input array along specified axes.
 
     Parameters
     ---------
-    - axis: list/tuple
+    - axis: tuple((ax0,ax1,...))
         - List of dimensions that should be flipped.
 
-    Step Computation
+    Step Input/Output slots
     ---------
-    - Input: jnp.ndarray 
-    - output: jnp.ndarray 
+    - in0: jnp.array()
+    - out0: jnp.array()
     """
 
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["axis"]
         super().__init__(name, params, mandatory_params)
 

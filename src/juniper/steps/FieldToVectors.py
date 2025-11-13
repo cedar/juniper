@@ -6,18 +6,28 @@ import jax
 
 class FieldToVectors(Step):
     """
+    Description
+    ---------
     Converts a 3D field into a set of 3D vectors.
     
     Parameters
     ----------
     - origin [m] (optional) : tuple(ox,oy,oz)
-        - Origin of field with respect to origin of vector space. (Default: (0,0,0))
+        - Origin of field with respect to origin of vector space. 
+        - Default = (0,0,0)
     - field_units_per_meter [1/m] (optional) : tuple(dx,dy,dz)
-        - Number of field bins per meter. (Default: (100,100,100))
+        - Number of field bins per meter. 
+        - Default = (100,100,100)
     - threshold (optional) : float
-        - Only field units pircing the threshold are converted to vectors, all other are mapped to 0. (Default: 0.9)
+        - Only field units pircing the threshold are converted to vectors, all other are mapped to 0. 
+        - Default = 0.9
+
+    Step Input/Output slots
+    ---------
+    - in0 : jnp.array((Nx,Ny,Nz))
+    - out0 : jnp.array((Nx*Ny*Nz,3))
     """
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
 

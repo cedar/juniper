@@ -8,8 +8,22 @@ import jax.numpy as jnp
 import numpy as np
 
 class HSV_input(Step):
+    """
+    Description
+    ---------
+    Converts an RGB image into 3 HSV channels.
 
-    def __init__(self, name, params):
+    Parameters
+    ---------
+
+    Step Input/Output slots
+    ---------
+    - in0: jnp.array()
+    - out0: jnp.array()
+    - out1: jnp.array()
+    - out2: jnp.array()
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
 

@@ -184,6 +184,15 @@ class Architecture:
                     
 
     def run_simulation(self, tick_func, steps_to_plot, num_steps, print_timing=True):
+        """
+        Parameter
+        ---------
+        - tick_func : fucntion_object
+        - steps_to_plot : list(['step1', 'step1.out0', ...])
+        - num_steps : int
+        - print_timing (optional) : bool
+            - Default = True
+        """
         history = []
         timing_all = []
         start_time = time.time()

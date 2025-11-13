@@ -5,8 +5,23 @@ from .Step import Step
 from .. import util
 
 class ExpandAxes(Step):
+    """
+    Description
+    ---------
+    Expand incoming step along specified axis.
 
-    def __init__(self, name, params):
+    Parameters
+    ---------
+    - axis : tuple(ax0,ax1,...)
+    - sizes : tuple(s0,s1,...)
+        - sizes per dimension
+
+    Step Input/Output slots
+    ---------
+    - in0 : jnp.array((Nx,...))
+    - out0 : jnp.array((Nx,ax0,ax1,...))
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["axis", "sizes"]
         super().__init__(name, params, mandatory_params)
         

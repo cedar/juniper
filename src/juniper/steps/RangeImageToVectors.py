@@ -16,15 +16,22 @@ def az_el_dirs(az, el):
 
 class RangeImageToVectors(Step):
     """
+    Description
+    ---------
     Converts a range image (in spherical coordinates) into a set of vectors.
 
     Parameters
     -----------
-      - pan (azimuth) : [pan_low, pan_high]
-      - tilt (polar) :  [tilt_low, tilt_high]
+      - pan_range (azimuth) : [pan_low, pan_high]
+      - tilt_range (polar) :  [tilt_low, tilt_high]
       - image_shape : (n_tilt, n_pan)  [Y, X]
+
+    Step Input/Output slots
+    ---------
+    - in0: jnp.ndarray(image_shape)
+    - out0: jnp.ndarray(H*W,3)
     """
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["image_shape", "pan_range", "tilt_range"]
         super().__init__(name, params, mandatory_params)
     

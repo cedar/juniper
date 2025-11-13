@@ -26,8 +26,29 @@ def eulerStep(passedTime, input_mat, u_activation, prng_key, resting_level, glob
 
 
 class NeuralField(Step):
+    """
+    Description
+    ---------
+    Neural Field step. 
 
-    def __init__(self, name, params):
+    Parameters
+    ---------    
+    - shape : tuple(Nx,Ny,...)
+    - sigmoid : str(AbsSigmoid, HeavySideSigmoid, ExpSigmoid, LinearSigmoid, SemiLinearSigmoid, LogarithmicSigmoid)
+    - beta : float
+    - theta : float
+    - resting_level : float
+    - global_inhibition : float
+    - input_noise_gain : float
+    - tau [ms] : float
+    - LateralKernel (optional) : LateralKernel or Gaussian
+
+    Step Input/Output slots
+    ---------
+    - Input: jnp.ndarray(shape)
+    - output: jnp.ndarray(shape)
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["shape", "sigmoid", "beta", "theta", "resting_level", "global_inhibition", "input_noise_gain", "tau"]
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.needs_input_connections = False

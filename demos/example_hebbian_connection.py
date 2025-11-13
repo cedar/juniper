@@ -26,7 +26,7 @@ def get_architecture(args):
                         "LateralKernel": Gaussian({"sigma": (3,), "amplitude": 1, "normalized": True, "max_shape": shape2}),})
     
     hc1 = HebbianConnection("hc1", {"shape": shape1, "target_shape": shape2, "tau": 0.01, "tau_decay": 0.1, "learning_rate": 0.1,
-                        "learning_rule": "instar", "bidirectional": True, "reward_type": "no_reward", "reward_duration": [0,1]})
+                        "learning_rule": "instar", "bidirectional": True, "reward_type": "no_reward", "reward_duration": [0,1]},)
     
     proj1 = Projection("proj1", {"input_shape": shape1, "output_shape": shape1*2, "axis": (0,), "order":(0,1), "compression_type": "Sum"})
 

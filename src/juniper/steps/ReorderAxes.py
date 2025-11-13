@@ -5,8 +5,21 @@ from .Step import Step
 from .. import util
 
 class ReorderAxes(Step):
+    """
+    Description
+    ---------
+    Permutation of the axis of the incoming step.
 
-    def __init__(self, name, params):
+    Parameters
+    ----------
+    - order : tuple(axi,axj,...)
+
+    Step Input/Output slots
+    -----------
+    - in0 : jnp.ndarray
+    - out0 : jnp.ndarray
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["order"]
         super().__init__(name, params, mandatory_params)
         

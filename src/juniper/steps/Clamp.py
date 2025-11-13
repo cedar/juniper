@@ -7,6 +7,8 @@ from .. import util
 
 class Clamp(Step):
     """
+    Description
+    ---------
     Clamps the values in an array into the range specified by min and max limits.
     
     TODO: Add ability to replace clipped elements with custom values.
@@ -15,13 +17,12 @@ class Clamp(Step):
     ---------
     - limits: tuple(min,max)
 
-    Step Computation
+    Step Input/Output slots
     ---------
-    - Input: jnp.ndarray 
-    - output: jnp.ndarray 
+    - in0 : jnp.array()
+    - out0 : jnp.array()
     """
-
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["limits"]
         super().__init__(name, params, mandatory_params)
         

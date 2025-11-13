@@ -10,22 +10,23 @@ import jax.debug as jgdb
 
 class Resize(Step):
     """
+    Description
+    ---------
     Resizes a Matrix to a new shape. Pixel values are interpolated using linear interpolation.
     
     TODO: Interpolation modes are currently limited to linear and nearest neighbor by jax. 
 
     Parameters
     ---------
-    - output_shape: tuple(Nx,Ny,...)
+    - output_shape : tuple(Nx,Ny,...)
 
-    Step Computation
+    Step Input/Output slots
     ---------
-    - Input: jnp.ndarray 
-    - output: jnp.ndarray 
-        - Matrix resized to have output_shape.
+    - in0 : jnp.ndarray 
+    - out0 : jnp.ndarray 
     """
 
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["output_shape"]
         super().__init__(name, params, mandatory_params)
 
@@ -37,8 +38,6 @@ class Resize(Step):
         input_shape = input.shape
 
         coords = [jnp.linspace(0, s - 1, n) for s, n in zip(input_shape, self._output_shape)]
-
-        #jgdb.print('dsdc{}', coords)
 
         grid = jnp.meshgrid(*coords, indexing='ij')
 

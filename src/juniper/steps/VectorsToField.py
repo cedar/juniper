@@ -7,18 +7,26 @@ import jax
 import jax.debug as jgdb
 class VectorsToField(Step):
     """
+    Description
+    ---------
     Converts 3D Cartesian vectors into a 3D field like representation (Nx, Ny, Nz).
     
     Parameters
     ----------
     - field_shape : tuple(Nx,Ny,Nz)
     - origin [m] (optional) : tuple(ox,oy,oz)
-        - Origin of field with respect to origin of vector space. (Default: (0,0,0))
+        - Origin of field with respect to origin of vector space. 
+        - Default = (0,0,0)
     - field_units_per_meter [1/m] (optional) : tuple(dx,dy,dz)
-        - Number of field bins per meter. (Default: (100,100,100))
+        - Number of field bins per meter. 
+        - Default = (100,100,100)
 
+    Step Input/Output slots
+    ----------
+    - in0 : jnp.ndarray((N,3))
+    - out0 : jnp.ndarray(field_shape)
     """
-    def __init__(self, name, params):
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["field_shape"]
         super().__init__(name, params, mandatory_params)
 

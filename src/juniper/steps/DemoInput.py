@@ -7,8 +7,22 @@ import warnings
 import numpy as np
 
 class DemoInput(Step):
+    """
+    Description
+    ---------
+    DemoInput is a GaussInput that can be customized during runtime.
 
-    def __init__(self, name, params):
+    Parameters
+    ---------
+    - shape : tuple((Nx,Ny,...))
+    - sigma : float
+    - amplitude : amplitude
+
+    Step Input/Output slots
+    ---------
+    - out0 : jnp.array(shape)
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["shape", "sigma", "amplitude"]
         super().__init__(name, params, mandatory_params)
 

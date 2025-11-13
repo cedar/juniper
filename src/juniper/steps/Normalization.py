@@ -11,8 +11,21 @@ NORM_ORDER_MAP = {
 }
 
 class Normalization(Step):
+    """
+    Description
+    ---------
+    Normalizes incoming step using specified norm function.
 
-    def __init__(self, name, params):
+    Parameters
+    ---------    
+    - function : str(InfinityNorm, L1Norm, L2Norm)
+
+    Step Input/Output slots
+    ---------
+    - Input: jnp.ndarray
+    - output: jnp.ndarray
+    """
+    def __init__(self, name : str, params : dict):
         mandatory_params = ["function"]
         super().__init__(name, params, mandatory_params)
         try:
