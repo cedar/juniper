@@ -12,18 +12,15 @@ class ImageInput(Step):
     """
     Description
     ---------
-    Step that passes
+    Opens an image file specified by its path.
 
     Parameters
     ---------
-    - shape : tuple((Nx,Ny,...))
-    - sigma : tuple((sx,sy,...))
-    - amplitude : float
+    - image_path : str
 
     Step Input/Output slots
     ---------
-    - in0: jnp.array(shape)
-    - out0: jnp.array(shape)
+    - out0: jnp.ndarray
     """
     def __init__(self, name : str, params : dict):
         mandatory_params = ["image_path"]
