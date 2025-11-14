@@ -8,7 +8,7 @@ import jax.numpy as jnp
 import numpy as np
 from PIL import Image
 
-class ImageInput(Step):
+class ImageLoader(Step):
     """
     Description
     ---------
