@@ -1,16 +1,16 @@
-from juniper.steps.GaussInput import GaussInput
-from juniper.steps.Normalization import Normalization
-from juniper.steps.Projection import Projection
-from juniper.steps.Sum import Sum
-from juniper.steps.TransferFunction import TransferFunction
-from juniper.steps.NeuralField import NeuralField
-from juniper.Gaussian import Gaussian
-from juniper.steps.ComponentMultiply import ComponentMultiply
+from juniper.sources import GaussInput
+from juniper.statics import Normalization
+from juniper.statics import Projection
+from juniper.statics import Sum
+from juniper.statics import TransferFunction
+from juniper.dynamics import NeuralField
+from juniper.configurables import Gaussian
+from juniper.statics import ComponentMultiply
 
-from juniper.steps.SpaceToRateCode import SpaceToRateCode
-from juniper.steps.RateToSpaceCode import RateToSpaceCode
+from juniper.robotics import SpaceToRateCode
+from juniper.robotics import RateToSpaceCode
 
-from juniper.steps.CompressAxes import CompressAxes
+from juniper.statics import CompressAxes
 
 def get_architecture(args):
     shape1 = (50,)

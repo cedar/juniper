@@ -1,5 +1,5 @@
 import os
-from . import util
+from ..util import util
 
 def repeat(string, n):
     return ", ".join([string for _ in range(n)])

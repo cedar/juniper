@@ -1,16 +1,16 @@
-from juniper.FrameGraph import FrameGraph
-from juniper.Transform import Transform
-from juniper.steps.CoordinateTransformation import CoordinateTransformation
-from juniper.steps.TCPReader import TCPReader
-from juniper.steps.TCPWriter import TCPWriter
-from juniper.steps.PinHoleBackProjector import PinHoleBackProjector
-from juniper.steps.NeuralField import NeuralField
-from juniper.steps.FieldToVectors import FieldToVectors
-from juniper.steps.VectorsToField import VectorsToField
-from juniper.steps.VectorsToRangeImage import VectorsToRangeImage
-from juniper.steps.RangeImageToVectors import RangeImageToVectors
+from juniper.robotics import FrameGraph
+from juniper.robotics import Transform
+from juniper.robotics import CoordinateTransformation
+from juniper.sources import TCPReader
+from juniper.sinks import TCPWriter
+from juniper.robotics import PinHoleBackProjector
+from juniper.dynamics import NeuralField
+from juniper.robotics import FieldToVectors
+from juniper.robotics import VectorsToField
+from juniper.robotics import VectorsToRangeImage
+from juniper.robotics import RangeImageToVectors
 
-from juniper.steps.CompressAxes import CompressAxes
+from juniper.statics import CompressAxes
 
 import jax
 import jax.numpy as jnp

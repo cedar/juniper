@@ -1,7 +1,7 @@
-from juniper.steps.GaussInput import GaussInput
-from juniper.steps.NeuralField import NeuralField
-from juniper.steps.StaticGain import StaticGain
-from juniper.Gaussian import Gaussian
+from juniper.sources import GaussInput
+from juniper.dynamics import NeuralField
+from juniper.statics import StaticGain
+from juniper.configurables import Gaussian
 
 # Supply args for this architecture using the --arch_args command line argument in the following format:
 # num_fields shape kernel_sigma_shape gauss_mode

@@ -3,8 +3,8 @@ import jax
 import time
 import os
 
-from juniper.plotting import plot_history
-from juniper.util import tprint
+from juniper.util.plotting import plot_history
+from juniper.util.util import tprint
 from juniper import util
 from juniper.Architecture import get_arch
 
@@ -41,8 +41,8 @@ if __name__ == "__main__":
             raise Exception("CPU not loaded. Make sure util_jax is not (in)directly imported before this line")
 
     # These imports have to happen *after* the jax config is set
-    from juniper import util_jax
-    import juniper.architecture_import as architecture_import
+    from juniper.util import util_jax
+    import juniper.util.architecture_import as architecture_import
 
     util_jax.get_config()["euler_step_static_precompile"] = args.static_euler_compilation == True
     util_jax.get_config()["arch_file_path"] = args.arch

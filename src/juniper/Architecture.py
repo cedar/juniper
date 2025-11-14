@@ -1,5 +1,5 @@
-from . import util
-from . import util_jax
+from .util import util
+from .util import util_jax
 import jax
 from functools import partial
 import time

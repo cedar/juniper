@@ -1,7 +1,7 @@
-from juniper.steps.GaussInput import GaussInput
-from juniper.steps.NeuralField import NeuralField
-from juniper.steps.TCPReader import TCPReader
-from juniper.steps.TCPWriter import TCPWriter
+from juniper.sources import GaussInput
+from juniper.dynamics import NeuralField
+from juniper.sources import TCPReader
+from juniper.sinks import TCPWriter
 
 
 
