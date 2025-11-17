@@ -35,7 +35,7 @@ class Resize(Step):
         super().__init__(name, params, mandatory_params)
 
         if "interpolation" not in self._params.keys():
-            self._params["keys"] = 0
+            self._params["interpolation"] = 0
 
         self._output_shape = self._params["output_shape"]    
 

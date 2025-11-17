@@ -12,13 +12,13 @@ class Sigmoid(Configurable):
     ----------
     - type : str(AbsSigmoid, HeavySideSigmoid, ExpSigmoid, LinearSigmoid, SemiLinearSigmoid, LogarithmicSigmoid)
     """
-    def __init__(self, type=None):
+    def __init__(self, params : dict):
         mandatory_params = ["sigmoid"]
-        super().__init__({"sigmoid":type}, mandatory_params)
+        super().__init__(params, mandatory_params)
         try:
             self.sigmoid = SIGMOID_MAP[self._params["sigmoid"]]
         except KeyError:
             raise ValueError(
-                f"Unknown sigmoid parameter: {self._params["sigmoid"]}. "
-                f"Supported non-linearities are: {', '.join(SIGMOID_MAP)}"
+                f'Unknown sigmoid parameter: {self._params["sigmoid"]}.'
+                f'Supported non-linearities are: {', '.join(SIGMOID_MAP)}'
                 )

@@ -60,7 +60,7 @@ class NeuralField(Step):
         else:
             self._lateral_kernel_convolve = self._params["LateralKernel"].gen_convolve_func()
 
-        self.sigmoid = Sigmoid(self._params["sigmoid"]).sigmoid
+        self.sigmoid = Sigmoid({"sigmoid":self._params["sigmoid"]}).sigmoid
 
         self.reset()
 

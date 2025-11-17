@@ -24,7 +24,7 @@ class TransferFunction(Step):
     def __init__(self, name : str, params : dict):
         mandatory_params = ["threshold", "beta", "function"]
         super().__init__(name, params, mandatory_params)
-        self._trans_func = Sigmoid(self._params["function"]).sigmoid
+        self._trans_func = Sigmoid({"sigmoid":self._params["function"]}).sigmoid
 
     @partial(jax.jit, static_argnames=['self'])
     def compute(self, input_mats, **kwargs):
