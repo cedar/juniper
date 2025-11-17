@@ -17,6 +17,8 @@ class RateToSpaceCode(Step):
     ----------
     - shape : tuple(Nx,Ny,...)
     - limits : tuple((lx,ux), (ly,uy), ...)
+    - center (optional): tuple(x,y,z)
+        - Default = tuple((ux+lx)/2, (uy+ly)/2, ...)
     - amplitude (optional) : float
         - Default = 1.0
     - sigma (optional) : tuple(sx,sy,...)
@@ -32,6 +34,10 @@ class RateToSpaceCode(Step):
     def __init__(self, name : str, params : dict):
         mandatory_params = ['shape', 'limits']
         super().__init__(name, params, mandatory_params)
+
+        if "center" not in self._params.keys():
+            limits = self._params["limits"]
+            self._params["center"] = [(limits[i][1]+limits[i][0])/2 for i in range(len(limits))]
 
         if "amplitude" not in self._params.keys():
             self._params["amplitude"] = 1.0
@@ -60,7 +66,7 @@ class RateToSpaceCode(Step):
         input_vec = jnp.asarray(input_mats[util.DEFAULT_INPUT_SLOT], dtype=jnp.float32)
 
         # calculate centers
-        center = (input_vec - self._limits[:,0])
+        center = (input_vec - self._limits[:,0]) - jnp.asarray(self._params["center"], dtype=jnp.float32)
 
         # update gaussian centers
         self._gaussian._params["center"] = center
