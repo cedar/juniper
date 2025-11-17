@@ -11,12 +11,12 @@ class Convolution(Step):
     """
     Description
     ---------
-    Convolution of incoming step with kernel.
+    Convolution of incoming step with kernel. The kernel can be given directly as a static kernel object (ie. Gaussian) or via an input connection as a dynamic kernel.
 
     Parameters
     ---------
-    - border_type : float
-    - kernel : LateralKernel
+    - kernel (optional) : LateralKernel
+        - A dynamic kernel via input is used if this kernel is unspecified.
     - mode (optional) : str(same)
         - Default = same
 
@@ -26,22 +26,29 @@ class Convolution(Step):
     - out0 : jnp.array()
     """
     def __init__(self, name : str, params : dict):
-        mandatory_params = ["border_type", "mode", "kernel"]
+        mandatory_params = ["kernel"]
         super().__init__(name, params, mandatory_params)
         self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = 1
-        self._kernel = self._params["kernel"].get_kernel()
+        self._kernel = None if "kernel" not in self._params.keys() else self._params["kernel"].get_kernel()
 
         if "mode" not in self._params.keys():
             self._params["mode"] = "same"
+
+        self.register_input("kernel")
 
     @partial(jax.jit, static_argnames=['self'])
     def compute(self, input_mats, **kwargs):
         
         # Input
         input_mat = input_mats[util.DEFAULT_INPUT_SLOT]
+
+        if not self._kernel:
+            kernel = input_mats["kernel"]
+        else:
+            kernel = self._kernel
         
         # Computation
-        output = jsp.signal.fftconvolve(input_mat, self._kernel, mode=self._params["mode"])
+        output = jsp.signal.fftconvolve(input_mat, kernel, mode=self._params["mode"])
 
         # Return output
         return {util.DEFAULT_OUTPUT_SLOT: output}

@@ -66,7 +66,7 @@ class RateToSpaceCode(Step):
         input_vec = jnp.asarray(input_mats[util.DEFAULT_INPUT_SLOT], dtype=jnp.float32)
 
         # calculate centers
-        center = (input_vec - self._limits[:,0]) - jnp.asarray(self._params["center"], dtype=jnp.float32)
+        center = (input_vec - self._limits[:,0]) + jnp.asarray(self._params["center"], dtype=jnp.float32)
 
         # update gaussian centers
         self._gaussian._params["center"] = center
