@@ -8,13 +8,17 @@ version = "0.1.0"
 description = "JUNIPER, the GPU Accelerated Python Implementation of CEDAR"
 readme = "README.md"
 requires-python = ">=3.9"
-dependencies = ["jax", "jaxlib", "matplotlib"]
+dependencies = ["jax", "jaxlib", "matplotlib", "flax", "flaxmodels"]
 
 [project.optional-dependencies]
 cpu = []
 
-gpu = [
+cuda12 = [
   "jax[cuda12]"
+]
+
+cuda13 = [
+  "jax[cuda13]"
 ]
 
 [tool.setuptools.packages.find]

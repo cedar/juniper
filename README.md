@@ -4,7 +4,7 @@ Welcome to JUNIPER, the GPU Accelerated Python Implementation of CEDAR
 ## Requirements
 
 - Install juniper and the required dependencies by running `pip install -e /path/to/repo`
-- For GPU support install juniper by running `pip install -e /path/to/repo[gpu]`. Make sure to check the JAX documentation to check for gpu support for your system.
+- For GPU support install juniper by running `pip install -e /path/to/repo[cuda12]`. Make sure to check the JAX documentation to check for gpu support for your system.
 - Run run.py (see Usage)
 - Check the demo files to see how to run juniper from a jupyter-notebook.
 
