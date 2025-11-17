@@ -20,5 +20,5 @@ class Sigmoid(Configurable):
         except KeyError:
             raise ValueError(
                 f'Unknown sigmoid parameter: {self._params["sigmoid"]}.'
-                f'Supported non-linearities are: {', '.join(SIGMOID_MAP)}'
+                f"Supported non-linearities are: {', '.join(SIGMOID_MAP)}"
                 )
