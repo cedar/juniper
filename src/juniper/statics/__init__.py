@@ -17,6 +17,7 @@ from .VectorToScalars import VectorToScalars
 from .StaticGain import StaticGain
 from .Sum import Sum
 from .TransferFunction import TransferFunction
+from .DNN import DNN
 
 __all__ = [
     "AddConstant",
@@ -37,5 +38,6 @@ __all__ = [
     "VectorToScalars",
     "StaticGain",
     "Sum",
-    "TransferFunction"
+    "TransferFunction",
+    "DNN"
 ]
