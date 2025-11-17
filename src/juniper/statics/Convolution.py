@@ -26,11 +26,11 @@ class Convolution(Step):
     - out0 : jnp.array()
     """
     def __init__(self, name : str, params : dict):
-        mandatory_params = ["kernel"]
+        mandatory_params = []
         super().__init__(name, params, mandatory_params)
         self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = 1
         self._kernel = None if "kernel" not in self._params.keys() else self._params["kernel"].get_kernel()
-
+        self._use_dynamic = self._kernel is None
         if "mode" not in self._params.keys():
             self._params["mode"] = "same"
 
@@ -44,7 +44,7 @@ class Convolution(Step):
         # Input
         input_mat = input_mats[util.DEFAULT_INPUT_SLOT]
 
-        if not self._kernel:
+        if self._use_dynamic:
             kernel = input_mats["kernel"]
         else:
             kernel = self._kernel
