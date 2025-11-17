@@ -34,6 +34,8 @@ class Convolution(Step):
         if "mode" not in self._params.keys():
             self._params["mode"] = "same"
 
+        self._params["shape"] = (1,)
+
         self.register_input("kernel")
 
     @partial(jax.jit, static_argnames=['self'])
