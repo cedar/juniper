@@ -17,6 +17,8 @@ from .arrays.MatrixSlice import MatrixSlice
 from .arrays.ReorderAxes import ReorderAxes
 from .arrays.Resize import Resize
 from .arrays.Projection import Projection
+from .arrays.VectorToScalars import VectorToScalars
+from .arrays.ScalarsToVector import ScalarsToVector
 
 # configurables
 from .configurables.Gaussian import Gaussian
@@ -86,5 +88,7 @@ __all__ =[
     "TimedBoost",
     "robotics",
     "get_arch",
-    "delete_arch"
+    "delete_arch",
+    "VectorToScalars",
+    "ScalarsToVector"
 ]

@@ -54,8 +54,8 @@ class Projection(Step):
 
     Step Input/Output slots
     ---------
-    - Input: jnp.array(input_shape)
-    - output: jnp.ndarray(output_shape)
+    - in0: jnp.array(input_shape)
+    - out0: jnp.ndarray(output_shape)
     """
     def __init__(self, name : str, params : dict):
         mandatory_params = ["input_shape", "output_shape", "axis", "order", "compression_type"]
