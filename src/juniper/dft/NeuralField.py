@@ -56,7 +56,7 @@ class NeuralField(Step):
         self._delta_t = util_jax.get_config()["delta_t"]
 
         if "LateralKernel" not in self._params:
-            self._lateral_kernel_convolve = lambda x: x
+            self._lateral_kernel_convolve = lambda x: x*0
         else:
             self._lateral_kernel_convolve = self._params["LateralKernel"].gen_convolve_func()
 

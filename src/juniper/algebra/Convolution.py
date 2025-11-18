@@ -30,7 +30,7 @@ class Convolution(Step):
         super().__init__(name, params, mandatory_params)
         self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = 1
         self._kernel = 0 if "kernel" not in self._params.keys() else self._params["kernel"].get_kernel()
-        self._use_dynamic = self._kernel == 0
+        self._use_dynamic = jnp.sum(self._kernel) == 0
         if "mode" not in self._params.keys():
             self._params["mode"] = "same"
 

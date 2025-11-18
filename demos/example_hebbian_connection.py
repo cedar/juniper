@@ -1,8 +1,8 @@
-from juniper.sources import GaussInput
-from juniper.dynamics import NeuralField
-from juniper.dynamics import HebbianConnection
-from juniper.configurables import Gaussian
-from juniper.statics import Projection
+from juniper import GaussInput
+from juniper import NeuralField
+from juniper import HebbianConnection
+from juniper import Gaussian
+from juniper import Projection
 
 def get_architecture(args):
     shape1 = (50,)

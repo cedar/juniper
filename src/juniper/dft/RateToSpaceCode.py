@@ -1,7 +1,7 @@
-from ...configurables.Step import Step
+from ..configurables.Step import Step
 from functools import partial
-from ...util import util
-from ...configurables.Gaussian import Gaussian
+from ..util import util
+from ..configurables.Gaussian import Gaussian
 import jax.numpy as jnp
 import jax
 

@@ -2,8 +2,8 @@ import json
 import os
 from ..Architecture import get_arch
 from ..sources.GaussInput import GaussInput
-from ..statics.StaticGain import StaticGain
-from ..dynamics.NeuralField import NeuralField
+from ..algebra.StaticGain import StaticGain
+from ..dft.NeuralField import NeuralField
 from ..configurables.Gaussian import Gaussian
 
 # TODO this creates lists for all keys, even if they are not duplicates. This is not a problem, but could be optimized

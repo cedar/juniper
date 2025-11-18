@@ -1,4 +1,4 @@
-from ...configurables import Configurable
+from ...configurables.Configurable import Configurable
 import jax.numpy as jnp
 
 class Transform(Configurable):
