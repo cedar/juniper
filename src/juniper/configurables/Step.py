@@ -4,6 +4,7 @@ from .Configurable import Configurable
 from ..Architecture import get_arch
 import numpy as np
 import jax.numpy as jnp
+import jax
 
 class Slot():
     def __init__(self, step, slot_name):
@@ -37,6 +38,8 @@ class Slot():
 class Step(Configurable):
     def __init__(self, name : str, params : dict, mandatory_params : list, is_dynamic : bool = False):
         super().__init__(params, mandatory_params)
+        self.is_exposed = False
+        self.compute_kernel = None
 
         self._name = name
         if "." in name:
@@ -57,7 +60,7 @@ class Step(Configurable):
         self.register_output(util.DEFAULT_OUTPUT_SLOT)
 
 
-    def compute(self, input_mats, **kwargs):
+    def compute(self, input_mats, buffer, **kwargs):
         raise NotImplementedError("Please override compute() in subclasses of Step.")
 
     def get_max_incoming_connections(self, slot_name):
@@ -67,12 +70,15 @@ class Step(Configurable):
         return self._name
     
     def reset(self):
+        reset_state = {}
         for name in self.output_slot_names:
             self.reset_buffer(name)
+            reset_state[name] = self.buffer[name]#jax.device_put(self.buffer[name], device= jax.devices("gpu")[0])
+        return reset_state
         
     def reset_buffer(self, slot_name, slot_shape="shape"):
         if not self.is_dynamic:
-            self.buffer[slot_name] = None
+            self.buffer[slot_name] = jnp.array([])
         else:
             self.buffer[slot_name] = util_jax.zeros(self._params[slot_shape])
 

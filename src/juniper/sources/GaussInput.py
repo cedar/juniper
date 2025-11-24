@@ -5,6 +5,9 @@ import jax
 from functools import partial
 import warnings
 
+def compute_kernel_singleton(kernel):
+    return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: kernel}
+
 class GaussInput(Step):
     """
     Description
@@ -43,10 +46,9 @@ class GaussInput(Step):
         # Compute kernel once and save it
         kernel = Gaussian({"shape": params["shape"], "sigma": params["sigma"], "amplitude": params["amplitude"], "normalized": False, "center": params["center"], "factorized": False})
         self._kernel = kernel.get_kernel()
+        self.compute_kernel = compute_kernel_singleton(self._kernel)
 
     @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
+    def compute(self, input_mats, buffer, **kwargs):
         
-        output = self._kernel
-
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+        return self.compute_kernel(input_mats, buffer, **kwargs)
