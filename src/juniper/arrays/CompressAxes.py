@@ -11,6 +11,16 @@ COMPRESSION_TYPE_MAP = {
     "Minimum": jnp.min,
 }
 
+def compute_kernel_factory(params, red_func):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        input = input_mats[util.DEFAULT_INPUT_SLOT]
+
+        output = red_func(input, axis=params["axis"])
+        return {util.DEFAULT_OUTPUT_SLOT: output}
+
+    return compute_kernel
+
+
 class CompressAxes(Step):
     """
     Description
@@ -37,12 +47,10 @@ class CompressAxes(Step):
                 f"Unknown compression type: {self._params['compression_type']}. "
                 f"Supported compression types are: {', '.join(COMPRESSION_TYPE_MAP)}"
                 )
+        
+        self.compute_kernel = compute_kernel_factory(self._params, self._red_func)
 
     @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        input = input_mats[util.DEFAULT_INPUT_SLOT]
-
-        output = self._red_func(input, axis=self._params["axis"])
-        
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+    def compute(self, input_mats, buffer, **kwargs):
+        return self.compute_kernel(input_mats, buffer, **kwargs)
     

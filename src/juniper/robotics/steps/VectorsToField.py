@@ -4,6 +4,43 @@ from ...util import util
 import jax.numpy as jnp
 import jax
 
+# construction of compute kernel
+def compute_kernel_factory(params):
+    
+    def compute_kernel(input_mats, buffer, **kwargs):
+        v = jnp.asarray(input_mats[util.DEFAULT_INPUT_SLOT], dtype=jnp.float32)
+
+        Nx, Ny, Nz = map(int, params["field_shape"])
+        ox, oy, oz = map(float, params["origin"])
+        dx, dy, dz = map(float, params["field_units_per_meter"])
+
+        # world -> voxel indices
+        ix = jnp.floor((v[:, 0] - ox) * dx).astype(jnp.int32)
+        iy = jnp.floor((v[:, 1] - oy) * dy).astype(jnp.int32)
+        iz = jnp.floor((v[:, 2] - oz) * dz).astype(jnp.int32)
+
+        # in-bounds mask (no boolean indexing!)
+        inb = (
+            (ix >= 0) & (ix < Nx) &
+            (iy >= 0) & (iy < Ny) &
+            (iz >= 0) & (iz < Nz)
+        )
+
+        # Redirect OOB indices to a safe in-bounds voxel and zero-out their values.
+        # Then use a reduction update (max) so zeros can't clobber ones.
+        safe_ix = jnp.where(inb, ix, 0)
+        safe_iy = jnp.where(inb, iy, 0)
+        safe_iz = jnp.where(inb, iz, 0)
+        vals    = inb.astype(jnp.float32)  # 1 for in-bounds, 0 for OOB
+
+        field = jnp.zeros((Nx, Ny, Nz), dtype=jnp.float32)
+        field = field.at[safe_ix, safe_iy, safe_iz].max(vals)
+
+        return {util.DEFAULT_OUTPUT_SLOT:  field}
+
+    return compute_kernel
+
+
 class VectorsToField(Step):
     """
     Description
@@ -35,38 +72,11 @@ class VectorsToField(Step):
         if "field_units_per_meter" not in self._params.keys():
             self._params["field_units_per_meter"] = (100.0,100.0,100.0)
 
+        self.compute_kernel = compute_kernel_factory(self._params)
+
     
     @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-
-        v = jnp.asarray(input_mats[util.DEFAULT_INPUT_SLOT], dtype=jnp.float32)
-
-        Nx, Ny, Nz = map(int, self._params["field_shape"])
-        ox, oy, oz = map(float, self._params["origin"])
-        dx, dy, dz = map(float, self._params["field_units_per_meter"])
-
-        # world -> voxel indices
-        ix = jnp.floor((v[:, 0] - ox) * dx).astype(jnp.int32)
-        iy = jnp.floor((v[:, 1] - oy) * dy).astype(jnp.int32)
-        iz = jnp.floor((v[:, 2] - oz) * dz).astype(jnp.int32)
-
-        # in-bounds mask (no boolean indexing!)
-        inb = (
-            (ix >= 0) & (ix < Nx) &
-            (iy >= 0) & (iy < Ny) &
-            (iz >= 0) & (iz < Nz)
-        )
-
-        # Redirect OOB indices to a safe in-bounds voxel and zero-out their values.
-        # Then use a reduction update (max) so zeros can't clobber ones.
-        safe_ix = jnp.where(inb, ix, 0)
-        safe_iy = jnp.where(inb, iy, 0)
-        safe_iz = jnp.where(inb, iz, 0)
-        vals    = inb.astype(jnp.float32)  # 1 for in-bounds, 0 for OOB
-
-        field = jnp.zeros((Nx, Ny, Nz), dtype=jnp.float32)
-        field = field.at[safe_ix, safe_iy, safe_iz].max(vals)  # robust to duplicates
-
-        return {util.DEFAULT_OUTPUT_SLOT: field}
+    def compute(self, input_mats, buffer, **kwargs):
+        return self.compute_kernel(input_mats, buffer, **kwargs)
 
     

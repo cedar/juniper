@@ -3,6 +3,14 @@ from functools import partial
 from ..configurables.Step import Step
 from ..util import util
 
+def compute_kernel_factory(params):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        input_vector = input_mats[util.DEFAULT_INPUT_SLOT]
+        output = {}
+        for i in range(params["N_scalars"]):
+            output[f'out{i}'] = input_vector[i]
+        return output
+    return compute_kernel
 
 class VectorToScalars(Step):
     """
@@ -30,10 +38,8 @@ class VectorToScalars(Step):
         for i in range(1, self._params["N_scalars"]):
             self.register_output(f'out{i}')
 
+        self.compute_kernel = compute_kernel_factory(self._params)
+
     @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        input_vector = input_mats[util.DEFAULT_INPUT_SLOT]
-        output = {}
-        for i in range(self._params["N_scalars"]):
-            output[f'out{i}'] = input_vector[i]
-        return output
+    def compute(self, input_mats, buffer, **kwargs):
+        return self.compute_kernel(input_mats, buffer, **kwargs)

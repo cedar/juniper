@@ -95,7 +95,7 @@ class Architecture:
             for slot in step.input_slot_names:
                 incoming[slot] = self.get_incoming_steps(step._name + "." + slot)
 
-            self.graph_info[step._name] = {"compute_kernel": step.compute_kernel, "incoming": incoming, "kind": "dynamic"}
+            self.graph_info[step._name] = {"compute_kernel": step.compute_kernel, "incoming": incoming, "kind": "dynamic", "is_source": step.is_source}
             if step.is_exposed:
                 self.exposed_steps.append(step._name)
         
@@ -108,7 +108,7 @@ class Architecture:
             for slot in step.input_slot_names:
                 incoming[slot] = self.get_incoming_steps(step._name + "." + slot)
 
-            self.graph_info[step_name] = {"compute_kernel": step.compute_kernel, "incoming": incoming, "kind": "static"}
+            self.graph_info[step_name] = {"compute_kernel": step.compute_kernel, "incoming": incoming, "kind": "static", "is_source": step.is_source}
             if step.is_exposed:
                 self.exposed_steps.append(step._name)
 
@@ -116,6 +116,7 @@ class Architecture:
         self.compiled = True
         self.check_compiled()
         random_keys = util_jax.next_random_keys(len(self.dynamic_steps_c))
+        self.run_simulation(tick_func, steps_to_plot=[], num_steps=warmup, print_timing=print_compile_info)
         for i in range(warmup):
             tick_func(self.state, random_keys)
         self.reset_steps()
@@ -239,10 +240,23 @@ class Architecture:
 
             random_keys = util_jax.next_random_keys(len(self.dynamic_steps_c))
 
+            # update exposed steps by pushing cpu side outputs mats to gpu
+            new_state = dict(self.state)
+            for step_name in self.exposed_steps:
+                step = self.get_element(step_name)
+                state_buffer = new_state[step_name]
+                class_buffer = step.buffer
+                new_output =  step.output
+                state_buffer["output"] = new_output
+                class_buffer["output"] = new_output
+                new_state[step_name] = state_buffer
+            self.state = new_state
+
             # Execute tick function
             tick_start = time.time()
             self.state, _, _ = tick_func(self.state, random_keys)
             timing_all.append(time.time()-tick_start)
+            # update output buffers of exposed steps
             # Save output of steps to plot
             if len(steps_to_plot) > 0:
                 data = []
@@ -282,6 +296,9 @@ class Architecture:
                 input_sum = step.update_input(self)
             
             step.buffer = step.compute(input_sum, step.buffer)
+            if step.is_exposed:
+                # copy over output state from cpu for steps with externally set output
+                step.buffer["output"] =  jax.device_put(step.output, device=jax.devices("gpu")[0])
             new_state[step_name] = step.buffer
         static_update_time = time.time() - start_time
 
@@ -307,8 +324,7 @@ class Architecture:
 
     @partial(jax.jit, static_argnames=["self"])
     def tick_jitted(self, state, rng_keys):
-        # 1. Sensoren in den State schreiben (funktional)
-        #state = update_sensor_steps_jax(state, sensor_values, graph_info)
+
         static_step_names = [key for key, value in self.graph_info.items() if value["kind"]=="static"]
         dynamic_step_names = [key for key, value in self.graph_info.items() if value["kind"]=="dynamic"]
 
@@ -320,6 +336,7 @@ class Architecture:
 
         return state, None, None
     
+
 def update_static_steps_jax(state, graph_info, static_step_names):
     new_state = dict(state)
     for step_name in static_step_names:
@@ -328,12 +345,12 @@ def update_static_steps_jax(state, graph_info, static_step_names):
         step_compute_kernel = graph_info[step_name]["compute_kernel"]
         input_sums = {}
         for slot, input_steps in step_inputs.items():
-            input_sum = None
+            input_sum = None 
             for in_step in input_steps:
                 in_step_name, in_step_slot = in_step.split(".")
                 input_sum = (input_sum + new_state[in_step_name][in_step_slot]) if input_sum is not None else new_state[in_step_name][in_step_slot]
-            if input_sum is None:
-                raise ValueError(f"Step {step_name} has no valid input sum at slot {slot}. This should never happen")
+            #if input_sum is None:
+            #    raise ValueError(f"Step {step_name} has no valid input sum at slot {slot}. This should never happen")
             input_sums[slot] = input_sum
         
         new_state[step_name] = step_compute_kernel(input_sums, step_buffer)
@@ -350,12 +367,14 @@ def update_dynamic_steps_jax(state, graph_info, dynamic_step_names, rng_keys):
         step_compute_kernel = graph_info[step_name]["compute_kernel"]
         input_sums = {}
         for slot, input_steps in step_inputs.items():
-            input_sum = None
+            input_sum = None 
             for in_step in input_steps:
                 in_step_name, in_step_slot = in_step.split(".")
                 input_sum = (input_sum + state[in_step_name][in_step_slot]) if input_sum is not None else state[in_step_name][in_step_slot]
+            if len(input_steps) == 0:
+                input_sum = 0*state[step_name][util.DEFAULT_OUTPUT_SLOT]
             if input_sum is None:
-                raise ValueError(f"Step {step_name} has no valid input sum at slot {slot}. This should never happen")
+                raise ValueError(f"Step {step_name} has no valid input sum at slot {slot}. This should never happen. {step_inputs}")
             input_sums[slot] = input_sum
         steps_outputs[step_name] = step_compute_kernel(input_sums, step_buffer, **{"prng_key": random_keys[i]})
     
@@ -368,5 +387,4 @@ def update_dynamic_steps_jax(state, graph_info, dynamic_step_names, rng_keys):
             new_state[step_name][slot_key] = out_mat
     
     return new_state
-
 

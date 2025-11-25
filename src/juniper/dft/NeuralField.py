@@ -25,7 +25,7 @@ def eulerStep(passedTime, input_mat, u_activation, prng_key, resting_level, glob
     return sigmoided_u, u_activation
 
 
-def compute_kernel_singleton(passedTime, resting_level, global_inhibition, beta, theta, tau, input_noise_gain, sigmoid, convolve):
+def compute_kernel_factory(passedTime, resting_level, global_inhibition, beta, theta, tau, input_noise_gain, sigmoid, convolve):
     def compute_kernel(input_mats, buffer, **kwargs):
         sigmoided_u, u_activation = eulerStep(passedTime, input_mats[util.DEFAULT_INPUT_SLOT], buffer["activation"], kwargs["prng_key"], resting_level, global_inhibition, beta, 
                                                           theta, tau, input_noise_gain, sigmoid, convolve)
@@ -69,7 +69,7 @@ class NeuralField(Step):
 
         self.sigmoid = Sigmoid({"sigmoid":self._params["sigmoid"]}).sigmoid
 
-        self.compute_kernel = compute_kernel_singleton(self._delta_t, self._params["resting_level"], self._params["global_inhibition"], 
+        self.compute_kernel = compute_kernel_factory(self._delta_t, self._params["resting_level"], self._params["global_inhibition"], 
                                                        self._params["beta"], self._params["theta"], self._params["tau"], self._params["input_noise_gain"], 
                                                        self.sigmoid, self._lateral_kernel_convolve)
 
