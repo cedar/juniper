@@ -5,6 +5,7 @@ from ..Architecture import get_arch
 import numpy as np
 import jax.numpy as jnp
 import jax
+from functools import partial
 
 class Slot():
     def __init__(self, step, slot_name):
@@ -60,8 +61,9 @@ class Step(Configurable):
         self.register_output(util.DEFAULT_OUTPUT_SLOT)
 
 
+    @partial(jax.jit, static_argnames=['self'])
     def compute(self, input_mats, buffer, **kwargs):
-        raise NotImplementedError("Please override compute() in subclasses of Step.")
+        return self.compute_kernel(input_mats, buffer, **kwargs)
 
     def get_max_incoming_connections(self, slot_name):
         return self._max_incoming_connections[slot_name]
