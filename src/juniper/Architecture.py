@@ -258,6 +258,7 @@ class Architecture:
             timing_all.append(time.time()-tick_start)
             # update output buffers of exposed steps
             # Save output of steps to plot
+            
             if len(steps_to_plot) > 0:
                 data = []
                 for to_plot in steps_to_plot:

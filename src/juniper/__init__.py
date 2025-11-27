@@ -36,6 +36,7 @@ from .image_processing.DNN import DNN
 
 # sinks
 from .sinks.TCPWriter import TCPWriter
+from .sinks.StaticDebug import StaticDebug
 
 # sources
 from .sources.CustomInput import CustomInput
@@ -79,6 +80,7 @@ __all__ =[
     "DNN",
     "ColorConversion",
     "TCPWriter",
+    "StaticDebug",
     "CustomInput",
     "DemoInput",
     "GaussInput",

@@ -4,6 +4,7 @@ from ...util import util
 import jax.numpy as jnp
 import jax
 
+
 class FieldToVectors(Step):
     """
     Description
@@ -21,6 +22,9 @@ class FieldToVectors(Step):
     - threshold (optional) : float
         - Only field units pircing the threshold are converted to vectors, all other are mapped to 0. 
         - Default = 0.9
+    - N_vec (optional) : int
+        - The number of vectors returned. 0-vectors are returned if less field points pierce the threshold.
+        - Default = FieldSize
 
     Step Input/Output slots
     ---------
@@ -40,21 +44,26 @@ class FieldToVectors(Step):
         if "threshold" not in self._params.keys():
             self._params["threshold"] = 0.9
 
+        if "N_vec" not in self._params.keys():
+            self._params["N_vec"] = jnp.inf
+
+        self.compute_kernel = compute_kernel_factory(self._params)
+
     
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
+def compute_kernel_factory(params):
+    def compute_kernel(input_mats, buffer, **kwargs):
 
         field = jnp.asarray(input_mats[util.DEFAULT_INPUT_SLOT], dtype=jnp.float32)
         Nx, Ny, Nz = field.shape
-        ox, oy, oz = map(float, self._params["origin"])
-        dx, dy, dz = map(float, self._params["field_units_per_meter"])
+        ox, oy, oz = map(float, params["origin"])
+        dx, dy, dz = map(float, params["field_units_per_meter"])
 
-        mask = field > self._params["threshold"]
+        mask = field > params["threshold"]
         count = jnp.sum(mask, dtype=jnp.int32)        # how many valid voxels
 
         # Get ALL indices in a fixed-size (padded) way
         # nonzero(..., size=...) guarantees a static-length result under jit.
-        size = field.size
+        size = min(field.size,params["N_vec"])
         ix, iy, iz = jnp.nonzero(mask, size=size, fill_value=0)  # each (size,)
 
         # Convert voxel indices -> world coordinates at voxel centers
@@ -67,5 +76,6 @@ class FieldToVectors(Step):
         coords_all = jnp.stack([x, y, z], axis=1)     # shape (size, 3)
 
         return {util.DEFAULT_OUTPUT_SLOT: coords_all}
+    return compute_kernel
 
     

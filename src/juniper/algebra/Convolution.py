@@ -5,7 +5,32 @@ import jax.scipy as jsp
 import jax
 from functools import partial
 
+def compute_kernel_factory(params, kernel, use_dynamic):
+    if use_dynamic:
+        def compute_kernel(input_mats, buffer, **kwargs):
+            
+            # Input
+            input_mat = input_mats[util.DEFAULT_INPUT_SLOT]
 
+            k = input_mats["kernel"]
+            
+            # Computation
+            output = jsp.signal.fftconvolve(input_mat, k, mode=params["mode"])
+
+            # Return output
+            return {util.DEFAULT_OUTPUT_SLOT: output}
+    else:
+        def compute_kernel(input_mats, buffer, **kwargs):
+            
+            # Input
+            input_mat = input_mats[util.DEFAULT_INPUT_SLOT]
+
+            # Computation
+            output = jsp.signal.fftconvolve(input_mat, kernel, mode=params["mode"])
+
+            # Return output
+            return {util.DEFAULT_OUTPUT_SLOT: output}
+    return compute_kernel
 
 class Convolution(Step):
     """
@@ -38,20 +63,7 @@ class Convolution(Step):
 
         self.register_input("kernel")
 
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        
-        # Input
-        input_mat = input_mats[util.DEFAULT_INPUT_SLOT]
+        self.compute_kernel = compute_kernel_factory(self._params, self._kernel, self._use_dynamic)
 
-        if self._use_dynamic:
-            kernel = input_mats["kernel"]
-        else:
-            kernel = self._kernel
-        
-        # Computation
-        output = jsp.signal.fftconvolve(input_mat, kernel, mode=self._params["mode"])
 
-        # Return output
-        return {util.DEFAULT_OUTPUT_SLOT: output}
     
