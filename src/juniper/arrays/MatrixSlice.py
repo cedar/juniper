@@ -3,6 +3,13 @@ from functools import partial
 from ..configurables.Step import Step
 from ..util import util
 
+def compute_kernel_factory(params, slices):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        input = input_mats[util.DEFAULT_INPUT_SLOT]
+        output = input[tuple(slices)]
+        return {util.DEFAULT_OUTPUT_SLOT: output}
+
+    return compute_kernel
 
 class MatrixSlice(Step):
     """
@@ -29,10 +36,4 @@ class MatrixSlice(Step):
         super().__init__(name, params, mandatory_params)
         
         self.slices = [slice(self._params["slices"][i][0], self._params["slices"][i][1]) for i in range(len(self._params["slices"]))]
-        
-
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        input = input_mats[util.DEFAULT_INPUT_SLOT]
-        output = input[tuple(self.slices)]
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+        self.compute_kernel = compute_kernel_factory(self._params, self.slices)

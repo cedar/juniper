@@ -4,6 +4,13 @@ from functools import partial
 from ..configurables.Step import Step
 from ..util import util
 
+def compute_kernel_factory(params):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        input = input_mats[util.DEFAULT_INPUT_SLOT]
+        output = jnp.pad(input, pad_width = params["border_size"], mode = params["mode"])
+        return {util.DEFAULT_OUTPUT_SLOT: output}
+
+    return compute_kernel
 
 class MatrixPadding(Step):
     """
@@ -39,8 +46,4 @@ class MatrixPadding(Step):
         if "mode" not in self._params:
             self._params["mode"] = "constant"
 
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        input = input_mats[util.DEFAULT_INPUT_SLOT]
-        output = jnp.pad(input, pad_width = self._params["border_size"], mode = self._params["mode"])
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+        self.compute_kernel = compute_kernel_factory(self._params)

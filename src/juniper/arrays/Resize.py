@@ -8,6 +8,22 @@ from ..util import util
 
 import jax.debug as jgdb
 
+
+def compute_kernel_factory(params, output_shape):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        input = input_mats[util.DEFAULT_INPUT_SLOT]
+        input_shape = input.shape
+
+        coords = [jnp.linspace(0, s - 1, n) for s, n in zip(input_shape, params["output_shape"])]
+
+        grid = jnp.meshgrid(*coords, indexing='ij')
+
+        output = map_coordinates(input, grid, order=params["interpolation"])
+
+        return {util.DEFAULT_OUTPUT_SLOT: output}
+    return compute_kernel
+
+
 class Resize(Step):
     """
     Description
@@ -37,17 +53,4 @@ class Resize(Step):
         if "interpolation" not in self._params.keys():
             self._params["interpolation"] = 0
 
-        self._output_shape = self._params["output_shape"]    
-
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        input = input_mats[util.DEFAULT_INPUT_SLOT]
-        input_shape = input.shape
-
-        coords = [jnp.linspace(0, s - 1, n) for s, n in zip(input_shape, self._output_shape)]
-
-        grid = jnp.meshgrid(*coords, indexing='ij')
-
-        output = map_coordinates(input, grid, order=self._params["interpolation"])
-
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+        self.compute_kernel = compute_kernel_factory(self._params)  

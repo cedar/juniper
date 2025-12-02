@@ -10,6 +10,16 @@ NORM_ORDER_MAP = {
     "L2Norm": 2,
 }
 
+def compute_kernel_factory(params, ord):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        input = input_mats[util.DEFAULT_INPUT_SLOT]
+
+        epsilon = 1e-8 # to avoid division by zero
+        output = input / (epsilon + jnp.linalg.norm(input, ord=ord))
+        
+        return {util.DEFAULT_OUTPUT_SLOT: output}
+    return compute_kernel
+
 class Normalization(Step):
     """
     Description
@@ -35,12 +45,5 @@ class Normalization(Step):
                 f"Unknown function: {self._params['function']}. "
                 f"Supported functions are: {', '.join(NORM_ORDER_MAP)}")
 
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        input = input_mats[util.DEFAULT_INPUT_SLOT]
-
-        epsilon = 1e-8 # to avoid division by zero
-        output = input / (epsilon + jnp.linalg.norm(input, ord=self._ord))
-        
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+        self.compute_kernel = compute_kernel_factory(self._params, self._ord)
     

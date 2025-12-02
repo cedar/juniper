@@ -5,6 +5,13 @@ from ..configurables.Step import Step
 from ..util import util
 
 
+def compute_kernel_factory(params):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        input = input_mats[util.DEFAULT_INPUT_SLOT]
+        output = jnp.flip(input, params["axis"])
+        return {util.DEFAULT_OUTPUT_SLOT: output}
+    return compute_kernel
+
 class Flip(Step):
     """
     Description
@@ -25,9 +32,4 @@ class Flip(Step):
     def __init__(self, name : str, params : dict):
         mandatory_params = ["axis"]
         super().__init__(name, params, mandatory_params)
-
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        input = input_mats[util.DEFAULT_INPUT_SLOT]
-        output = jnp.flip(input, self._params["axis"])
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+        self.compute_kernel = compute_kernel_factory(params)

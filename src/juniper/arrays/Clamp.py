@@ -5,6 +5,13 @@ from ..configurables.Step import Step
 from ..util import util
 
 
+def compute_kernel_factory(params, min, max):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        input = input_mats[util.DEFAULT_INPUT_SLOT]
+        output = jnp.clip(input, min, max,)
+        return {util.DEFAULT_OUTPUT_SLOT: output}
+    return compute_kernel
+
 class Clamp(Step):
     """
     Description
@@ -28,9 +35,4 @@ class Clamp(Step):
         
         self._min = self._params["limits"][0]
         self._max = self._params["limits"][1] 
-
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        input = input_mats[util.DEFAULT_INPUT_SLOT]
-        output = jnp.clip(input, self._min, self._max,)
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+        self.compute_kernel = compute_kernel_factory(self._params, self._min, self._max)

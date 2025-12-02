@@ -346,16 +346,13 @@ def update_static_steps_jax(state, graph_info, static_step_names):
         step_inputs = graph_info[step_name]["incoming"]
         step_compute_kernel = graph_info[step_name]["compute_kernel"]
         input_sums = {}
-        #print("CURRENT STEP: ", step_name)
         for slot, input_steps in step_inputs.items():
             input_sum = None 
-            #print("CURRENT SLOT: ", slot)
             for in_step in input_steps:
                 in_step_name, in_step_slot = in_step.split(".")
-                #print("CURRENT IN: ", in_step)
-                #print("CURRENT SUM: ", input_sum)
-                #jgdb.print("{x}",x=new_state[in_step_name][in_step_slot])
-                #print(new_state[in_step_name][in_step_slot])
+                """print("CURRENT STEP: ", step_name)
+                print("CURRENT IN: ", in_step)
+                print("CURRENT SUM: ", input_sum)"""
                 input_sum = (input_sum + new_state[in_step_name][in_step_slot]) if input_sum is not None else new_state[in_step_name][in_step_slot]
             #if input_sum is None:
             #    raise ValueError(f"Step {step_name} has no valid input sum at slot {slot}. This should never happen")

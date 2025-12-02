@@ -4,6 +4,21 @@ from ..util import util
 import jax.numpy as jnp
 import jax
 
+def compute_kernel_factory(params):
+    def compute_kernel(input_mats, buffer, **kwargs):
+
+        input_field = jnp.asarray(input_mats[util.DEFAULT_INPUT_SLOT], dtype=jnp.float32)
+
+        peak_position = jnp.argwhere(input_field > params["threshold"], size = input_field.size)
+        N_above_threshold = jnp.sum(jnp.sum(peak_position, axis=1) > 0, axis=0)
+        peak_found = jnp.sum(peak_position)>0
+
+        output = jnp.sum(peak_position, axis=0)/N_above_threshold * peak_found + buffer["peak_pos"] * (1-peak_found)
+
+        return {util.DEFAULT_OUTPUT_SLOT: output[0]}
+    return compute_kernel
+        
+
 class SpaceToRateCode(Step):
     """
     Description
@@ -48,6 +63,8 @@ class SpaceToRateCode(Step):
 
         self.register_buffer("peak_pos", slot_shape="space_dim")
 
+        self.compute_kernel = compute_kernel_factory(self._params)
+
         self.reset()
 
 
@@ -55,18 +72,6 @@ class SpaceToRateCode(Step):
         self.buffer[util.DEFAULT_INPUT_SLOT] = jnp.zeros(self._params["shape"])
         self.buffer[util.DEFAULT_OUTPUT_SLOT] = jnp.zeros((len(self._params["shape"]),))
         self.buffer["peak_pos"] = jnp.zeros((len(self._params["shape"]),))
-    
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
 
-        input_field = jnp.asarray(input_mats[util.DEFAULT_INPUT_SLOT], dtype=jnp.float32)
-
-        peak_position = jnp.argwhere(input_field > self._params["threshold"], size = input_field.size)
-        N_above_threshold = jnp.sum(jnp.sum(peak_position, axis=1) > 0, axis=0)
-        peak_found = jnp.sum(peak_position)>0
-
-        output = jnp.sum(peak_position, axis=0)/N_above_threshold * peak_found + self.buffer["peak_pos"] * (1-peak_found)
-
-        return {util.DEFAULT_OUTPUT_SLOT: output[0]}
 
     
