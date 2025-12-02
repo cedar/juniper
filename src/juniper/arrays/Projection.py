@@ -22,6 +22,7 @@ def compute_kernel_factory(params, in_dim, out_dim, name):
         def compute_kernel(input_mats, buffer, **kwargs):
             output = compress_obj.compute_kernel(input_mats, buffer, **kwargs)
             output = reorder_obj.compute_kernel({util.DEFAULT_INPUT_SLOT: output[util.DEFAULT_OUTPUT_SLOT]}, buffer, **kwargs)
+            return output
 
     else:
         reorder_obj = ReorderAxes(name + "_reorder", {"order": params["order"]})

@@ -7,6 +7,7 @@ import numpy as np
 import json
 import os
 import jax.numpy as jnp
+import jax.debug as jgdb
 
 _architecture_singleton = None
 def get_arch():
@@ -345,10 +346,16 @@ def update_static_steps_jax(state, graph_info, static_step_names):
         step_inputs = graph_info[step_name]["incoming"]
         step_compute_kernel = graph_info[step_name]["compute_kernel"]
         input_sums = {}
+        #print("CURRENT STEP: ", step_name)
         for slot, input_steps in step_inputs.items():
             input_sum = None 
+            #print("CURRENT SLOT: ", slot)
             for in_step in input_steps:
                 in_step_name, in_step_slot = in_step.split(".")
+                #print("CURRENT IN: ", in_step)
+                #print("CURRENT SUM: ", input_sum)
+                #jgdb.print("{x}",x=new_state[in_step_name][in_step_slot])
+                #print(new_state[in_step_name][in_step_slot])
                 input_sum = (input_sum + new_state[in_step_name][in_step_slot]) if input_sum is not None else new_state[in_step_name][in_step_slot]
             #if input_sum is None:
             #    raise ValueError(f"Step {step_name} has no valid input sum at slot {slot}. This should never happen")
@@ -370,7 +377,12 @@ def update_dynamic_steps_jax(state, graph_info, dynamic_step_names, rng_keys):
         for slot, input_steps in step_inputs.items():
             input_sum = None 
             for in_step in input_steps:
+                #print("CURRENT STEP: ", step_name)
+                #print("CURRENT IN: ", in_step)
+                #print("CURRENT SUM: ", input_sum)
                 in_step_name, in_step_slot = in_step.split(".")
+                #jgdb.print("{x}",x=new_state[in_step_name][in_step_slot])
+                #print(new_state[in_step_name][in_step_slot])
                 input_sum = (input_sum + state[in_step_name][in_step_slot]) if input_sum is not None else state[in_step_name][in_step_slot]
             if len(input_steps) == 0:
                 input_sum = 0*state[step_name][util.DEFAULT_OUTPUT_SLOT]
