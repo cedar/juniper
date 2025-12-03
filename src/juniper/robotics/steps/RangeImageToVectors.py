@@ -5,14 +5,38 @@ import jax.numpy as jnp
 import jax
 
 
-def az_el_dirs(az, el):
-    """(azimuth, elevation) -> unit direction (x,y,z) in +x fwd, +y left, +z up."""
-    ca, sa = jnp.cos(az), jnp.sin(az)
-    ce, se = jnp.cos(el), jnp.sin(el)
-    x = ce * ca
-    y = ce * sa
-    z = se
-    return jnp.stack([x, y, z], axis=-1)
+def compute_kernel_factory(params):
+    def az_el_dirs(az, el):
+        """(azimuth, elevation) -> unit direction (x,y,z) in +x fwd, +y left, +z up."""
+        ca, sa = jnp.cos(az), jnp.sin(az)
+        ce, se = jnp.cos(el), jnp.sin(el)
+        x = ce * ca
+        y = ce * sa
+        z = se
+        return jnp.stack([x, y, z], axis=-1)
+
+    def compute_kernel(input_mats, buffer, **kwargs):
+        range_img = input_mats[util.DEFAULT_INPUT_SLOT]
+
+        n_tilt, n_pan = params["image_shape"]
+        pan_lo, pan_hi = params["pan_range"]
+        tilt_lo, tilt_hi = params["tilt_range"]
+
+        # bin centers (uniform)
+        pan_centers  = jnp.linspace(pan_lo,  pan_hi,  n_pan,  endpoint=False) + 0.5 * (pan_hi  - pan_lo ) / n_pan
+        tilt_centers = jnp.linspace(tilt_lo, tilt_hi, n_tilt, endpoint=False) + 0.5 * (tilt_hi - tilt_lo) / n_tilt
+
+        # per-pixel angles
+        az   = jnp.broadcast_to(pan_centers,              (n_tilt, n_pan))
+        elev = jnp.broadcast_to(tilt_centers[:, None],    (n_tilt, n_pan))
+
+        # directions and vectors (canonical frame)
+        dirs = az_el_dirs(az, elev)                       # (n_tilt, n_pan, 3)
+        vecs = dirs * range_img[..., None]                # (n_tilt, n_pan, 3)
+
+        return {util.DEFAULT_OUTPUT_SLOT: vecs}
+
+    return compute_kernel
 
 class RangeImageToVectors(Step):
     """
@@ -34,27 +58,6 @@ class RangeImageToVectors(Step):
     def __init__(self, name : str, params : dict):
         mandatory_params = ["image_shape", "pan_range", "tilt_range"]
         super().__init__(name, params, mandatory_params)
-    
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        range_img = input_mats[util.DEFAULT_INPUT_SLOT]
-
-        n_tilt, n_pan = self._params["image_shape"]
-        pan_lo, pan_hi = self._params["pan_range"]
-        tilt_lo, tilt_hi = self._params["tilt_range"]
-
-        # bin centers (uniform)
-        pan_centers  = jnp.linspace(pan_lo,  pan_hi,  n_pan,  endpoint=False) + 0.5 * (pan_hi  - pan_lo ) / n_pan
-        tilt_centers = jnp.linspace(tilt_lo, tilt_hi, n_tilt, endpoint=False) + 0.5 * (tilt_hi - tilt_lo) / n_tilt
-
-        # per-pixel angles
-        az   = jnp.broadcast_to(pan_centers,              (n_tilt, n_pan))
-        elev = jnp.broadcast_to(tilt_centers[:, None],    (n_tilt, n_pan))
-
-        # directions and vectors (canonical frame)
-        dirs = az_el_dirs(az, elev)                       # (n_tilt, n_pan, 3)
-        vecs = dirs * range_img[..., None]                # (n_tilt, n_pan, 3)
-
-        return {util.DEFAULT_OUTPUT_SLOT: vecs}
+        self.compute_kernel = compute_kernel_factory(self._params)
 
     

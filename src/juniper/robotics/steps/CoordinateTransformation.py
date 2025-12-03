@@ -4,6 +4,13 @@ import jax
 from ...configurables.Step import Step
 from ...util import util
 
+def compute_kernel_factory(params,T):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        output = T.compute(input_mats[util.DEFAULT_INPUT_SLOT], input_mats["in1"])
+        return {util.DEFAULT_OUTPUT_SLOT: output}
+    return compute_kernel
+
+
 class CoordinateTransformation(Step):
     """
     Description
@@ -33,8 +40,6 @@ class CoordinateTransformation(Step):
 
         self.register_input("in1") # input slot for joint angles
 
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_vecs, **kwargs):
-        output = self._T.compute(input_vecs[util.DEFAULT_INPUT_SLOT], input_vecs["in1"])
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+        self.compute_kernel = compute_kernel_factory(self._params, self._T)
+
     

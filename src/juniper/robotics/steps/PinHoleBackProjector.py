@@ -4,6 +4,30 @@ from ...util import util
 import jax.numpy as jnp
 import jax
 
+def compute_kernel_factory(params, M_inv):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        depth = input_mats[util.DEFAULT_INPUT_SLOT]
+        H, W = depth.shape
+        ys, xs = jnp.indices((H, W), dtype=jnp.float32)  # ys=row, xs=col
+        # Build pixel homogeneous (x,y,1). Note: x=cols, y=rows
+        pix = jnp.stack([xs, ys, jnp.ones_like(xs)], axis=0)  # (3, H, W)
+        pix = pix.reshape(3, -1)  # (3, HW)
+
+        # Rays in homogeneous 4-vector after pinv
+        rays4 = M_inv @ pix  # (4, HW)
+        rays3 = rays4[:3, :]
+
+        # Normalize rays, then scale by per-pixel depth
+        rays_norm = jnp.linalg.norm(rays3, axis=0, keepdims=True) + 1e-8
+        unit_rays = rays3 / rays_norm                      # (3, HW)
+        depth_flat = depth.reshape(-1)                     # (HW,)
+        output = unit_rays * depth_flat                    # (3, HW)
+        output = jnp.stack([output[2], output[0], output[1]])
+        output = output.T                                   # (HW, 3)
+
+        return {util.DEFAULT_OUTPUT_SLOT: output}
+    return compute_kernel
+
 class PinHoleBackProjector(Step):
     """
     Description
@@ -45,32 +69,6 @@ class PinHoleBackProjector(Step):
         self.M_cam = self.M_cam.at[2,2].set(1)
         self.M_cam_inv = jnp.linalg.pinv(self.M_cam)
 
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        depth = input_mats[util.DEFAULT_INPUT_SLOT]
-        H, W = depth.shape
-        ys, xs = jnp.indices((H, W), dtype=jnp.float32)  # ys=row, xs=col
-        # Build pixel homogeneous (x,y,1). Note: x=cols, y=rows
-        pix = jnp.stack([xs, ys, jnp.ones_like(xs)], axis=0)  # (3, H, W)
-        pix = pix.reshape(3, -1)  # (3, HW)
+        self.compute_kernel = compute_kernel_factory(self._params, self.M_cam_inv)
 
-        # Rays in homogeneous 4-vector after pinv
-        rays4 = self.M_cam_inv @ pix  # (4, HW)
-        rays3 = rays4[:3, :]
-
-        # Normalize rays, then scale by per-pixel depth
-        rays_norm = jnp.linalg.norm(rays3, axis=0, keepdims=True) + 1e-8
-        unit_rays = rays3 / rays_norm                      # (3, HW)
-        depth_flat = depth.reshape(-1)                     # (HW,)
-        output = unit_rays * depth_flat                    # (3, HW)
-        output = jnp.stack([output[2], output[0], output[1]])
-        output = output.T                                   # (HW, 3)
-
-        return {util.DEFAULT_OUTPUT_SLOT: output}
-
-
-
-
-
-
-
+    
