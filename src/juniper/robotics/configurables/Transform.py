@@ -1,6 +1,17 @@
 from ...configurables.Configurable import Configurable
 import jax.numpy as jnp
 
+def compute_kernel_factory(params, M_func):
+    def compute_kernel(input_mats, joint_state):
+        # input_mats shape [N,3]
+        # needed calc shape [4,N]
+        # output shape [N,3]
+        out_vec = jnp.ones((input_mats.shape[0], 4))
+        out_vec = out_vec.at[:,:3].set(input_mats)
+        out_vec = M_func(joint_state) @ out_vec.T
+        return out_vec[:3].T
+    return compute_kernel
+
 class Transform(Configurable):
     """
     Description
@@ -29,19 +40,8 @@ class Transform(Configurable):
 
         self.M_func = params["M_func"]
 
+        self.compute_kernel = compute_kernel_factory(self._params, self.M_func)
+
     def get_transform(self):
         return self.M_func
     
-    def compute(self, input_vec, joint_state):
-        # input_vec shape [N,3]
-        # needed calc shape [4,N]
-        # output shape [N,3]
-        out_vec = jnp.ones((input_vec.shape[0], 4))
-        out_vec = out_vec.at[:,:3].set(input_vec)
-        out_vec = self.M_func(joint_state) @ out_vec.T
-        return out_vec[:3].T
-    
-        
-
-
-        

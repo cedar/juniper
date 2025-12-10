@@ -6,7 +6,7 @@ from ...util import util
 
 def compute_kernel_factory(params,T):
     def compute_kernel(input_mats, buffer, **kwargs):
-        output = T.compute(input_mats[util.DEFAULT_INPUT_SLOT], input_mats["in1"])
+        output = T.compute_kernel(input_mats[util.DEFAULT_INPUT_SLOT], input_mats["in1"])
         return {util.DEFAULT_OUTPUT_SLOT: output}
     return compute_kernel
 

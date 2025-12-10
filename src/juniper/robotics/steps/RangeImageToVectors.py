@@ -34,6 +34,9 @@ def compute_kernel_factory(params):
         dirs = az_el_dirs(az, elev)                       # (n_tilt, n_pan, 3)
         vecs = dirs * range_img[..., None]                # (n_tilt, n_pan, 3)
 
+        # flatten to (n_tilt n_pan, 3)
+        vecs = vecs.reshape(-1,3)
+
         return {util.DEFAULT_OUTPUT_SLOT: vecs}
 
     return compute_kernel
