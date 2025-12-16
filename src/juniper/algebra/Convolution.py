@@ -12,7 +12,7 @@ def compute_kernel_factory(params, kernel, use_dynamic):
             # Input
             input_mat = input_mats[util.DEFAULT_INPUT_SLOT]
 
-            k = input_mats["kernel"]
+            k = input_mats["in1"]
             
             # Computation
             output = jsp.signal.fftconvolve(input_mat, k, mode=params["mode"])
@@ -61,7 +61,7 @@ class Convolution(Step):
 
         self._params["shape"] = (1,) # used for initial warmup to set input
 
-        self.register_input("kernel")
+        self.register_input("in1")
 
         self.compute_kernel = compute_kernel_factory(self._params, self._kernel, self._use_dynamic)
 

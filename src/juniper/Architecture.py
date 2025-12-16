@@ -96,7 +96,7 @@ class Architecture:
             for slot in step.input_slot_names:
                 incoming[slot] = self.get_incoming_steps(step._name + "." + slot)
 
-            self.graph_info[step._name] = {"compute_kernel": step.compute_kernel, "incoming": incoming, "kind": "dynamic", "is_source": step.is_source}
+            self.graph_info[step._name] = {"compute_kernel": step.compute_kernel, "incoming": incoming, "kind": "dynamic", "is_source": step.is_source, "update_input_product":False}
             if step.is_exposed:
                 self.exposed_steps.append(step._name)
         
@@ -109,7 +109,9 @@ class Architecture:
             for slot in step.input_slot_names:
                 incoming[slot] = self.get_incoming_steps(step._name + "." + slot)
 
-            self.graph_info[step_name] = {"compute_kernel": step.compute_kernel, "incoming": incoming, "kind": "static", "is_source": step.is_source}
+            self.graph_info[step_name] = {"compute_kernel": step.compute_kernel, "incoming": incoming, "kind": "static", "is_source": step.is_source, "update_input_product":False}
+            if step.__class__.__name__=="ComponentMulitply":
+                self.graph_info[step._name]["update_input_product"] = True 
             if step.is_exposed:
                 self.exposed_steps.append(step._name)
 
@@ -350,14 +352,19 @@ def update_static_steps_jax(state, graph_info, static_step_names):
             input_sum = None 
             for in_step in input_steps:
                 in_step_name, in_step_slot = in_step.split(".")
-                """print("CURRENT STEP: ", step_name)
-                print("CURRENT IN: ", in_step)
-                print("CURRENT SUM: ", input_sum)"""
-                input_sum = (input_sum + new_state[in_step_name][in_step_slot]) if input_sum is not None else new_state[in_step_name][in_step_slot]
+                #print("CURRENT STEP: ", step_name)
+                #print("CURRENT IN: ", in_step)
+                #print("CURRENT INPUT: ", new_state[in_step_name][in_step_slot].shape)
+                if graph_info[step_name]["update_input_product"]:
+                    input_sum = (input_sum * new_state[in_step_name][in_step_slot]) if input_sum is not None else new_state[in_step_name][in_step_slot]
+                else:
+                    input_sum = (input_sum + new_state[in_step_name][in_step_slot]) if input_sum is not None else new_state[in_step_name][in_step_slot]
             #if input_sum is None:
             #    raise ValueError(f"Step {step_name} has no valid input sum at slot {slot}. This should never happen")
             input_sums[slot] = input_sum
         
+        #print(input_sums)
+        #print(step_buffer)
         new_state[step_name] = step_compute_kernel(input_sums, step_buffer)
     return new_state
         
@@ -378,6 +385,7 @@ def update_dynamic_steps_jax(state, graph_info, dynamic_step_names, rng_keys):
                 #print("CURRENT IN: ", in_step)
                 #print("CURRENT SUM: ", input_sum)
                 in_step_name, in_step_slot = in_step.split(".")
+                
                 #jgdb.print("{x}",x=new_state[in_step_name][in_step_slot])
                 #print(new_state[in_step_name][in_step_slot])
                 input_sum = (input_sum + state[in_step_name][in_step_slot]) if input_sum is not None else state[in_step_name][in_step_slot]

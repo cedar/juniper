@@ -127,6 +127,26 @@ def euler_func_singleton(static, params):
 
     return euler_func, reward_func
 
+def compute_kernel_factory(params, delta_t):
+    _euler_func, _reward_func = euler_func_singleton(util_jax.cfg['euler_step_static_precompile'], params)
+    def compute_kernel(input_mats, buffer, **kwargs):
+        if "prng_key" not in kwargs:
+            raise Exception("prng_key is a mandatory kwarg to dynamic compute()")
+
+        prng_key = kwargs["prng_key"]
+        source_mat = input_mats[util.DEFAULT_INPUT_SLOT]
+        target_mat = input_mats["in1"]
+        reward_signal = input_mats["in2"]
+        
+        # Computation
+        reward, onset, timer = _reward_func(delta_t, reward_signal, buffer["reward_onset"], buffer["reward_timer"], params["reward_duration"])
+        output, output_rev, wheights = _euler_func(delta_t, prng_key, buffer["wheights"], source_mat, target_mat, reward, params["learning_rate"], params["tau"], params["tau_decay"])
+
+        # Return output and buffer update
+        return {util.DEFAULT_OUTPUT_SLOT: output, "out1": output_rev, 
+                "wheights": wheights, "reward_timer": timer, "reward_onset": onset}
+    return compute_kernel
+
 class HebbianConnection(Step):
     """
     Description
@@ -158,12 +178,12 @@ class HebbianConnection(Step):
     ---------
     - in0: jnp.array(shape)
     - in1: jnp.array(target_shape)
-    - in3: jnp.array((1,))
+    - in2: jnp.array((1,))
     - out0: jnp.array(target_shape)
     - out1: jnp.array(shape)
     """
     def __init__(self, name : str, params : dict):
-        mandatory_params = ["shape", "target_shape", "tau", "tau_decay", "learning_rate", "learning_rule", "bidirectional", "reward_type", "reward_duration"]
+        mandatory_params = ["shape", "target_shape"]
         super().__init__(name, params, mandatory_params=mandatory_params, is_dynamic=True)
 
         if "tau" not in self._params.keys():
@@ -186,11 +206,10 @@ class HebbianConnection(Step):
         self._params["scalar_shape"] = (1,)
         self._params["reward_duration"] = tuple(self._params["reward_duration"]) 
 
-        self._euler_func, self._reward_func = euler_func_singleton(util_jax.cfg['euler_step_static_precompile'], self._params)
-
         self.needs_input_connections = True
         self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = 3
         self._delta_t = util_jax.get_config()["delta_t"]
+        self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
 
         #self.register_input(util.DEFAULT_INPUT_SLOT) # source activation
         self.register_input("in1") # target activaiton
@@ -227,3 +246,11 @@ class HebbianConnection(Step):
         self.buffer["reward_onset"] = util_jax.zeros((1,))
         self.reset_buffer(util.DEFAULT_OUTPUT_SLOT, slot_shape="target_shape")
         self.reset_buffer("out1", slot_shape="shape")
+        reset_state = {}
+        reset_state["wheights"] = self.buffer["wheights"]
+        reset_state["reward_timer"] = self.buffer["reward_timer"]
+        reset_state["reward_onset"] = self.buffer["reward_onset"]
+        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
+        reset_state["out1"] = self.buffer["out1"]
+        return reset_state
+
