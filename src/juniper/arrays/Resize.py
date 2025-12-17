@@ -15,7 +15,8 @@ def compute_kernel_factory(params):
         input_shape = input.shape
         output = jnp.zeros(params["output_shape"])
 
-        coords = [jnp.linspace(0, s - 1, n) for s, n in zip(input_shape, params["output_shape"])]
+        #coords = [jnp.linspace(0, s - 1, n) for s, n in zip(input_shape, params["output_shape"])] # border aligned
+        coords = [(jnp.arange(n) + 0.5) * (s / n) - 0.5 for s, n in zip(input_shape, params["output_shape"])] # pixel aligned
 
         grid = jnp.meshgrid(*coords, indexing='ij')
 

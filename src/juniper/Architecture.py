@@ -110,7 +110,7 @@ class Architecture:
                 incoming[slot] = self.get_incoming_steps(step._name + "." + slot)
 
             self.graph_info[step_name] = {"compute_kernel": step.compute_kernel, "incoming": incoming, "kind": "static", "is_source": step.is_source, "update_input_product":False}
-            if step.__class__.__name__=="ComponentMulitply":
+            if step.__class__.__name__=="ComponentMultiply":
                 self.graph_info[step._name]["update_input_product"] = True 
             if step.is_exposed:
                 self.exposed_steps.append(step._name)
