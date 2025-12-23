@@ -1,7 +1,38 @@
 from ..configurables.Step import Step
 from ..util import util
-from matplotlib.colors import rgb_to_hsv
-import numpy as np
+import jax.numpy as jnp
+
+# JAX rgb -> hsv, expects rgb in [0, 1], shape (..., 3)
+def rgb_to_hsv_jax(rgb: jnp.ndarray, eps: float = 1e-10) -> jnp.ndarray:
+    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+
+    cmax = jnp.maximum(jnp.maximum(r, g), b)
+    cmin = jnp.minimum(jnp.minimum(r, g), b)
+    delta = cmax - cmin
+
+    # Value
+    v = cmax
+
+    # Saturation
+    s = jnp.where(cmax > eps, delta / (cmax + eps), 0.0)
+
+    # Hue (in [0,1))
+    # Compute raw hue in "sextants" then normalize by /6.
+    # Handle delta==0 separately -> hue = 0
+    rc = (cmax - r) / (delta + eps)
+    gc = (cmax - g) / (delta + eps)
+    bc = (cmax - b) / (delta + eps)
+
+    h_r = (bc - gc)              # when cmax == r
+    h_g = 2.0 + (rc - bc)        # when cmax == g
+    h_b = 4.0 + (gc - rc)        # when cmax == b
+
+    # Select based on which channel is max
+    h = jnp.where(cmax == r, h_r, jnp.where(cmax == g, h_g, h_b))
+    h = jnp.where(delta > eps, h / 6.0, 0.0)
+    h = jnp.mod(h, 1.0)  # wrap to [0,1)
+
+    return jnp.stack([h, s, v], axis=-1)
 
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
@@ -10,7 +41,7 @@ def compute_kernel_factory(params):
         rgb = input_mats[util.DEFAULT_INPUT_SLOT] / 255.0  # shape (H, W, 3)
     
         # Convert to HSV
-        hsv = rgb_to_hsv(np.array(rgb))  # shape (H, W, 3), values in [0,1]
+        hsv = rgb_to_hsv_jax(rgb)  # shape (H, W, 3), values in [0,1]
 
         return {util.DEFAULT_OUTPUT_SLOT: hsv[:,:,0],
                "out1": hsv[:,:,1],
