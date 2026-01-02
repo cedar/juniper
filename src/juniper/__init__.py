@@ -36,6 +36,7 @@ from .image_processing.ColorConversion import ColorConversion
 from .image_processing.DNN import DNN
 from .image_processing.ColorFMap import ColorFMap
 from .image_processing.ViewportCamera import ViewportCamera
+from .image_processing.ShuffleImage import ShuffleImage
 
 # sinks
 from .sinks.TCPWriter import TCPWriter
@@ -85,6 +86,7 @@ __all__ =[
     "ColorConversion",
     "ColorFMap",
     "ViewportCamera",
+    "ShuffleImage",
     "TCPWriter",
     "StaticDebug",
     "CustomInput",

@@ -1,6 +1,7 @@
 from ..configurables.Step import Step
 from ..util import util
 import jax.numpy as jnp
+import jax.debug as jgdb
 
 # JAX rgb -> hsv, expects rgb in [0, 1], shape (..., 3)
 def rgb_to_hsv_jax(rgb: jnp.ndarray, eps: float = 1e-10) -> jnp.ndarray:
@@ -36,7 +37,6 @@ def rgb_to_hsv_jax(rgb: jnp.ndarray, eps: float = 1e-10) -> jnp.ndarray:
 
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
-        
         # Convert to NumPy
         rgb = input_mats[util.DEFAULT_INPUT_SLOT] / 255.0  # shape (H, W, 3)
     
