@@ -30,6 +30,7 @@ class Architecture:
         self.graph_info = {}   # static dict of the form {"step_name": {"compute_kernel": step.compute_func, "incoming": {"slot_name": [step_name.slot_name]}, "exposed": bool, "kind": str}}
                                 # graph info should be defined at compile time and remain static. Is used to define jitted function
         self.exposed_steps = [] # list of stepnames that get a new output from the cpu at every step (so CustomInput etc)
+        self.write_buffer_steps = [] # list of step names of which to automatically write the whight buffer (atm its just the HebbianConnectionSteps and BCM stepps)
 
 
         if not _architecture_singleton is None:
@@ -114,6 +115,8 @@ class Architecture:
                 self.graph_info[step._name]["update_input_product"] = True 
             if step.is_exposed:
                 self.exposed_steps.append(step._name)
+            if len(step.buffer_to_save) != 0:
+                self.write_buffer_steps.append(step._name)
 
         ## Warmup
         self.compiled = True
@@ -226,7 +229,7 @@ class Architecture:
                     print("Buffer for step " + step + " could not be loaded")
                     
 
-    def run_simulation(self, tick_func, steps_to_plot, num_steps, print_timing=True):
+    def run_simulation(self, tick_func, steps_to_plot, num_steps, print_timing=True, save_buffer=False):
         """
         Parameter
         ---------
@@ -253,6 +256,7 @@ class Architecture:
                 state_buffer["output"] = new_output
                 class_buffer["output"] = new_output
                 new_state[step_name] = state_buffer
+
             self.state = new_state
 
             # Execute tick function
@@ -268,6 +272,14 @@ class Architecture:
                     step, slot = to_plot.split(".") if "." in to_plot else [to_plot, util.DEFAULT_OUTPUT_SLOT]
                     data.append(np.array(self.state[step][slot]))
                 history.append(data)
+            
+            # pull gpu buffers for buffers we want to save
+            for step_name in self.write_buffer_steps:
+                step = self.get_element(step_name)
+                for buffer in step.buffer_to_save:
+                    step.cpu_buffer[buffer] = np.array(self.state[step_name][buffer])
+                
+
 
         end_time = time.time()
         timing = np.mean(timing_all, axis=0)
@@ -277,9 +289,8 @@ class Architecture:
             print(f"{(end_time - start_time):6.2f} s total duration\n")
             print(f"{(1000 * timing):6.2f} ms average time for computation")
         
-        print("Saving buffers... ", end="", flush=True)
-        self.save_buffer()
-        print("done")
+        if save_buffer:
+            self.save_buffer()
 
         return history, ms_per_tick, timing
 

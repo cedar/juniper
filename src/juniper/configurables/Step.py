@@ -53,6 +53,7 @@ class Step(Configurable):
         self.is_source = False
         self.buffer = {} # Stores matrices of internal and output buffers
         self.buffer_to_save = []
+        self.cpu_buffer = {}
         self.output_slot_names = []
         self.input_slot_names = []
         get_arch().add_element(self)
@@ -170,13 +171,17 @@ class Step(Configurable):
             shape = tuple([int(value_str) for value_str in metadata[2:]])
             arr = jnp.array([float(value_str) for value_str in data.split(",")]).reshape(shape)
             self.buffer[buffer] = arr
+            self.cpu_buffer[buffer] = np.array(arr)
+            print(f"loaded buffer for {self.get_name()} with shape {arr.shape}")
 
     def save_buffer(self):
         if len(self.buffer_to_save) == 0:
             return None
         buffer_dict = {}
         for buf_name in self.buffer_to_save:
-            mat = self.buffer[buf_name]
+            print(self._name)
+            print(self.cpu_buffer)
+            mat = self.cpu_buffer[buf_name]
             # Save metadata containing datatype and matrix shape
             buf_str = f"Mat,{util_jax.dtype_CV_string()},{','.join([str(size) for size in mat.shape])}" + "\n"
             # Add flattened matrix elements

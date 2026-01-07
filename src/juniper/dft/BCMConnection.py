@@ -3,6 +3,7 @@ from ..util import util, util_jax
 import jax
 import jax.numpy as jnp
 from functools import partial
+import numpy as np
 
 def make_euler_bcm_func(params, static):
     static_argnames = []
@@ -119,6 +120,7 @@ class BCMConnection(Step):
         self.register_input("in2")  
         self.register_buffer("wheights", "wheight_shape", save=True)
         self.register_buffer("theta", "target_shape", save=True)
+        self.cpu_buffer = {}
 
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
 
@@ -130,6 +132,8 @@ class BCMConnection(Step):
         self.buffer["theta"] = util_jax.ones(self._params["target_shape"]) * init_theta
         self.reset_buffer(util.DEFAULT_OUTPUT_SLOT, slot_shape="target_shape")
         self.reset_buffer("out1", slot_shape="shape")
+        self.cpu_buffer["wheights"] = np.array(self.buffer["wheights"])
+        self.cpu_buffer["theta"] = np.array(self.buffer["theta"])
         reset_state = {}
         reset_state["wheights"] = self.buffer["wheights"]
         reset_state["theta"] = self.buffer["theta"]

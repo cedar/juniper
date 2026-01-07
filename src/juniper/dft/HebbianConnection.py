@@ -4,6 +4,7 @@ from ..util import util_jax
 import jax.numpy as jnp
 import jax
 from functools import partial
+import numpy as np
 
 def no_reward_gating(passedTime, reward_signal, reward_onset, reward_timer, reward_duration):
     return util_jax.ones((1,)), util_jax.ones((1,)), util_jax.zeros((1,))
@@ -220,6 +221,9 @@ class HebbianConnection(Step):
         self.register_buffer("reward_timer", "scalar_shape") # time since reward onset
         self.register_buffer("reward_onset", "scalar_shape") # reward onset
 
+        self.buffer_to_save = ["wheights"]
+        self.cpu_buffer = {}
+
         self.reset()
         
 
@@ -246,6 +250,7 @@ class HebbianConnection(Step):
         self.buffer["reward_onset"] = util_jax.zeros((1,))
         self.reset_buffer(util.DEFAULT_OUTPUT_SLOT, slot_shape="target_shape")
         self.reset_buffer("out1", slot_shape="shape")
+        self.cpu_buffer["wheights"] = np.array(self.buffer["wheights"])
         reset_state = {}
         reset_state["wheights"] = self.buffer["wheights"]
         reset_state["reward_timer"] = self.buffer["reward_timer"]

@@ -9,7 +9,7 @@ def compute_kernel_factory(params):
 
         v = jnp.asarray(input_mats[util.DEFAULT_INPUT_SLOT], dtype=jnp.float32)
 
-        n_pan, n_tilt = params["image_shape"]
+        n_tilt, n_pan = params["image_shape"]
         pan_lo, pan_hi = params["pan_range"]
         tilt_lo, tilt_hi = params["tilt_range"]
 
@@ -20,7 +20,7 @@ def compute_kernel_factory(params):
         r = jnp.sqrt(x * x + y * y + z * z) + eps
 
         pan = jnp.arctan2(y, x)
-        tilt = jnp.arcsin(jnp.clip(z / r, -1.0, 1.0))#jnp.arctan2(z, rho)#
+        tilt = jnp.arccos(jnp.clip(z / r, -1.0, 1.0))#jnp.arcsin(jnp.clip(z / r, -1.0, 1.0))#jnp.arctan2(z, rho)#
 
         # generate bins in range image
         scale = n_pan / (pan_hi - pan_lo)
