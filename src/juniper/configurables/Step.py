@@ -38,11 +38,11 @@ class Slot():
 
 class Step(Configurable):
     def __init__(self, name : str, params : dict, mandatory_params : list, is_dynamic : bool = False):
+        self._name = name
         super().__init__(params, mandatory_params)
         self.is_exposed = False
         self.compute_kernel = None
 
-        self._name = name
         if "." in name:
             raise ValueError(f"Step names cannot contain dots. ({name})")
         self.is_dynamic = is_dynamic
@@ -154,12 +154,16 @@ class Step(Configurable):
             raise Exception(f"Invalid buffer format. Expected BUFFER, got {tree.keys()}")
         buffer_tree = tree["BUFFER"]
         # Iterate through every saved buffer of this step
+        step_buffer = {}
         for buffer in buffer_tree.keys():
             # Check if the saved buffer exists in the current step
             if not buffer in self.buffer:
                 raise Exception(f"Step {self.get_name()} has no buffer '{buffer}': {list(self.buffer.keys())}")
             buf_str = buffer_tree[buffer]
-            metadata, data = buf_str.split("\n")
+            #print(type(buf_str))
+            buf_array = np.array(buf_str)
+            #print(buf_array.shape)
+            """metadata, data = buf_str.split("\n")
             # Check metadata format
             metadata = metadata.split(",")
             if not metadata[0] == "Mat":
@@ -169,18 +173,19 @@ class Step(Configurable):
                 raise Exception(f"Datatype of saved buffer ({metadata[1]}) has to match the datatype of the current architecture ({util_jax.dtype_CV_string()})")
             # Fill buffer
             shape = tuple([int(value_str) for value_str in metadata[2:]])
-            arr = jnp.array([float(value_str) for value_str in data.split(",")]).reshape(shape)
-            self.buffer[buffer] = arr
-            self.cpu_buffer[buffer] = np.array(arr)
-            print(f"loaded buffer for {self.get_name()} with shape {arr.shape}")
+            arr = jnp.array([float(value_str) for value_str in data.split(",")]).reshape(shape)"""
+
+            self.buffer[buffer] = buf_array
+            self.cpu_buffer[buffer] = np.array(buf_array)
+            step_buffer[buffer] = buf_array
+            print(f"loaded buffer for {self.get_name()} with shape {buf_array.shape}")
+        return step_buffer
 
     def save_buffer(self):
         if len(self.buffer_to_save) == 0:
             return None
         buffer_dict = {}
         for buf_name in self.buffer_to_save:
-            print(self._name)
-            print(self.cpu_buffer)
             mat = self.cpu_buffer[buf_name]
             # Save metadata containing datatype and matrix shape
             buf_str = f"Mat,{util_jax.dtype_CV_string()},{','.join([str(size) for size in mat.shape])}" + "\n"

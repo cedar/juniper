@@ -3,6 +3,7 @@ import jax.numpy as jnp
 from functools import partial
 from ..configurables.Step import Step
 from ..util import util
+import jax.debug as jgdb
 
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
@@ -13,6 +14,10 @@ def compute_kernel_factory(params):
         for ax, size in zip(params["axis"], params["sizes"]):
             output = jnp.repeat(output, size, axis=ax)
         
+        #jgdb.print(f"name: {params['name']}")
+        #jgdb.print(f"axis: {params['axis']}")
+        #jgdb.print(f"sizes: {params['sizes']}")
+
         return {util.DEFAULT_OUTPUT_SLOT: output}
     return compute_kernel
 
@@ -37,5 +42,5 @@ class ExpandAxes(Step):
         mandatory_params = ["axis", "sizes"]
         super().__init__(name, params, mandatory_params)
 
-        self.compute_kernel = compute_kernel_factory(params)
+        self.compute_kernel = compute_kernel_factory(self._params)
     

@@ -62,14 +62,32 @@ def factorized_convolve(x, k, mode="constant", cval=0.0, origin=0):
     return x
 
 def full_convolve(x, k, mode="same", cval=None, origin=None):
+    print(x.shape)
+    print(k.shape)
     return jsp.signal.fftconvolve(x, k, mode=mode)       
 
 def convolve_func_singleton(kernel, factorized):
-    conv_funcs = []
-    kernel = tuple(kernel)
+    if not factorized:
+        # full kernel: if ndarray, wrap as single component; if list of ndarrays, keep
+        if isinstance(kernel, jnp.ndarray):
+            kernel_obj = (kernel,)
+        else:
+            # if someone passed a Python list of components
+            kernel_obj = tuple(kernel)
+    else:
+        # factorized kernel
+        # Detect whether `kernel` is a single component (list of 1D arrays)
+        # vs multiple components (list of list-of-1D arrays).
+        if len(kernel) > 0 and isinstance(kernel[0], jnp.ndarray) and kernel[0].ndim == 1:
+            # single component: [k0, k1, ...]
+            kernel_obj = (tuple(kernel),)
+        else:
+            # multiple components: [[k0,k1,...], [k0,k1,...], ...]
+            kernel_obj = tuple(tuple(comp) for comp in kernel)
+        
 
     conv_funcs = []
-    for kernel_component in kernel:
+    for kernel_component in kernel_obj:
         if factorized:
             component_modes = tuple(kernel_component)
             conv_funcs.append(lambda x, k=component_modes: factorized_convolve(x, k))

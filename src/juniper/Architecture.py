@@ -74,7 +74,7 @@ class Architecture:
         #print("\nStatic step compilation graph:\n" + "\n".join([f"{elem[0]:<8} <-- {str(elem[1])}" for elem in compilation_graph_static]) + "\n")
 
     # If warmup is set to true, the architecture is run once and then reset, effectively precompiling all JIT compilable functions in the architecture (e.g. euler step of fields)
-    def compile(self, tick_func, warmup=10, print_compile_info=False):
+    def compile(self, tick_func, warmup=10, print_compile_info=False, load_buffer=False):
         self.check_not_compiled()
 
         ## Compile
@@ -129,9 +129,12 @@ class Architecture:
         
         # Load buffers if any were saved during the last run
         data_file = self.cfg_c["arch_file_path"] + ".data"
-        if os.path.exists(data_file):
+        if os.path.exists(data_file) and load_buffer:
             if print_compile_info: print("Loading saved buffers...")
-            self.load_buffer(data_file)
+            loaded_buffer = self.load_buffer(data_file)
+            for step_name in loaded_buffer:
+                for buffer_name in loaded_buffer[step_name]:
+                    self.state[step_name][buffer_name] = loaded_buffer[step_name][buffer_name]
 
     def reset_steps(self):
         self.check_compiled()
@@ -211,22 +214,35 @@ class Architecture:
         for step in steps:
             step_tree = step.save_buffer()
             if not step_tree is None:
+                step_gpu_tree = {}
                 # Add buffer dict to tree
-                tree.update(step_tree)
+                #step_tree = {self._name: {"BUFFER": buffer_dict}}
+                step_buffer_dict_to_save = step_tree[step._name]["BUFFER"]
+                gpu_buffer_dict = {}
+                for key in step_buffer_dict_to_save.keys():
+                    gpu_buffer_dict[key] = np.array(self.state[step._name][key]).tolist()
+                step_gpu_tree = {step._name: {"BUFFER": gpu_buffer_dict}}
+                tree.update(step_gpu_tree)
         with open(f"{self.cfg_c['arch_file_path']}.data", "w") as f:
             f.write(json.dumps(tree, indent=4))
+
+    def set_arch_name(self, name : str):
+        util_jax.get_config()["arch_file_path"] = name
 
     def load_buffer(self, data_file):
         with open(data_file, "r") as f:
             tree = json.load(f)
             steps = tree.keys()
+            loaded_buffer = {}
             for step in steps:
                 try:
-                    self.get_element(step).load_buffer(tree[step])
+                    loaded_step_buffer = self.get_element(step).load_buffer(tree[step])
+                    loaded_buffer[step] = loaded_step_buffer
                 except Exception as e:
                     print(f"-- Error during Architecture::load_buffer('{data_file}') --")
                     print(e)
                     print("Buffer for step " + step + " could not be loaded")
+            return loaded_buffer
                     
 
     def run_simulation(self, tick_func, steps_to_plot, num_steps, print_timing=True, save_buffer=False):
@@ -365,7 +381,7 @@ def update_static_steps_jax(state, graph_info, static_step_names):
                 in_step_name, in_step_slot = in_step.split(".")
                 #print("CURRENT STEP: ", step_name)
                 #print("CURRENT IN: ", in_step)
-                #print("CURRENT INPUT: ", new_state[in_step_name][in_step_slot].shape)
+                #print("CURRENT INPUT SHAPE: ", new_state[in_step_name][in_step_slot].shape)
                 if graph_info[step_name]["update_input_product"]:
                     input_sum = (input_sum * new_state[in_step_name][in_step_slot]) if input_sum is not None else new_state[in_step_name][in_step_slot]
                 else:

@@ -25,6 +25,7 @@ class Gaussian(Configurable):
     """
     def __init__(self, params):
         mandatory_params = ["sigma", "amplitude", "normalized"]
+        self._name = "Gauss"
         super().__init__(params, mandatory_params)
         self._dimensionality = len(params["sigma"])
         # Estimate width if not explicitly set
@@ -46,8 +47,8 @@ class Gaussian(Configurable):
         if "max_shape" in params:
             self.check_gaussian_size(self._params["factorized"])
 
-        if len(params["shape"]) != len(params["sigma"]):
-            raise ValueError(f"Gaussian requires equal dimensionality of sigma ({len(params['sigma'])}) and shape ({len(params['shape'])})")
+        if len(self._params["shape"]) != len(self._params["sigma"]):
+            raise ValueError(f"Gaussian requires equal dimensionality of sigma ({len(self._params['sigma'])}) and shape ({len(self._params['shape'])})")
 
     def _estimate_size(self):
         limit = 5
