@@ -4,45 +4,43 @@ from ..util import util
 import jax.numpy as jnp
 import jax.nn as jnn
 
-def hsv_to_color_indices(hue, sat, val, sat_threshold=0.2, value_threshold=0.2):
+def hsv_to_onehot10(hue, sat, val, sat_threshold=0.2, value_threshold=0.2):
     """
-    hue, sat, val: arrays shaped (H, W), hue in [0, 1)
-    returns: int32 labels shaped (H, W)
-             0 = masked/background
-             1..6 = {red, orange, yellow, green, blue, purple}
+    hue, sat, val: (H, W), hue in [0,1)
+    returns: (H, W, 10) float32
+      channels 0..5 : {red, orange, yellow, green, blue, purple}
+      channels 6..9 : zeros
+      invalid pixels (low sat/val): all zeros across all 10 channels
     """
-    # Hue bucketization (1..6)
-    red = (hue < 0.04) | (hue >= 0.90)
+    # boolean buckets (same boundaries as your numpy code)
+    red    = (hue < 0.04) | (hue >= 0.90)
     orange = (hue >= 0.04) & (hue < 0.10)
     yellow = (hue >= 0.10) & (hue < 0.20)
-    green = (hue >= 0.20) & (hue < 0.45)
-    blue = (hue >= 0.45) & (hue < 0.70)
+    green  = (hue >= 0.20) & (hue < 0.45)
+    blue   = (hue >= 0.45) & (hue < 0.70)
     purple = (hue >= 0.70) & (hue < 0.90)
 
-    # start with "purple" as default, then override with earlier buckets
-    labels = jnp.full(hue.shape, 6, dtype=jnp.int32)
-    labels = jnp.where(blue,   5, labels)
-    labels = jnp.where(green,  4, labels)
-    labels = jnp.where(yellow, 3, labels)
-    labels = jnp.where(orange, 2, labels)
-    labels = jnp.where(red,    1, labels)
+    # Build labels in 0..5
+    labels = jnp.full(hue.shape, 5, dtype=jnp.int32)  # default purple=5
+    labels = jnp.where(blue,   4, labels)
+    labels = jnp.where(green,  3, labels)
+    labels = jnp.where(yellow, 2, labels)
+    labels = jnp.where(orange, 1, labels)
+    labels = jnp.where(red,    0, labels)
 
-    # Mask low-sat / low-value -> background (0)
+    # Mask invalid pixels to -1 (like your numpy code)
     valid = (sat >= sat_threshold) & (val >= value_threshold)
-    labels = jnp.where(valid, labels, 0)
+    labels = jnp.where(valid, labels, -1)
 
-    return labels
+    # Convert to onehot with "background" handling:
+    # shift by +1 so invalid (-1) -> 0
+    shifted = labels + 1  # now in {0..6}
+    oh7 = jnn.one_hot(shifted, num_classes=7, dtype=jnp.float32)  # (H,W,7)
+    oh6 = oh7[..., 1:]  # drop background -> (H,W,6), invalid pixels are all zeros
 
-
-def hsv_to_onehot(hue, sat, val, sat_threshold=0.2, value_threshold=0.2, num_colors=6):
-    """
-    Returns onehot (H, W, num_colors) for the 6 hue buckets.
-    Background is removed (masked pixels -> all zeros).
-    """
-    labels = hsv_to_color_indices(hue, sat, val, sat_threshold, value_threshold)
-    # one_hot needs non-negative ints; we used 0..6 with 0=background
-    oh = jnn.one_hot(labels, num_classes=num_colors + 1)  # (H,W,7)
-    return oh[..., 1:]  # drop background channel -> (H,W,6)
+    # Pad to 10 channels (last 4 are zeros)
+    out10 = jnp.pad(oh6, pad_width=((0, 0), (0, 0), (0, 4)), mode="constant")
+    return out10
 
 
 def compute_kernel_factory(params):
@@ -50,18 +48,15 @@ def compute_kernel_factory(params):
     val_threshold = float(params.get("value_threshold", 0.2))
 
     def compute_kernel(input_mats, buffer, **kwargs):
-        # Expect these inputs to already be HSV channels (0..1 range).
-        # hue in DEFAULT_INPUT_SLOT, sat in "in1", val in "in2" (adjust names if yours differ)
-        hue = input_mats[util.DEFAULT_INPUT_SLOT]
-        sat = input_mats["in1"]
-        val = input_mats["in2"]
+        hue = input_mats[util.DEFAULT_INPUT_SLOT]  # (H,W), 0..1
+        sat = input_mats["in1"]                   # (H,W), 0..1
+        val = input_mats["in2"]                   # (H,W), 0..1  <-- adjust key if needed
 
-        out = hsv_to_onehot(
+        out = hsv_to_onehot10(
             hue, sat, val,
             sat_threshold=sat_threshold,
             value_threshold=val_threshold,
-            num_colors=6,
-        )  # (H,W,6)
+        )  # (H,W,10)
 
         return {util.DEFAULT_OUTPUT_SLOT: out}
 
