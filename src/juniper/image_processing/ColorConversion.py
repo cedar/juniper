@@ -68,7 +68,7 @@ class ColorConversion(Step):
     def __init__(self, name : str, params : dict):
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
-
+        
         self.register_output("out1")
         self.register_output("out2")
         self.compute_kernel = compute_kernel_factory(self._params)
