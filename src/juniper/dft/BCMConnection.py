@@ -16,6 +16,9 @@ def make_euler_bcm_func(params, static):
             "use_fixed_theta",
             "fixed_theta",
             "theta_eps",
+            "norm_target",
+            "norm_rate",
+            "safeguard_thr"
         ]
 
     def eulerStepBCM(
@@ -32,17 +35,29 @@ def make_euler_bcm_func(params, static):
         use_fixed_theta,
         fixed_theta,
         theta_eps,
+        norm_target,
+        norm_rate,
+        safeguard_thr
     ):
         reward_on = (reward_signal.reshape(-1)[0] > 0.5)
+
         out = jnp.einsum("xyfd,xyf->xyd", w, source)
+        
+        learn_mask = jnp.all((target > safeguard_thr), axis=(0, 1)) 
+        active_k = jnp.argmax(learn_mask)
+        active_mask = learn_mask[active_k] 
+
         timeFactor_w = dt / tau_weights
-        theta_safe = jnp.maximum(theta, min_theta)
-        theta_safe = jnp.maximum(theta_safe, theta_eps)
-        x = source[..., None]
-        y = target[:, :, None, :]
-        th = theta_safe[:, :, None, :]
-        dw = timeFactor_w * learning_rate * y * (y - th) * (x / th)
-        w = w + reward_on * dw
+        theta_safe = jnp.maximum(jnp.maximum(theta, min_theta), theta_eps)
+
+        x = source[..., None]           
+        y = target[:, :, None, :]     
+        th = theta_safe[:, :, None, :] 
+
+        learning_rate = -norm_rate * learning_rate * (jnp.max(out[:, :, active_k]) - norm_target)
+        dw_bcm = (timeFactor_w * learning_rate * y * (y - th) * (x / th)) * jnp.zeros((w.shape[-1],)).at[active_k].set(active_mask) 
+        w = w + reward_on * (dw_bcm)
+
         def update_theta(th_in):
             timeFactor_t = dt / tau_theta
             th_new = th_in + timeFactor_t * (target * target - th_in)
@@ -85,6 +100,9 @@ def compute_kernel_factory(params, delta_t):
             bool(params["use_fixed_theta"]),
             float(params["fixed_theta"]),
             float(params["theta_eps"]),
+            params["norm_target"],
+            params["norm_rate"],
+            params["safeguard_thr"]
         )
         return {
             util.DEFAULT_OUTPUT_SLOT: out,
@@ -106,6 +124,9 @@ class BCMConnection(Step):
             "min_theta",
             "use_fixed_theta",
             "fixed_theta",
+            "norm_target",
+            "norm_rate",
+            "safeguard_thr",
         ]
         super().__init__(name, params, mandatory_params=mandatory, is_dynamic=True)
         sx, sy, sf = self._params["shape"]
