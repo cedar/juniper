@@ -43,7 +43,7 @@ def make_euler_bcm_func(params, static):
 
         out = jnp.einsum("xyfd,xyf->xyd", w, source)
         
-        learn_mask = jnp.all((target > safeguard_thr), axis=(0, 1)) 
+        learn_mask = jnp.all((target[1:-1,1:-1,:] > safeguard_thr), axis=(0, 1)) 
         active_k = jnp.argmax(learn_mask)
         active_mask = learn_mask[active_k] 
 
@@ -57,6 +57,7 @@ def make_euler_bcm_func(params, static):
         learning_rate = -norm_rate * learning_rate * (jnp.max(out[:, :, active_k]) - norm_target)
         dw_bcm = (timeFactor_w * learning_rate * y * (y - th) * (x / th)) * jnp.zeros((w.shape[-1],)).at[active_k].set(active_mask) 
         w = w + reward_on * (dw_bcm)
+        w = jnp.maximum(w, 0)
 
         def update_theta(th_in):
             timeFactor_t = dt / tau_theta
