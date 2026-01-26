@@ -4,7 +4,7 @@ from ..util import util
 import jax.numpy as jnp
 import jax.nn as jnn
 
-def hsv_to_onehot10(hue, sat, val, sat_threshold=0.2, value_threshold=0.2):
+def hsv_to_onehot10(hue, sat, val, sat_threshold=0.3, value_threshold=0.3):
     """
     hue, sat, val: (H, W), hue in [0,1)
     returns: (H, W, 10) float32
@@ -15,9 +15,9 @@ def hsv_to_onehot10(hue, sat, val, sat_threshold=0.2, value_threshold=0.2):
     # boolean buckets (same boundaries as your numpy code)
     red    = (hue < 0.04) | (hue >= 0.90)
     orange = (hue >= 0.04) & (hue < 0.10)
-    yellow = (hue >= 0.10) & (hue < 0.20)
-    green  = (hue >= 0.20) & (hue < 0.45)
-    blue   = (hue >= 0.45) & (hue < 0.70)
+    yellow = (hue >= 0.10) & (hue < 0.15)
+    green  = (hue >= 0.15) & (hue < 0.20)
+    blue   = (hue >= 0.20) & (hue < 0.70)
     purple = (hue >= 0.70) & (hue < 0.90)
 
     # Build labels in 0..5
