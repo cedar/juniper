@@ -37,6 +37,7 @@ from .image_processing.DNN import DNN
 from .image_processing.ColorFMap import ColorFMap
 from .image_processing.ViewportCamera import ViewportCamera
 from .image_processing.ShuffleImage import ShuffleImage
+from .image_processing.RemoveBlackWhiteGreys import RemoveBlackWhiteGreys
 
 # sinks
 from .sinks.TCPWriter import TCPWriter
@@ -87,6 +88,7 @@ __all__ =[
     "ColorFMap",
     "ViewportCamera",
     "ShuffleImage",
+    "RemoveBlackWhiteGreys"
     "TCPWriter",
     "StaticDebug",
     "CustomInput",
