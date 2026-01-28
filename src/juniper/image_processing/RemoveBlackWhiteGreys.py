@@ -39,29 +39,37 @@ def rgb_to_hsv(rgb):
 
 
 def compute_kernel_factory(params):
-    sat_threshold = float(params.get("saturation_threshold", 0.2))
-    val_threshold = float(params.get("value_threshold", 0.2))
+    sat_threshold = float(params.get("saturation_threshold", 0.2))  # still [0,1]
+    val_threshold = float(params.get("value_threshold", 0.2))       # still [0,1]
 
     def compute_kernel(input_mats, buffer, **kwargs):
-        rgb = input_mats[util.DEFAULT_INPUT_SLOT]  # (H,W,3) float32 in [0,1]
+        rgb_in = input_mats[util.DEFAULT_INPUT_SLOT]  # (H,W,3) in [0,255] or [0,1]
 
-        # Convert RGB → HSV
-        hue, sat, val = rgb_to_hsv(rgb)
+        # Normalize to [0,1] float for HSV math
+        rgb = jnp.asarray(rgb_in, dtype=jnp.float32)
+        is_255_range = jnp.max(rgb) > 1.0
+        rgb01 = jnp.where(is_255_range, rgb / 255.0, rgb)
 
-        # Identify blacks, whites, greys:
-        # - Low saturation → grey
-        # - Low value → black
-        # - High value + low saturation → white-ish but treated as grey/white
+        # Convert RGB → HSV in [0,1]
+        hue, sat, val = rgb_to_hsv(rgb01)
+
+        # Mask greys/whites/blacks (in HSV space)
         mask = (sat < sat_threshold) | (val < val_threshold)
 
-        # Replace those pixels with white
-        # mask shape: (H,W) → broadcast to (H,W,3)
-        mask3 = jnp.repeat(mask[..., None], 3, axis=-1)
-        white = jnp.ones_like(rgb)
+        # Replace masked pixels with white (in [0,1])
+        out01 = jnp.where(mask[..., None], 1.0, rgb01)
 
-        out = jnp.where(mask3, white, rgb)
+        # Convert back to original range/dtype
+        out = jnp.where(
+            is_255_range,
+            jnp.clip(out01 * 255.0, 0.0, 255.0),
+            out01
+        )
+        out = out.astype(rgb_in.dtype)  # keep uint8 if input was uint8
 
         return {util.DEFAULT_OUTPUT_SLOT: out}
+
+    return compute_kernel
 
     return compute_kernel
 
