@@ -50,12 +50,14 @@ def compute_kernel_factory(params, model, variables):
             operand=None
         )
 
-        out = jax.lax.cond(
+        out = forward(variables, img)
+
+        """out = jax.lax.cond(
              key != buffer["lastkey"],
              lambda _: forward(variables, img), 
              lambda _: out,
              operand=None
-        )
+        )"""
 
         return {util.DEFAULT_OUTPUT_SLOT: out, "lastkey":key}
     
