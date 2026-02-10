@@ -1,16 +1,17 @@
 site_name: JUNIPER
 site_description: GPU Accelerated Python Implementation of CEDAR
-site_url: ""
+site_url: https://juniper-docs.com
 repo_name: juniper
-repo_url: https://github.com/2WelcomeHome1/juniper
+repo_url: https://github.com/cedar/juniper
 edit_uri: ""
 
 theme:
   name: material
   language: en
+  logo: icon/prelim_icon.png
+  favicon: icon/prelim_icon.png
   icon:
     repo: fontawesome/brands/github
-    logo: material/brain
   font:
     text: Inter
     code: JetBrains Mono
@@ -72,71 +73,71 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/2WelcomeHome1/juniper
+      link: https://github.com/cedar/juniper
       name: JUNIPER on GitHub
 
 nav:
   - Home: index.md
   - Getting Started:
-    - Installation: guide/installation.md
-    - Building Architectures: guide/architecture.md
-    - Command-Line Reference: guide/cli.md
+      - Installation: guide/installation.md
+      - Building Architectures: guide/architecture.md
+      - Command-Line Reference: guide/cli.md
   - Steps:
-    - Overview: steps/index.md
-    - Algebra:
-      - Overview: steps/algebra/index.md
-      - AddConstant: steps/algebra/add_constant.md
-      - ComponentMultiply: steps/algebra/component_multiply.md
-      - Convolution: steps/algebra/convolution.md
-      - Normalization: steps/algebra/normalization.md
-      - StaticGain: steps/algebra/static_gain.md
-      - Sum: steps/algebra/sum.md
-      - TransferFunction: steps/algebra/transfer_function.md
-    - Arrays:
-      - Overview: steps/arrays/index.md
-      - Clamp: steps/arrays/clamp.md
-      - CompressAxes: steps/arrays/compress_axes.md
-      - ExpandAxes: steps/arrays/expand_axes.md
-      - Flip: steps/arrays/flip.md
-      - MatrixPadding: steps/arrays/matrix_padding.md
-      - MatrixSlice: steps/arrays/matrix_slice.md
-      - Projection: steps/arrays/projection.md
-      - ReorderAxes: steps/arrays/reorder_axes.md
-      - Resize: steps/arrays/resize.md
-      - ScalarsToVector: steps/arrays/scalars_to_vector.md
-      - VectorToScalars: steps/arrays/vector_to_scalars.md
-    - Dynamic Field Theory:
-      - Overview: steps/dft/index.md
-      - NeuralField: steps/dft/neural_field.md
-      - HebbianConnection: steps/dft/hebbian_connection.md
-      - RateToSpaceCode: steps/dft/rate_to_space_code.md
-      - SpaceToRateCode: steps/dft/space_to_rate_code.md
-    - Image Processing:
-      - Overview: steps/image_processing/index.md
-      - ColorConversion: steps/image_processing/color_conversion.md
-      - DNN: steps/image_processing/dnn.md
-    - Robotics:
-      - Overview: steps/robotics/index.md
-      - CoordinateTransformation: steps/robotics/coordinate_transformation.md
-      - FieldToVectors: steps/robotics/field_to_vectors.md
-      - PinHoleBackProjector: steps/robotics/pinhole_back_projector.md
-      - RangeImageToVectors: steps/robotics/range_image_to_vectors.md
-      - VectorsToField: steps/robotics/vectors_to_field.md
-      - VectorsToRangeImage: steps/robotics/vectors_to_range_image.md
-    - Sources:
-      - Overview: steps/sources/index.md
-      - CustomInput: steps/sources/custom_input.md
-      - DemoInput: steps/sources/demo_input.md
-      - GaussInput: steps/sources/gauss_input.md
-      - HSV_input: steps/sources/hsv_input.md
-      - ImageLoader: steps/sources/image_loader.md
-      - TCPReader: steps/sources/tcp_reader.md
-      - TimedBoost: steps/sources/timed_boost.md
-    - Sinks:
-      - Overview: steps/sinks/index.md
-      - TCPWriter: steps/sinks/tcp_writer.md
+      - Overview: steps/index.md
+      - Algebra:
+          - Overview: steps/algebra/index.md
+          - AddConstant: steps/algebra/add_constant.md
+          - ComponentMultiply: steps/algebra/component_multiply.md
+          - Convolution: steps/algebra/convolution.md
+          - Normalization: steps/algebra/normalization.md
+          - StaticGain: steps/algebra/static_gain.md
+          - Sum: steps/algebra/sum.md
+          - TransferFunction: steps/algebra/transfer_function.md
+      - Arrays:
+          - Overview: steps/arrays/index.md
+          - Clamp: steps/arrays/clamp.md
+          - CompressAxes: steps/arrays/compress_axes.md
+          - ExpandAxes: steps/arrays/expand_axes.md
+          - Flip: steps/arrays/flip.md
+          - MatrixPadding: steps/arrays/matrix_padding.md
+          - MatrixSlice: steps/arrays/matrix_slice.md
+          - Projection: steps/arrays/projection.md
+          - ReorderAxes: steps/arrays/reorder_axes.md
+          - Resize: steps/arrays/resize.md
+          - ScalarsToVector: steps/arrays/scalars_to_vector.md
+          - VectorToScalars: steps/arrays/vector_to_scalars.md
+      - Dynamic Field Theory:
+          - Overview: steps/dft/index.md
+          - NeuralField: steps/dft/neural_field.md
+          - HebbianConnection: steps/dft/hebbian_connection.md
+          - RateToSpaceCode: steps/dft/rate_to_space_code.md
+          - SpaceToRateCode: steps/dft/space_to_rate_code.md
+      - Image Processing:
+          - Overview: steps/image_processing/index.md
+          - ColorConversion: steps/image_processing/color_conversion.md
+          - DNN: steps/image_processing/dnn.md
+      - Robotics:
+          - Overview: steps/robotics/index.md
+          - CoordinateTransformation: steps/robotics/coordinate_transformation.md
+          - FieldToVectors: steps/robotics/field_to_vectors.md
+          - PinHoleBackProjector: steps/robotics/pinhole_back_projector.md
+          - RangeImageToVectors: steps/robotics/range_image_to_vectors.md
+          - VectorsToField: steps/robotics/vectors_to_field.md
+          - VectorsToRangeImage: steps/robotics/vectors_to_range_image.md
+      - Sources:
+          - Overview: steps/sources/index.md
+          - CustomInput: steps/sources/custom_input.md
+          - DemoInput: steps/sources/demo_input.md
+          - GaussInput: steps/sources/gauss_input.md
+          - HSV_input: steps/sources/hsv_input.md
+          - ImageLoader: steps/sources/image_loader.md
+          - TCPReader: steps/sources/tcp_reader.md
+          - TimedBoost: steps/sources/timed_boost.md
+      - Sinks:
+          - Overview: steps/sinks/index.md
+          - TCPWriter: steps/sinks/tcp_writer.md
   - Configurables:
-    - Overview: configurables/index.md
-    - Gaussian: configurables/gaussian.md
-    - LateralKernel: configurables/lateral_kernel.md
-    - Sigmoid: configurables/sigmoid.md
+      - Overview: configurables/index.md
+      - Gaussian: configurables/gaussian.md
+      - LateralKernel: configurables/lateral_kernel.md
+      - Sigmoid: configurables/sigmoid.md
