@@ -18,8 +18,8 @@ theme:
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
-      primary: deep purple
-      accent: amber
+      primary: amber
+      accent: indigo
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
@@ -50,6 +50,9 @@ theme:
 
 plugins:
   - search
+
+extra_css:
+  - stylesheets/extra.css
 
 markdown_extensions:
   - admonition
