@@ -1,11 +1,79 @@
-site_name: JUNIPER Documentation
+site_name: JUNIPER
 site_description: GPU Accelerated Python Implementation of CEDAR
+site_url: ""
+repo_name: juniper
+repo_url: https://github.com/2WelcomeHome1/juniper
+edit_uri: ""
 
 theme:
-  name: mkdocs
-  color_mode: light
-  user_color_mode_toggle: true
-  include_sidebar: true
+  name: material
+  language: en
+  icon:
+    repo: fontawesome/brands/github
+    logo: material/brain
+  font:
+    text: Inter
+    code: JetBrains Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.code.copy
+    - content.code.annotate
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.snippets
+  - tables
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/2WelcomeHome1/juniper
+      name: JUNIPER on GitHub
 
 nav:
   - Home: index.md
