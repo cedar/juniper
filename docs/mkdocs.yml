@@ -8,8 +8,8 @@ edit_uri: ""
 theme:
   name: material
   language: en
-  logo: /docs/icon/prelim_icon.png
-  favicon: /docs/icon/prelim_icon.png
+  logo: icon/prelim_icon.png
+  favicon: icon/prelim_icon.png
   icon:
     repo: fontawesome/brands/github
   font:
