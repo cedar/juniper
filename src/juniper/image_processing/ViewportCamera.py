@@ -56,7 +56,6 @@ def _set_one_hot(kernel: jnp.ndarray, cy: jnp.ndarray, cx: jnp.ndarray):
     """
     Places a 1.0 at the nearest (ky, kx) location.
     """
-    print(kernel.shape)
     kh, kw = kernel.shape
     ky = jnp.clip(jnp.round(cy * kh).astype(jnp.int32), 0, kh - 1)
     kx = jnp.clip(jnp.round(cx * kw).astype(jnp.int32), 0, kw - 1)

@@ -62,8 +62,6 @@ def factorized_convolve(x, k, mode="constant", cval=0.0, origin=0):
     return x
 
 def full_convolve(x, k, mode="same", cval=None, origin=None):
-    print(x.shape)
-    print(k.shape)
     return jsp.signal.fftconvolve(x, k, mode=mode)       
 
 def convolve_func_singleton(kernel, factorized):
