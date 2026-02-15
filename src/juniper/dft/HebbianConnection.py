@@ -143,6 +143,11 @@ def compute_kernel_factory(params, delta_t):
         reward, onset, timer = _reward_func(delta_t, reward_signal, buffer["reward_onset"], buffer["reward_timer"], params["reward_duration"])
         output, output_rev, wheights = _euler_func(delta_t, prng_key, buffer["wheights"], source_mat, target_mat, reward, params["learning_rate"], params["tau"], params["tau_decay"])
 
+        if params["wheight_reset_slot"]: 
+            # static param closed under factory function. Is evaluated once for compilation.
+            reset_signal = input_mats["in3"]
+            wheights = wheights * (1-reset_signal)
+
         # Return output and buffer update
         return {util.DEFAULT_OUTPUT_SLOT: output, "out1": output_rev, 
                 "wheights": wheights, "reward_timer": timer, "reward_onset": onset}
@@ -180,6 +185,7 @@ class HebbianConnection(Step):
     - in0: jnp.array(shape)
     - in1: jnp.array(target_shape)
     - in2: jnp.array((1,))
+    - in3 (optional): jnp.array((1,))
     - out0: jnp.array(target_shape)
     - out1: jnp.array(shape)
     """
@@ -201,6 +207,8 @@ class HebbianConnection(Step):
             self._params["reward_type"] = "no_reward"
         if "reward_duration" not in self._params.keys():
             self._params["reward_duration"] = [0,1]
+        if "wheight_reset_slot" not in self._params.keys():
+            self._params["wheight_reset_slot"] = False
 
 
         self._params["wheight_shape"] = self._params["shape"] + self._params["target_shape"]
@@ -215,6 +223,7 @@ class HebbianConnection(Step):
         #self.register_input(util.DEFAULT_INPUT_SLOT) # source activation
         self.register_input("in1") # target activaiton
         self.register_input("in2") # reward signal
+        if self._params["wheight_reset_slot"]: self.register_input("in3") # weight reset signal: should be a binary scalar signal. Gets multiplied with weights each step.
         self.register_output("out1") # rev_output
 
         self.register_buffer("wheights", "wheight_shape", save=True) # dynamic wheight parameter
