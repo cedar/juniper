@@ -36,3 +36,13 @@ When the architecture is tuned and should now be run for a large number of itera
 A detailed explanation of all command line arguments can be found in *DOCS.md*.
 
 Tutorials on how to create architectures and new steps can be found there as well.
+
+
+## Cite
+@misc{juniper,
+  author = {Sehring Stephan},
+  title = {Juniper: running large scale Dyanmic Field Architectures on GPU using JAX},
+  year = {2026},
+  publisher = {GitHub},
+  journal = {GitHub repository},
+  howpublished = {\url{https://github.com/cedar/juniper}}}
