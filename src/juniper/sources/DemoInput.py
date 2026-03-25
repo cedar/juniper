@@ -2,6 +2,15 @@ from ..configurables.Step import Step
 from ..configurables.Gaussian import Gaussian
 from ..util import util
 import warnings
+import jax.numpy as jnp
+
+def compute_kernel_factory(params):
+    def compute_kernel(input_mats, buffer, **kwargs):
+
+        gaussian = Gaussian({"shape": params["shape"], "sigma": params["sigma"], "amplitude": buffer["gauss_params"][1], "normalized": False, "center": buffer["gauss_params"][0], "factorized": False})
+        kernel = gaussian.get_kernel()
+        return {util.DEFAULT_OUTPUT_SLOT: kernel, "gauss_params":buffer["gauss_params"]}
+    return compute_kernel
 
 class DemoInput(Step):
     """
@@ -38,11 +47,19 @@ class DemoInput(Step):
         self._max_incoming_connections = {}
 
 
+
         kernel = Gaussian({"shape": params["shape"], "sigma": params["sigma"], "amplitude": params["amplitude"], "normalized": False, "center": params["center"], "factorized": False})
         self._kernel = kernel.get_kernel()
-
-    def compute(self, input_mats, **kwargs):
-
-        kernel = Gaussian({"shape": self._params["shape"], "sigma": self._params["sigma"], "amplitude": self._params["amplitude"], "normalized": False, "center": self._params["center"], "factorized": False})
-        self._kernel = kernel.get_kernel()
-        return {util.DEFAULT_OUTPUT_SLOT: self._kernel}
+        self.register_buffer("gauss_params")
+        self.editable_gauss_params = jnp.zeros((2,))
+        self.editable_gauss_params = self.editable_gauss_params.at[0].set(self._params["center"])
+        self.editable_gauss_params = self.editable_gauss_params.at[1].set(self._params["amplitude"])
+        self.buffer["gauss_params"] = self.editable_gauss_params
+        
+        self.compute_kernel = compute_kernel_factory(self._params)
+    
+    def reset(self):
+        reset_state = {}
+        reset_state[util.DEFAULT_OUTPUT_SLOT] = self._kernel
+        reset_state["gauss_params"] = self.editable_gauss_params
+        return reset_state

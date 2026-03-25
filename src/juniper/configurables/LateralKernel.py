@@ -16,6 +16,7 @@ class LateralKernel(Configurable):
     """
     def __init__(self, params):
         mandatory_params = ["kernels"]
+        self._name = "lateral_kernel"
         # optional parameters: wheights
         super().__init__(params, mandatory_params)
         

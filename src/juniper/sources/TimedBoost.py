@@ -2,6 +2,20 @@ from ..configurables.Step import Step
 from ..util import util
 from ..util import util_jax
 
+def compute_kernel_factory(params, start, end, delta_t):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        if not "prng_key" in kwargs:
+            raise Exception("prng_key is a mandatory kwarg to dynamic compute()")
+        # input sum is computed in step.update_input()
+        status = start < buffer["local_time"] < end
+
+        output = params["amplitude"] * status
+        # Return output
+        return {util.DEFAULT_OUTPUT_SLOT: output,
+                "local_time": buffer["local_time"] + delta_t}
+    return compute_kernel
+
+
 class TimedBoost(Step):
     """
     Description
@@ -34,19 +48,9 @@ class TimedBoost(Step):
         self._start = params["duration"][0]
         self._end = params["duration"][1]
 
+        self.compute_kernel = compute_kernel_factory(self._params, self._start, self._end, self._delta_t)
+
         self.reset()
-
-    # required kwargs are: delta_t, prng_key
-    def compute(self, input_mats, **kwargs):
-        if not "prng_key" in kwargs:
-            raise Exception("prng_key is a mandatory kwarg to dynamic compute()")
-        # input sum is computed in step.update_input()
-        status = self._start < self.buffer["local_time"] < self._end
-
-        output = self._params["amplitude"] * status
-        # Return output
-        return {util.DEFAULT_OUTPUT_SLOT: output,
-                "local_time": self.buffer["local_time"] + self._delta_t}
     
     def reset(self): # Override
         self.buffer["local_time"] = util_jax.ones(self._params["shape"])*0

@@ -4,6 +4,14 @@ from functools import partial
 from ..configurables.Step import Step
 from ..util import util
 
+def compute_kernel_factory(params):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        output = jnp.zeros((params["N_scalars"],))
+        for i in range(params["N_scalars"]):
+            if input_mats[f'in{i}'] is not None:
+                output = output.at[i].set(input_mats[f'in{i}'][0])
+        return {util.DEFAULT_OUTPUT_SLOT: output}
+    return compute_kernel
 
 class ScalarsToVector(Step):
     """
@@ -34,10 +42,4 @@ class ScalarsToVector(Step):
             self.register_input(f'in{i}')
 
         self.needs_input_connections == False
-
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        output = jnp.zeros((self._params["N_scalars"]))
-        for i in range(self._params["N_scalars"]):
-            output = output.at[i].set(input_mats[f'in{i}'][0])
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+        self.compute_kernel = compute_kernel_factory(self._params)

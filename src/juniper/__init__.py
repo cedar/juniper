@@ -29,13 +29,19 @@ from .dft.HebbianConnection import HebbianConnection
 from .dft.NeuralField import NeuralField
 from .dft.SpaceToRateCode import SpaceToRateCode
 from .dft.RateToSpaceCode import RateToSpaceCode
+from .dft.BCMConnection import BCMConnection
 
 # image_processing
 from .image_processing.ColorConversion import ColorConversion
 from .image_processing.DNN import DNN
+from .image_processing.ColorFMap import ColorFMap
+from .image_processing.ViewportCamera import ViewportCamera
+from .image_processing.ShuffleImage import ShuffleImage
+from .image_processing.RemoveBlackWhiteGreys import RemoveBlackWhiteGreys
 
 # sinks
 from .sinks.TCPWriter import TCPWriter
+from .sinks.StaticDebug import StaticDebug
 
 # sources
 from .sources.CustomInput import CustomInput
@@ -73,12 +79,18 @@ __all__ =[
     "Gaussian",
     "LateralKernel",
     "HebbianConnection",
+    "BCMConnection",
     "NeuralField",
     "SpaceToRateCode",
     "RateToSpaceCode",
     "DNN",
     "ColorConversion",
+    "ColorFMap",
+    "ViewportCamera",
+    "ShuffleImage",
+    "RemoveBlackWhiteGreys"
     "TCPWriter",
+    "StaticDebug",
     "CustomInput",
     "DemoInput",
     "GaussInput",

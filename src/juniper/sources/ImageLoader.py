@@ -3,6 +3,12 @@ from ..util import util
 import numpy as np
 from PIL import Image
 
+def compute_kernel_factory(params):
+    img = np.array(Image.open(params["image_path"])).astype(np.float32)
+    def compute_kernel(input_mats, buffer, **kwargs):
+        return {util.DEFAULT_OUTPUT_SLOT: img}
+    return compute_kernel
+
 class ImageLoader(Step):
     """
     Description
@@ -26,9 +32,4 @@ class ImageLoader(Step):
         # Remove default input slot
         self.input_slot_names = []
         self._max_incoming_connections = {}
-
-    def compute(self, input_mats, **kwargs):
-        
-        output = np.array(Image.open(self._params["image_path"])).astype(np.float32)
-
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+        self.compute_kernel = compute_kernel_factory(self._params)

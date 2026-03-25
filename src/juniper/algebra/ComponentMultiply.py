@@ -5,6 +5,16 @@ import jax
 import jax.numpy as jnp
 from functools import partial
 
+def compute_kernel_factory(params):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        # input prod is computed in update_input
+        input = input_mats[util.DEFAULT_INPUT_SLOT]
+
+        # Return output
+        return {util.DEFAULT_OUTPUT_SLOT: input}
+    return compute_kernel
+
+
 class ComponentMultiply(Step):
     """
     Description
@@ -24,14 +34,7 @@ class ComponentMultiply(Step):
         super().__init__(name, params, mandatory_params)
         self.needs_input_connections = True
         self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = jnp.inf
-
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        # input prod is computed in step.update_input()
-        input = input_mats[util.DEFAULT_INPUT_SLOT]
-
-        # Return output
-        return {util.DEFAULT_OUTPUT_SLOT: input}
+        self.compute_kernel = compute_kernel_factory(self._params)
     
     def update_input(self, arch, input_slot_shape="shape"):
         # overriding the step.update_input() function to do multiplication instead of summation of inputs

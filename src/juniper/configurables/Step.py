@@ -4,6 +4,8 @@ from .Configurable import Configurable
 from ..Architecture import get_arch
 import numpy as np
 import jax.numpy as jnp
+import jax
+from functools import partial
 
 class Slot():
     def __init__(self, step, slot_name):
@@ -36,9 +38,11 @@ class Slot():
 
 class Step(Configurable):
     def __init__(self, name : str, params : dict, mandatory_params : list, is_dynamic : bool = False):
-        super().__init__(params, mandatory_params)
-
         self._name = name
+        super().__init__(params, mandatory_params)
+        self.is_exposed = False
+        self.compute_kernel = None
+
         if "." in name:
             raise ValueError(f"Step names cannot contain dots. ({name})")
         self.is_dynamic = is_dynamic
@@ -49,6 +53,7 @@ class Step(Configurable):
         self.is_source = False
         self.buffer = {} # Stores matrices of internal and output buffers
         self.buffer_to_save = []
+        self.cpu_buffer = {}
         self.output_slot_names = []
         self.input_slot_names = []
         get_arch().add_element(self)
@@ -57,8 +62,9 @@ class Step(Configurable):
         self.register_output(util.DEFAULT_OUTPUT_SLOT)
 
 
-    def compute(self, input_mats, **kwargs):
-        raise NotImplementedError("Please override compute() in subclasses of Step.")
+    @partial(jax.jit, static_argnames=['self'])
+    def compute(self, input_mats, buffer, **kwargs):
+        return self.compute_kernel(input_mats, buffer, **kwargs)
 
     def get_max_incoming_connections(self, slot_name):
         return self._max_incoming_connections[slot_name]
@@ -67,12 +73,15 @@ class Step(Configurable):
         return self._name
     
     def reset(self):
+        reset_state = {}
         for name in self.output_slot_names:
             self.reset_buffer(name)
+            reset_state[name] = self.buffer[name]#jax.device_put(self.buffer[name], device= jax.devices("gpu")[0])
+        return reset_state
         
     def reset_buffer(self, slot_name, slot_shape="shape"):
         if not self.is_dynamic:
-            self.buffer[slot_name] = None
+            self.buffer[slot_name] = jnp.array([])
         else:
             self.buffer[slot_name] = util_jax.zeros(self._params[slot_shape])
 
@@ -145,12 +154,16 @@ class Step(Configurable):
             raise Exception(f"Invalid buffer format. Expected BUFFER, got {tree.keys()}")
         buffer_tree = tree["BUFFER"]
         # Iterate through every saved buffer of this step
+        step_buffer = {}
         for buffer in buffer_tree.keys():
             # Check if the saved buffer exists in the current step
             if not buffer in self.buffer:
                 raise Exception(f"Step {self.get_name()} has no buffer '{buffer}': {list(self.buffer.keys())}")
             buf_str = buffer_tree[buffer]
-            metadata, data = buf_str.split("\n")
+            #print(type(buf_str))
+            buf_array = np.array(buf_str)
+            #print(buf_array.shape)
+            """metadata, data = buf_str.split("\n")
             # Check metadata format
             metadata = metadata.split(",")
             if not metadata[0] == "Mat":
@@ -160,15 +173,20 @@ class Step(Configurable):
                 raise Exception(f"Datatype of saved buffer ({metadata[1]}) has to match the datatype of the current architecture ({util_jax.dtype_CV_string()})")
             # Fill buffer
             shape = tuple([int(value_str) for value_str in metadata[2:]])
-            arr = jnp.array([float(value_str) for value_str in data.split(",")]).reshape(shape)
-            self.buffer[buffer] = arr
+            arr = jnp.array([float(value_str) for value_str in data.split(",")]).reshape(shape)"""
+
+            self.buffer[buffer] = buf_array
+            self.cpu_buffer[buffer] = np.array(buf_array)
+            step_buffer[buffer] = buf_array
+            print(f"loaded buffer for {self.get_name()} with shape {buf_array.shape}")
+        return step_buffer
 
     def save_buffer(self):
         if len(self.buffer_to_save) == 0:
             return None
         buffer_dict = {}
         for buf_name in self.buffer_to_save:
-            mat = self.buffer[buf_name]
+            mat = self.cpu_buffer[buf_name]
             # Save metadata containing datatype and matrix shape
             buf_str = f"Mat,{util_jax.dtype_CV_string()},{','.join([str(size) for size in mat.shape])}" + "\n"
             # Add flattened matrix elements

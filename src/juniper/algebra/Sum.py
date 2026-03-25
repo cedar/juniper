@@ -4,6 +4,13 @@ import jax.numpy as jnp
 import jax
 from functools import partial
 
+def compute_kernel_factory():
+    def compute_kernel(input_mats, buffer, **kwargs):
+        input = input_mats[util.DEFAULT_INPUT_SLOT]
+        return {util.DEFAULT_OUTPUT_SLOT: input}
+    return compute_kernel
+
+
 class Sum(Step):
     """
     Description
@@ -24,11 +31,10 @@ class Sum(Step):
         self.needs_input_connections = True
         self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = jnp.inf
 
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        # input sum is computed in step.update_input()
-        input = input_mats[util.DEFAULT_INPUT_SLOT]
+        self.compute_kernel = compute_kernel_factory()
 
-        # Return output
-        return {util.DEFAULT_OUTPUT_SLOT: input}
+
+    @partial(jax.jit, static_argnames=['self'])
+    def compute(self, input_mats, buffer, **kwargs):
+        return self.compute_kernel(input_mats, buffer, **kwargs)
 

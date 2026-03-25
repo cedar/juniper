@@ -4,6 +4,15 @@ from ..configurables.Step import Step
 from ..util import util
 from ..configurables.Sigmoid import Sigmoid
 
+def compute_kernel_factory(params, trans_func):
+    def compute_kernel(input_mats, buffer, **kwargs):
+        input = input_mats[util.DEFAULT_INPUT_SLOT]
+
+        output = trans_func(input, params["beta"], params["threshold"])
+        
+        return {util.DEFAULT_OUTPUT_SLOT: output}
+    return compute_kernel
+
 class TransferFunction(Step):
     """
     Description
@@ -25,11 +34,5 @@ class TransferFunction(Step):
         mandatory_params = ["threshold", "beta", "function"]
         super().__init__(name, params, mandatory_params)
         self._trans_func = Sigmoid({"sigmoid":self._params["function"]}).sigmoid
+        self.compute_kernel = compute_kernel_factory(self._params, self._trans_func)
 
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, **kwargs):
-        input = input_mats[util.DEFAULT_INPUT_SLOT]
-
-        output = self._trans_func(input, self._params["beta"], self._params["threshold"])
-        
-        return {util.DEFAULT_OUTPUT_SLOT: output}

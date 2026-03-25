@@ -81,3 +81,9 @@ if __name__ == "__main__":
 # Add documentation to each class 
 # Reorganize steps into categories dynamic, processing, sinks, sources, robotics, auxillaries
 # use needs_incoming_connections to check if income slots needs to be specified and deal with bug when it is not.
+
+# performance steps to update
+"""
+- Custom Input
+- all other 
+"""
