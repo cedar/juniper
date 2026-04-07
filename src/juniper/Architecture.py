@@ -256,13 +256,16 @@ class Architecture:
             - Default = True
         """
         history = []
-        timing_all = []
+        tick_timings = []
+        gpu_push_timings = []
+        gpu_pull_timings = []
         start_time = time.time()
         for _ in range(num_steps):
-
+            # TODO this implementation for generating prng keys is very slow. On the magnitude of 1 ms. There should be a faster way. Maybe move this into tick func or just use numpy generator
             random_keys = util_jax.next_random_keys(len(self.dynamic_steps_c))
 
             # update exposed steps by pushing cpu side outputs mats to gpu
+            t_gpu_push = time.time()
             new_state = dict(self.state)
             for step_name in self.exposed_steps:
                 step = self.get_element(step_name)
@@ -272,16 +275,16 @@ class Architecture:
                 state_buffer["output"] = new_output
                 class_buffer["output"] = new_output
                 new_state[step_name] = state_buffer
-
             self.state = new_state
+            gpu_push_timings.append(time.time()-t_gpu_push)
 
             # Execute tick function
-            tick_start = time.time()
+            t_tick = time.time()
             self.state, _, _ = tick_func(self.state, random_keys)
-            timing_all.append(time.time()-tick_start)
-            # update output buffers of exposed steps
-            # Save output of steps to plot
+            tick_timings.append(time.time()-t_tick)
             
+            t_gpu_pull = time.time()
+            # pull gpu buffers for buffers we want to plot
             if len(steps_to_plot) > 0:
                 data = []
                 for to_plot in steps_to_plot:
@@ -294,21 +297,30 @@ class Architecture:
                 step = self.get_element(step_name)
                 for buffer in step.buffer_to_save:
                     step.cpu_buffer[buffer] = np.array(self.state[step_name][buffer])
-                
+            gpu_pull_timings.append(time.time()-t_gpu_pull)
+        t_total = time.time() - start_time
 
-
-        end_time = time.time()
-        timing = np.mean(timing_all, axis=0)
-        ms_per_tick = 1000 * (end_time - start_time) / num_steps
-        if print_timing:
-            print(f"{ms_per_tick:6.2f} ms / time step")
-            print(f"{(end_time - start_time):6.2f} s total duration\n")
-            print(f"{(1000 * timing):6.2f} ms average time for computation")
         
+        t_buffer_write = time.time()
         if save_buffer:
             self.save_buffer()
+        t_buffer_write = (time.time()-t_buffer_write)
 
-        return history, ms_per_tick, timing
+        if print_timing:
+            ms_per_tick = 1000 * (t_total) / num_steps
+            avg_gpu_push = np.mean(gpu_push_timings, axis=0)
+            avg_tick = np.mean(tick_timings, axis=0)
+            avg_gpu_pull = np.mean(gpu_pull_timings, axis=0)
+
+            print(f"{(t_total):6.2f} s total duration [{num_steps} steps]")
+            print(f"{ms_per_tick:6.2f} ms / time step")
+            print(f"{(1000 * avg_gpu_push):6.2f} ms average time for gpu write operation")
+            print(f"{(1000 * avg_tick):6.2f} ms average time for tick computation")
+            print(f"{(1000 * avg_gpu_pull):6.2f} ms average time for gpu read operation")
+            if save_buffer: print(f"{(1000 * t_buffer_write):6.2f} ms time for buffer write operation")
+            print("\n")
+
+        return history, {"total": t_total, "gpu_push": gpu_push_timings, "gpu_pull": gpu_pull_timings, "tick": tick_timings, "buffer": t_buffer_write}, t_total
 
     def tick(self, state, rng_keys):
         self.check_compiled()
