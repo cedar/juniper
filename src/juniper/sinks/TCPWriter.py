@@ -1,6 +1,7 @@
 import socket
 import threading
 import jax.numpy as jnp
+import numpy as np
 import time
 
 from ..configurables.Step import Step
@@ -23,7 +24,7 @@ def cpp_crc32(data: bytes) -> int:
         for _ in range(8):
             mask = -(crc & 1)
             crc = (crc >> 1) ^ (0xEDB88320 & mask)
-        i += 2                            # mimic the i = i + 1 bug
+        i += 1                            # mimic the i = i + 1 bug
     return (~crc) & 0xFFFFFFFF
 
 def serialize_cv_mat(mat: jnp.ndarray) -> bytes:
@@ -38,7 +39,7 @@ def serialize_cv_mat(mat: jnp.ndarray) -> bytes:
     header = f"Mat,CV_32F,{dims},compact\n".encode("utf-8")
 
     # Binary data block (must be continuous!)
-    binary_data = mat.tobytes()  # already correct layout
+    binary_data = mat.tobytes()  
 
     # Combine before CRC
     message_prefix = header + binary_data
@@ -48,11 +49,17 @@ def serialize_cv_mat(mat: jnp.ndarray) -> bytes:
     footer = f"CHK-SM{checksum}E-N-D!".encode("utf-8")
     return message_prefix + footer
 
+def compute_kernel_factory(_params):
+    def compute_kernel(input_mats, buffer, **kwargs): 
+        input = input_mats[util.DEFAULT_INPUT_SLOT]       
+        return {util.DEFAULT_OUTPUT_SLOT: input}
+    return compute_kernel
+
 class TCPWriter(Step): 
     """
     Description
     ---------
-    Launches a TCP write communication thread. Currently deprecated due to blocking gat/set calls.
+    Launches a TCP write communication thread. 
     
     TODO: Remove dependency on shape and dynamic step setting. This requires reworking how the buffers and shapes re allocated and it requires rethinking how the computational graph is constructed.
 
@@ -85,41 +92,45 @@ class TCPWriter(Step):
                 params["shape"] = (0,)  # no output, so shape can be zero... actually, sometimes it can be necessary to have output shape (eg for debugging)
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.needs_input_connections = False
+        self.is_sink = True
 
         if 'timeout' not in params:
-            self._params['timeout'] = 1.0
+            self._params['timeout'] = 10.0
 
         if 'buffer_size' not in params:
             self._params['buffer_size'] = 32768
 
         if 'time_step' not in params:
-            self._params['time_step'] = 1.0
+            self._params['time_step'] = 1/30
+
+        if 'time_connection_retry' not in params:
+            self._params['time_connection_retry'] = 1.0
 
         self.ip = self._params['ip']
         self.port = self._params['port']
         self.timeout = self._params['timeout']
         self.BUFFER_SIZE = self._params['buffer_size']
         self.time_step = self._params['time_step']
+        self.time_connection_retry = self._params['time_connection_retry']
         self.running = True
 
         self.server_sock = None
         self.conn = None
         self.addr = None
         self.shape = self._params["shape"]
-        self.data = jnp.zeros(self.shape)
+        self.output = jnp.zeros(self.shape)
         self.data_lock = threading.Lock()
+        self.key = -1
 
         self.send_buffer = b''
         self.bytes_sent = 0
 
         self.read_buffer = b''
 
+        self.compute_kernel = compute_kernel_factory(self._params)
+
         self.comm_thread = threading.Thread(target=self.run, daemon=True)
         self.comm_thread.start()
-
-    def compute(self, input_mats, **kwargs):
-        self.set_data(input_mats[util.DEFAULT_INPUT_SLOT])
-        return {}
 
     def run(self):
         while not self.establish_connection():
@@ -131,6 +142,7 @@ class TCPWriter(Step):
     
     def establish_connection(self):
         try:
+            time.sleep(self.time_connection_retry)
             self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.conn.settimeout(self.timeout)
             self.conn.connect((self.ip, self.port))
@@ -142,10 +154,11 @@ class TCPWriter(Step):
     def write(self):
         try:
             if self.bytes_sent >= len(self.send_buffer):
-                new_data = self.get_data()
-                if new_data.size != 0:
-                    self.send_buffer = serialize_cv_mat(new_data)
-                    self.bytes_sent = 0
+                last_key = self.key
+                self.key = np.sum(self.output)
+                #if last_key != self.key:
+                self.send_buffer = serialize_cv_mat(self.output)
+                self.bytes_sent = 0
 
             if len(self.send_buffer) > 0:
                 self.conn.sendall(self.send_buffer)
@@ -178,8 +191,8 @@ class TCPWriter(Step):
     
     def get_data (self):
         with self.data_lock:
-            return self.data.copy()
+            return self.output.copy()
 
     def set_data(self, data):
             with self.data_lock:
-                self.data = data
+                self.output = data

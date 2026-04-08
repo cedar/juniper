@@ -24,7 +24,7 @@ class CustomInput(Step):
         super().__init__(name, params, mandatory_params)
         
         self.is_source = True
-        self.is_exposed = True
+        self.read_from_cpu = True
 
         self.output = jnp.zeros(self._params["shape"])
         self.register_buffer("output")

@@ -40,7 +40,6 @@ class Step(Configurable):
     def __init__(self, name : str, params : dict, mandatory_params : list, is_dynamic : bool = False):
         self._name = name
         super().__init__(params, mandatory_params)
-        self.is_exposed = False
         self.compute_kernel = None
 
         if "." in name:
@@ -51,6 +50,10 @@ class Step(Configurable):
         self._max_incoming_connections = {}
         self.needs_input_connections = True
         self.is_source = False
+        self.read_from_cpu = False
+        self.is_sink = False
+        self.output = None
+
         self.buffer = {} # Stores matrices of internal and output buffers
         self.buffer_to_save = []
         self.cpu_buffer = {}

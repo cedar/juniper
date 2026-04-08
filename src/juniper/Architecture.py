@@ -29,8 +29,9 @@ class Architecture:
         self.state = {}         # state dict of the form {"step_name": {"slot_name": jax_array}}: structure should be fixed. buffer arrays live on gpu. Used as input to jitted tick
         self.graph_info = {}   # static dict of the form {"step_name": {"compute_kernel": step.compute_func, "incoming": {"slot_name": [step_name.slot_name]}, "exposed": bool, "kind": str}}
                                 # graph info should be defined at compile time and remain static. Is used to define jitted function
-        self.exposed_steps = [] # list of stepnames that get a new output from the cpu at every step (so CustomInput etc)
-        self.write_buffer_steps = [] # list of step names of which to automatically write the whight buffer (atm its just the HebbianConnectionSteps and BCM stepps)
+        self.sources = [] # list of stepnames that get a new output from the cpu at every step (so CustomInput etc)
+        self.sinks = [] # list of step names which act as sinks, by pushing their output to the cpu at every step (TCPWriter). 
+        self.write_buffer_steps = [] # list of step names of which to automatically write the wheight buffer (atm its just the HebbianConnectionSteps and BCM stepps)
 
 
         if not _architecture_singleton is None:
@@ -39,7 +40,6 @@ class Architecture:
     def is_compiled(self):
         return self.compiled
 
-    @partial(jax.jit, static_argnames=['self'])
     def check_compiled(self):
         if not self.is_compiled():
             raise util.ArchitectureNotCompiledException
@@ -98,8 +98,10 @@ class Architecture:
                 incoming[slot] = self.get_incoming_steps(step._name + "." + slot)
 
             self.graph_info[step._name] = {"compute_kernel": step.compute_kernel, "incoming": incoming, "kind": "dynamic", "is_source": step.is_source, "update_input_product":False}
-            if step.is_exposed:
-                self.exposed_steps.append(step._name)
+            if step.is_source:
+                self.sources.append(step._name)
+            if step.is_sink:
+                self.sinks.append(step._name)
         
         for graph_elem in self.compilation_graph_static_c:
             step_name, incoming_steps = graph_elem
@@ -113,8 +115,10 @@ class Architecture:
             self.graph_info[step_name] = {"compute_kernel": step.compute_kernel, "incoming": incoming, "kind": "static", "is_source": step.is_source, "update_input_product":False}
             if step.__class__.__name__=="ComponentMultiply":
                 self.graph_info[step._name]["update_input_product"] = True 
-            if step.is_exposed:
-                self.exposed_steps.append(step._name)
+            if step.is_source:
+                self.sources.append(step._name)
+            if step.is_sink:
+                self.sinks.append(step._name)
             if len(step.buffer_to_save) != 0:
                 self.write_buffer_steps.append(step._name)
 
@@ -122,10 +126,12 @@ class Architecture:
         self.compiled = True
         self.check_compiled()
         random_keys = util_jax.next_random_keys(len(self.dynamic_steps_c))
+        if print_compile_info: print("######## compile run ############") # TODO update logging in juniper in general...
         self.run_simulation(tick_func, steps_to_plot=[], num_steps=warmup, print_timing=print_compile_info)
         for i in range(warmup):
             tick_func(self.state, random_keys)
         self.reset_steps()
+        if print_compile_info: print("############")
         
         # Load buffers if any were saved during the last run
         data_file = self.cfg_c["arch_file_path"] + ".data"
@@ -267,14 +273,15 @@ class Architecture:
             # update exposed steps by pushing cpu side outputs mats to gpu
             t_gpu_push = time.time()
             new_state = dict(self.state)
-            for step_name in self.exposed_steps:
+            for step_name in self.sources:
                 step = self.get_element(step_name)
-                state_buffer = new_state[step_name]
-                class_buffer = step.buffer
-                new_output =  step.output
-                state_buffer["output"] = new_output
-                class_buffer["output"] = new_output
-                new_state[step_name] = state_buffer
+                if step.read_from_cpu:
+                    state_buffer = new_state[step_name]
+                    class_buffer = step.buffer
+                    new_output =  step.output
+                    state_buffer["output"] = new_output
+                    class_buffer["output"] = new_output
+                    new_state[step_name] = state_buffer
             self.state = new_state
             gpu_push_timings.append(time.time()-t_gpu_push)
 
@@ -291,6 +298,18 @@ class Architecture:
                     step, slot = to_plot.split(".") if "." in to_plot else [to_plot, util.DEFAULT_OUTPUT_SLOT]
                     data.append(np.array(self.state[step][slot]))
                 history.append(data)
+
+            # pull gpu buffers of steps that are sinks
+            for step_name in self.sinks:
+                step = self.get_element(step_name)
+                #print(step_name)
+                #print(step.is_sink)
+                #print(step.output)
+                if step.is_sink and step.output is not None:
+                    step_state = dict(self.state[step_name])
+                    #print(step_state)
+                    step.output = np.array(step_state[util.DEFAULT_OUTPUT_SLOT])
+                
             
             # pull gpu buffers for buffers we want to save
             for step_name in self.write_buffer_steps:
@@ -339,7 +358,7 @@ class Architecture:
                 input_sum = step.update_input(self)
             
             step.buffer = step.compute(input_sum, step.buffer)
-            if step.is_exposed:
+            if step.is_source:
                 # copy over output state from cpu for steps with externally set output
                 step.buffer["output"] =  jax.device_put(step.output, device=jax.devices("gpu")[0])
             new_state[step_name] = step.buffer

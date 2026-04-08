@@ -55,11 +55,14 @@ def parse_cv_mat(data: bytes):
     mat = mat.reshape(shape)
     return mat
 
+def compute_kernel_factory():
+    return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: buffer["output"], "output": buffer["output"]}
+
 class TCPReader(Step): 
     """
     Description
     ---------
-    Launches a TCP read communication thread. Currently deprecated due to blocking gat/set calls.
+    Launches a TCP read communication thread.
     
     TODO: Remove dependency on shape and dynamic step setting. This requires reworking how the buffers and shapes re allocated and it requires rethinking how the computational graph is constructed.
 
@@ -89,15 +92,25 @@ class TCPReader(Step):
         self.needs_input_connections = False
 
         if 'timeout' not in params:
-            self._params['timeout'] = 1
+            self._params['timeout'] = 10
 
         if 'buffer_size' not in params:
             self._params['buffer_size'] = 32768
 
         if 'time_step' not in params:
-            self._params['time_step'] = 1
+            self._params['time_step'] = 1/30
+        
+        if 'time_connection_retry' not in params:
+            self._params['time_connection_retry'] = 1.0
+        
         
         self.is_source = True
+        self.read_from_cpu = True
+        self.output = jnp.zeros(self._params["shape"])
+        self.register_buffer("output")
+
+        self.compute_kernel = compute_kernel_factory()
+
         self.input_slot_names = []
         self._max_incoming_connections = {}
 
@@ -106,6 +119,7 @@ class TCPReader(Step):
         self.timeout = self._params['timeout']
         self.BUFFER_SIZE = self._params['buffer_size']
         self.time_step = self._params['time_step']
+        self.time_connection_retry = self._params['time_connection_retry']
         self.running = True
 
         self.server_sock = None
@@ -123,9 +137,6 @@ class TCPReader(Step):
         self.comm_thread = threading.Thread(target=self.run, daemon=True)
         self.comm_thread.start()
 
-    def compute(self, input_mats, **kwargs):
-        return {util.DEFAULT_OUTPUT_SLOT: self.get_data()}
-
     def run(self):
         while not self.establish_connection():
             continue
@@ -136,6 +147,7 @@ class TCPReader(Step):
     
     def establish_connection(self):
         try:
+            time.sleep(self.time_connection_retry)
             self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_sock.bind((self.ip, self.port))
             self.server_sock.listen(1)
@@ -155,16 +167,18 @@ class TCPReader(Step):
             else:
                 self.conn.send(b'1') 
                 self.read_buffer += newdata
-                start = self.read_buffer.find(b'Mat')
-                end = self.read_buffer.find(b'CHK-SM')
+                #end = self.read_buffer.rfind(b'CHK-SM')
+                end_tag = b'E-N-D!'
+                end = self.read_buffer.rfind(end_tag)
+                if end != -1:
+                    start = self.read_buffer.rfind(b'Mat', 0, end)
+                
                 if start != -1 and end != -1 and end > start:
-                    end_tag = b'E-N-D!'
-                    end_pos = self.read_buffer.find(end_tag, end) 
-                    if end_pos != -1:
-                        end = end_pos + len(end_tag)
-                        full_message = self.read_buffer[start:end]
-                        self.read_buffer = self.read_buffer[end:]
-                        self.set_data(parse_cv_mat(full_message))
+                    end = end + len(end_tag)
+                    full_message = self.read_buffer[start:end]
+                    self.read_buffer = self.read_buffer[end:]
+                    self.output = parse_cv_mat(full_message)
+                    #self.set_data(parse_cv_mat(full_message))
         except Exception as e:
             print(e)
             print(f"TCP read socket ({self.ip},{self.port}) lost connection!")
