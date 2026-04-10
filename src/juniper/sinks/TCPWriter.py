@@ -103,16 +103,18 @@ class TCPWriter(Step):
         if 'time_step' not in params:
             self._params['time_step'] = 1/30
 
-        if 'time_connection_retry' not in params:
-            self._params['time_connection_retry'] = 1.0
+        if 'connection_time_step' not in params:
+            self._params['connection_time_step'] = 1.0
 
         self.ip = self._params['ip']
         self.port = self._params['port']
         self.timeout = self._params['timeout']
         self.BUFFER_SIZE = self._params['buffer_size']
         self.time_step = self._params['time_step']
-        self.time_connection_retry = self._params['time_connection_retry']
+        self.connection_time_step = self._params['connection_time_step']
         self.running = True
+        self.connected = False
+        self.last_heartbeat = 0
 
         self.server_sock = None
         self.conn = None
@@ -120,7 +122,6 @@ class TCPWriter(Step):
         self.shape = self._params["shape"]
         self.output = jnp.zeros(self.shape)
         self.data_lock = threading.Lock()
-        self.key = -1
 
         self.send_buffer = b''
         self.bytes_sent = 0
@@ -135,18 +136,23 @@ class TCPWriter(Step):
     def run(self):
         while not self.establish_connection():
             continue
+        self.connected = True
         
         while self.running:
-            self.write()
+            if self.connected:
+                self.write()
+            else:
+                self.connected = self.establish_connection()
             time.sleep(self.time_step)
     
     def establish_connection(self):
         try:
-            time.sleep(self.time_connection_retry)
+            time.sleep(self.connection_time_step)
             self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.conn.settimeout(self.timeout)
             self.conn.connect((self.ip, self.port))
             print(f"TCP write socket connected to server at ({self.ip}, {self.port})!")
+            self.last_heartbeat = time.time()
             return True
         except:
             return False
@@ -154,15 +160,22 @@ class TCPWriter(Step):
     def write(self):
         try:
             if self.bytes_sent >= len(self.send_buffer):
-                last_key = self.key
-                self.key = np.sum(self.output)
-                #if last_key != self.key:
                 self.send_buffer = serialize_cv_mat(self.output)
                 self.bytes_sent = 0
 
             if len(self.send_buffer) > 0:
                 self.conn.sendall(self.send_buffer)
                 self.bytes_sent += len(self.send_buffer)
+                self.send_buffer = b''
+
+            # check alive status
+            heart_beat = self.conn.recv(4096)
+            if heart_beat == b"" and (time.time()-self.last_heartbeat) > self.timeout:
+                raise Exception()
+            else:
+                self.last_heartbeat = time.time()
+
+
 
         except Exception as e:
             print(e)
@@ -170,7 +183,6 @@ class TCPWriter(Step):
             if self.running:
                 self.close_connection()
                 time.sleep(0.01)
-                self.establish_connection()
     
     def close_connection(self):
         try:
@@ -181,7 +193,9 @@ class TCPWriter(Step):
             if self.server_sock:
                 self.server_sock.close()
                 self.server_sock = None
+            self.connected = False
         except Exception as e:
+            self.connected = False
             print(f"Error while closing the connection: {e}")
 
     def clean_up(self):

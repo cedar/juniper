@@ -92,7 +92,7 @@ class TCPReader(Step):
         self.needs_input_connections = False
 
         if 'timeout' not in params:
-            self._params['timeout'] = 10
+            self._params['timeout'] = 1
 
         if 'buffer_size' not in params:
             self._params['buffer_size'] = 32768
@@ -100,8 +100,8 @@ class TCPReader(Step):
         if 'time_step' not in params:
             self._params['time_step'] = 1/30
         
-        if 'time_connection_retry' not in params:
-            self._params['time_connection_retry'] = 1.0
+        if 'connection_time_step' not in params:
+            self._params['connection_time_step'] = 1.0
         
         
         self.is_source = True
@@ -119,7 +119,7 @@ class TCPReader(Step):
         self.timeout = self._params['timeout']
         self.BUFFER_SIZE = self._params['buffer_size']
         self.time_step = self._params['time_step']
-        self.time_connection_retry = self._params['time_connection_retry']
+        self.connection_time_step = self._params['connection_time_step']
         self.running = True
 
         self.server_sock = None
@@ -143,16 +143,16 @@ class TCPReader(Step):
 
         while self.running:
             self.read()
+            self.confirmAliveStatus()
             time.sleep(self.time_step)
     
     def establish_connection(self):
         try:
-            time.sleep(self.time_connection_retry)
+            time.sleep(self.connection_time_step)
             self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.server_sock.bind((self.ip, self.port))
             self.server_sock.listen(1)
             self.server_sock.settimeout(self.timeout)
-            print(f"TCP read socket ({self.ip},{self.port}) waiting for connection...")
             self.conn, self.addr = self.server_sock.accept()
             print(f"TCP read socket ({self.ip},{self.port}) established connection with address {self.addr}!")
             return True
@@ -170,6 +170,7 @@ class TCPReader(Step):
                 #end = self.read_buffer.rfind(b'CHK-SM')
                 end_tag = b'E-N-D!'
                 end = self.read_buffer.rfind(end_tag)
+                start = -1
                 if end != -1:
                     start = self.read_buffer.rfind(b'Mat', 0, end)
                 
@@ -188,6 +189,14 @@ class TCPReader(Step):
                 self.establish_connection()
             self.read_buffer = b''
     
+    def confirmAliveStatus(self):
+        try:
+            heart_beat_msg = f"Reader: {self.port} alive! {time.time()}"
+            self.conn.sendall(heart_beat_msg.encode("utf-8"))
+        except Exception as e:
+            print(e)
+            print(f"TCP read socket ({self.ip},{self.port}) failed heart beat!")
+
     def close_connection(self):
         try:
             if self.conn :
