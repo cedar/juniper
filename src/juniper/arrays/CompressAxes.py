@@ -16,6 +16,8 @@ def compute_kernel_factory(params, red_func):
         input = input_mats[util.DEFAULT_INPUT_SLOT]
 
         output = red_func(input, axis=params["axis"])
+        if params["compress_all"]:
+            output = jnp.array([output])
         return {util.DEFAULT_OUTPUT_SLOT: output}
 
     return compute_kernel
@@ -31,6 +33,8 @@ class CompressAxes(Step):
     ---------
     - axis : tuple(ax0,ax1,...)
     - compression_type : str(Sum,Average,Maximum,Minimum)
+    - compress_all (optional) : bool
+        - flag to indicate that all input axes will be supressed. This is needed to establish valid output shape.
 
     Step Input/Output slots
     ---------
@@ -48,6 +52,9 @@ class CompressAxes(Step):
                 f"Supported compression types are: {', '.join(COMPRESSION_TYPE_MAP)}"
                 )
         
+        if "compress_all" not in params.keys():
+            self._params["compress_all"] = False
+
         self.compute_kernel = compute_kernel_factory(self._params, self._red_func)
 
     @partial(jax.jit, static_argnames=['self'])
