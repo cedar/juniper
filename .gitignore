@@ -10,3 +10,4 @@ juniper.egg-info
 output/*
 jax_cache/*
 *.data
+.codex
