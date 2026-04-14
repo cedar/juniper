@@ -5,12 +5,12 @@ from ..configurables.Gaussian import Gaussian
 import jax.numpy as jnp
 import jax
 
-def compute_kernel_factory(params, limits, gaussian):
+def compute_kernel_factory(params, limits, gaussian, scaling_factor):
     def compute_kernel(input_mats, buffer, **kwargs):
         input_vec = jnp.asarray(input_mats[util.DEFAULT_INPUT_SLOT], dtype=jnp.float32)
 
         # calculate centers
-        center = (input_vec - limits[:,0]) + jnp.asarray(params["center"], dtype=jnp.float32)
+        center = (input_vec - limits[:,0]) * scaling_factor + jnp.asarray(params["center"], dtype=jnp.float32)
 
         # update gaussian centers
         gaussian._params["center"] = center
@@ -66,19 +66,22 @@ class RateToSpaceCode(Step):
             self._params["cyclic"] = False
 
         self._limits = jnp.asarray(self._params["limits"], dtype=jnp.float32)
-        self._intveral_sizes = self._limits[:,1] - self._limits[:,0]
+        self._scaling_factor = jnp.array(self._params["shape"]) / jnp.array(self._limits[:,1] - self._limits[:,0]) 
 
         # pre generate gaussians
         self._gaussian = Gaussian(params={"sigma": self._params["sigma"], "amplitude": 0, "center": [x // 2 for x in self._params["shape"]], "shape": self._params["shape"], 
                                   "normalized": False, "factorized": False})
         
-        compute_kernel = compute_kernel_factory(self._params, self._limits, self._gaussian)
+        self.compute_kernel = compute_kernel_factory(self._params, self._limits, self._gaussian, self._scaling_factor)
         
         self.reset()
         
         
     def reset(self):
-        self.buffer[util.DEFAULT_INPUT_SLOT] = jnp.zeros((len(self._params["shape"]),))
+        self.buffer[util.DEFAULT_OUTPUT_SLOT] = jnp.zeros((len(self._params["shape"]),))
+        reset_state = {}
+        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
+        return reset_state
     
 
     

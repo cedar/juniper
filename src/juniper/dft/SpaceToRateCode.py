@@ -15,7 +15,7 @@ def compute_kernel_factory(params):
 
         output = jnp.sum(peak_position, axis=0)/N_above_threshold * peak_found + buffer["peak_pos"] * (1-peak_found)
 
-        return {util.DEFAULT_OUTPUT_SLOT: output[0]}
+        return {util.DEFAULT_OUTPUT_SLOT: output[0], "peak_pos": output[0]}
     return compute_kernel
         
 
@@ -69,9 +69,12 @@ class SpaceToRateCode(Step):
 
 
     def reset(self):
-        self.buffer[util.DEFAULT_INPUT_SLOT] = jnp.zeros(self._params["shape"])
         self.buffer[util.DEFAULT_OUTPUT_SLOT] = jnp.zeros((len(self._params["shape"]),))
         self.buffer["peak_pos"] = jnp.zeros((len(self._params["shape"]),))
+        reset_state = {}
+        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
+        reset_state["peak_pos"] = self.buffer["peak_pos"]
+        return reset_state
 
 
     
