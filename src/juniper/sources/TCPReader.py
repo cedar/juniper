@@ -2,9 +2,11 @@ import socket
 import threading
 import jax.numpy as jnp
 import time
+import re
 
 from ..configurables.Step import Step
 from ..util import util
+from ..util.tcp_logging import get_tcp_logger
 
 def parse_cv_mat(data: bytes):
     # Step 1: Extract header and trailer
@@ -25,7 +27,7 @@ def parse_cv_mat(data: bytes):
 
     cv_type = parts[1]
     shape = parts[2:len(parts)-1] if 'compact' in parts else parts[2:len(parts)]
-    shape = jnp.array([int(dim_str) for dim_str in shape])
+    shape = [int(dim_str) for dim_str in shape]
 
     dtype_map = {
         'CV_32F': jnp.float32,
@@ -37,10 +39,17 @@ def parse_cv_mat(data: bytes):
         'CV_32S': jnp.int32,
     }
 
-    if cv_type not in dtype_map:
+    match = re.fullmatch(r"(CV_\d+[FSU])(?:C(\d+))?", cv_type)
+    if match is None:
         raise ValueError(f"Unsupported CV type: {cv_type}")
 
-    dtype = dtype_map[cv_type]
+    base_cv_type = match.group(1)
+    channels = int(match.group(2)) if match.group(2) is not None else 1
+
+    if base_cv_type not in dtype_map:
+        raise ValueError(f"Unsupported CV type: {cv_type}")
+
+    dtype = dtype_map[base_cv_type]
 
     # Step 3: Get raw binary matrix data
     binary_data = data[header_end + 1 : trailer_start]
@@ -49,8 +58,16 @@ def parse_cv_mat(data: bytes):
     mat = jnp.frombuffer(binary_data, dtype=dtype)
 
     # Step 5: Reshape
-    if mat.size != jnp.prod(shape):
+    expected_size = 1
+    for dim in shape:
+        expected_size *= dim
+    expected_size *= channels
+
+    if mat.size != expected_size:
         raise ValueError("Data size does not match header dimensions")
+
+    if channels > 1:
+        shape.append(channels)
 
     mat = mat.reshape(shape)
     return mat
@@ -101,7 +118,7 @@ class TCPReader(Step):
             self._params['time_step'] = 1/30
         
         if 'connection_time_step' not in params:
-            self._params['connection_time_step'] = 1.0
+            self._params['connection_time_step'] = 0.1
         
         
         self.is_source = True
@@ -120,7 +137,9 @@ class TCPReader(Step):
         self.BUFFER_SIZE = self._params['buffer_size']
         self.time_step = self._params['time_step']
         self.connection_time_step = self._params['connection_time_step']
+        self.logger = get_tcp_logger(f"reader.{self._name}.{self.port}")
         self.running = True
+        self._connection_announced = False
 
         self.server_sock = None
         self.conn = None
@@ -138,76 +157,150 @@ class TCPReader(Step):
         self.comm_thread.start()
 
     def run(self):
-        while not self.establish_connection():
-            continue
-
         while self.running:
+            if self.conn is None:
+                while self.running and not self.establish_connection():
+                    continue
+                if not self.running:
+                    break
             self.read()
-            self.confirmAliveStatus()
             time.sleep(self.time_step)
     
     def establish_connection(self):
         try:
             time.sleep(self.connection_time_step)
+            if self.server_sock is not None:
+                self.server_sock.close()
             self.server_sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.server_sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.server_sock.bind((self.ip, self.port))
             self.server_sock.listen(1)
             self.server_sock.settimeout(self.timeout)
             self.conn, self.addr = self.server_sock.accept()
-            print(f"TCP read socket ({self.ip},{self.port}) established connection with address {self.addr}!")
+            self.conn.settimeout(self.timeout)
+            self.logger.info(
+                "Established connection on (%s,%s) with address %s",
+                self.ip,
+                self.port,
+                self.addr,
+            )
+            if not self._connection_announced:
+                print(f"TCP read socket ({self.ip},{self.port}) established connection with address {self.addr}!")
+            self._connection_announced = True
             return True
-        except:
+        except Exception as e:
+            self.logger.info(
+                "Connection attempt on (%s,%s) failed: %r",
+                self.ip,
+                self.port,
+                e,
+            )
             return False
+
+    def _extract_full_message(self):
+        start_tag = b'Mat,'
+        end_tag = b'E-N-D!'
+        start = self.read_buffer.find(start_tag)
+        if start == -1:
+            return None
+
+        if start > 0:
+            self.read_buffer = self.read_buffer[start:]
+            start = 0
+
+        end = self.read_buffer.find(end_tag, start)
+        if end == -1:
+            return None
+
+        end += len(end_tag)
+        full_message = self.read_buffer[start:end]
+        self.read_buffer = self.read_buffer[end:]
+        return full_message
     
     def read(self):
         try:
-            newdata = self.conn.recv(self.BUFFER_SIZE)
-            if not newdata:
-                raise ConnectionError()
-            else:
-                self.conn.send(b'1') 
-                self.read_buffer += newdata
-                #end = self.read_buffer.rfind(b'CHK-SM')
-                end_tag = b'E-N-D!'
-                end = self.read_buffer.rfind(end_tag)
-                start = -1
-                if end != -1:
-                    start = self.read_buffer.rfind(b'Mat', 0, end)
-                
-                if start != -1 and end != -1 and end > start:
-                    end = end + len(end_tag)
-                    full_message = self.read_buffer[start:end]
-                    self.read_buffer = self.read_buffer[end:]
+            if self.conn is None:
+                raise ConnectionError("TCP read socket is not connected")
+
+            started_receiving = len(self.read_buffer) > 0
+            deadline = time.time() + self.timeout if started_receiving else None
+
+            while self.running:
+                full_message = self._extract_full_message()
+                if full_message is not None:
+                    self.send_ack()
                     self.output = parse_cv_mat(full_message)
-                    #self.set_data(parse_cv_mat(full_message))
+                    return
+
+                if started_receiving and deadline is not None and time.time() >= deadline:
+                    raise TimeoutError("TCP read timed out before a full message was received")
+
+                try:
+                    newdata = self.conn.recv(self.BUFFER_SIZE)
+                except socket.timeout:
+                    if started_receiving:
+                        raise TimeoutError("TCP read timed out before a full message was received")
+                    return
+
+                if not newdata:
+                    raise ConnectionError()
+
+                started_receiving = True
+                deadline = time.time() + self.timeout
+                self.read_buffer += newdata
+
         except Exception as e:
-            print(e)
-            print(f"TCP read socket ({self.ip},{self.port}) lost connection!")
+            self.logger.exception(
+                "Read loop failed on (%s,%s): %r",
+                self.ip,
+                self.port,
+                e,
+            )
+            if self._connection_announced:
+                print(f"TCP read socket ({self.ip},{self.port}) lost connection!")
+                self._connection_announced = False
             if self.running:
                 self.close_connection()
-                time.sleep(0.01)
-                self.establish_connection()
             self.read_buffer = b''
     
-    def confirmAliveStatus(self):
+    def send_ack(self):
         try:
-            heart_beat_msg = f"Reader: {self.port} alive! {time.time()}"
-            self.conn.sendall(heart_beat_msg.encode("utf-8"))
+            self.conn.sendall(b'1')
         except Exception as e:
-            print(e)
-            print(f"TCP read socket ({self.ip},{self.port}) failed heart beat!")
+            self.logger.exception(
+                "Acknowledgement failed on (%s,%s): %r",
+                self.ip,
+                self.port,
+                e,
+            )
+            raise
 
     def close_connection(self):
+        conn = self.conn
+        server_sock = self.server_sock
+        self.conn = None
+        self.server_sock = None
         try:
-            if self.conn :
-                self.conn.shutdown(socket.SHUT_RDWR)
-                self.conn.close()
-                self.conn = None
-            if self.server_sock:
-                self.server_sock.close()
-                self.server_sock = None
+            if conn:
+                try:
+                    conn.shutdown(socket.SHUT_RDWR)
+                except OSError as e:
+                    self.logger.info(
+                        "Reader shutdown on (%s,%s) raised %r during close",
+                        self.ip,
+                        self.port,
+                        e,
+                    )
+                conn.close()
+            if server_sock:
+                server_sock.close()
         except Exception as e:
-            print(f"Error while closing the connection: {e}")
+            self.logger.exception(
+                "Error while closing reader connection on (%s,%s): %r",
+                self.ip,
+                self.port,
+                e,
+            )
 
     def clean_up(self):
         self.running = False

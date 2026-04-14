@@ -6,11 +6,12 @@ import time
 
 from ..configurables.Step import Step
 from ..util import util
+from ..util.tcp_logging import get_tcp_logger
 
 def cpp_crc32(data: bytes) -> int:
     # C++ style CRC32 computation
     crc = 0xFFFFFFFF
-    i = 0
+    """i = 0
     while i < len(data):
         b = data[i]
         # Simulate C++ signed char → int → unsigned int:
@@ -24,19 +25,39 @@ def cpp_crc32(data: bytes) -> int:
         for _ in range(8):
             mask = -(crc & 1)
             crc = (crc >> 1) ^ (0xEDB88320 & mask)
-        i += 1                            # mimic the i = i + 1 bug
+        i += 1 """                           
     return (~crc) & 0xFFFFFFFF
+
+def jnp_dtype_to_cv_type(mat: jnp.ndarray) -> str:
+    base_dtype_map = {
+        np.dtype(jnp.float32): "CV_32F",
+        np.dtype(jnp.float64): "CV_64F",
+        np.dtype(jnp.uint8): "CV_8U",
+        np.dtype(jnp.int8): "CV_8S",
+        np.dtype(jnp.uint16): "CV_16U",
+        np.dtype(jnp.int16): "CV_16S",
+        np.dtype(jnp.int32): "CV_32S",
+    }
+
+    dtype = np.dtype(mat.dtype)
+    if dtype not in base_dtype_map:
+        raise ValueError(f"Unsupported dtype for TCP serialization: {dtype}.")
+
+    cv_type = base_dtype_map[dtype]
+    channels = mat.shape[-1] if len(mat.shape) > 2 else 1
+    if channels > 1:
+        cv_type += f"C{channels}"
+    return cv_type
 
 def serialize_cv_mat(mat: jnp.ndarray) -> bytes:
     #if not mat.flags['C_CONTIGUOUS']:
     #    mat = jnp.ascontiguousarray(mat) # jax has no flags attribute for mats
-    
-    if mat.dtype != jnp.float32:
-        raise ValueError(f"Only CV_32F (float32) supported but received {mat.dtype}.")
+
+    cv_type = jnp_dtype_to_cv_type(mat)
 
     # Header construction
-    dims = ",".join(str(x) for x in mat.shape)
-    header = f"Mat,CV_32F,{dims},compact\n".encode("utf-8")
+    dims = mat.shape[:-1] if len(mat.shape) > 2 and cv_type.endswith(f"C{mat.shape[-1]}") else mat.shape
+    header = f"Mat,{cv_type},{','.join(str(x) for x in dims)},compact\n".encode("utf-8")
 
     # Binary data block (must be continuous!)
     binary_data = mat.tobytes()  
@@ -112,8 +133,10 @@ class TCPWriter(Step):
         self.BUFFER_SIZE = self._params['buffer_size']
         self.time_step = self._params['time_step']
         self.connection_time_step = self._params['connection_time_step']
+        self.logger = get_tcp_logger(f"writer.{self._name}.{self.port}")
         self.running = True
         self.connected = False
+        self._connection_announced = False
         self.last_heartbeat = 0
 
         self.server_sock = None
@@ -151,10 +174,23 @@ class TCPWriter(Step):
             self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.conn.settimeout(self.timeout)
             self.conn.connect((self.ip, self.port))
-            print(f"TCP write socket connected to server at ({self.ip}, {self.port})!")
+            self.logger.info(
+                "Connected to server at (%s,%s)",
+                self.ip,
+                self.port,
+            )
+            if not self._connection_announced:
+                print(f"TCP write socket connected to server at ({self.ip}, {self.port})!")
+            self._connection_announced = True
             self.last_heartbeat = time.time()
             return True
-        except:
+        except Exception as e:
+            self.logger.info(
+                "Connection attempt to (%s,%s) failed: %r",
+                self.ip,
+                self.port,
+                e,
+            )
             return False
     
     def write(self):
@@ -178,8 +214,15 @@ class TCPWriter(Step):
 
 
         except Exception as e:
-            print(e)
-            print(f"TCP write socket ({self.ip},{self.port}) lost connection!")
+            self.logger.exception(
+                "Write loop failed on (%s,%s): %r",
+                self.ip,
+                self.port,
+                e,
+            )
+            if self._connection_announced:
+                print(f"TCP write socket ({self.ip},{self.port}) lost connection!")
+                self._connection_announced = False
             if self.running:
                 self.close_connection()
                 time.sleep(0.01)
@@ -196,7 +239,12 @@ class TCPWriter(Step):
             self.connected = False
         except Exception as e:
             self.connected = False
-            print(f"Error while closing the connection: {e}")
+            self.logger.exception(
+                "Error while closing writer connection on (%s,%s): %r",
+                self.ip,
+                self.port,
+                e,
+            )
 
     def clean_up(self):
         self.running = False
