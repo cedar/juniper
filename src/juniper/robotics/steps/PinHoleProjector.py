@@ -4,35 +4,33 @@ from ...util import util
 import jax.numpy as jnp
 import jax
 
-def compute_kernel_factory(params, M_inv):
+def compute_kernel_factory(params, M):
     def compute_kernel(input_mats, buffer, **kwargs):
-        depth = input_mats[util.DEFAULT_INPUT_SLOT]
-        H, W = depth.shape
-        ys, xs = jnp.indices((H, W), dtype=jnp.float32)  # ys=row, xs=col
-        # Build pixel homogeneous (x,y,1). Note: x=cols, y=rows
-        pix = jnp.stack([xs, ys, jnp.ones_like(xs)], axis=0)  # (3, H, W)
-        pix = pix.reshape(3, -1)  # (3, HW)
 
-        # Rays in homogeneous 4-vector after pinv
-        rays4 = M_inv @ pix  # (4, HW)
-        rays3 = rays4[:3, :]
+        point_cloud = input_mats[util.DEFAULT_INPUT_SLOT] # (N,3)
+        point_cloud_reorder = point_cloud.copy()
+        point_cloud = point_cloud.at[:,0].set(point_cloud_reorder[:,1])
+        point_cloud = point_cloud.at[:,1].set(point_cloud_reorder[:,2])
+        point_cloud = point_cloud.at[:,2].set(point_cloud_reorder[:,0])
+        vector_lenghts = jnp.linalg.norm(point_cloud, axis=1, keepdims=True) + 1e-8 # (N,1)
+        point_cloud = jnp.append(point_cloud, jnp.ones_like(vector_lenghts), axis=1) # (N,4)
 
-        # Normalize rays, then scale by per-pixel depth
-        rays_norm = jnp.linalg.norm(rays3, axis=0, keepdims=True) + 1e-8
-        unit_rays = rays3 / rays_norm                      # (3, HW)
-        depth_flat = depth.reshape(-1)                     # (HW,)
-        output = unit_rays * depth_flat                    # (3, HW)
-        output = jnp.stack([output[2], output[0], output[1]])
-        output = output.T                                   # (HW, 3)
+        pix = M @ point_cloud.T # (3,N)
+        pix = pix.at[:2,:].divide(pix[2,:]+1e-8)
+        pix = jnp.round(pix).astype(jnp.int32)
 
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+        out = jnp.full(params["img_shape"], jnp.inf, dtype=jnp.float32) # (H,W)
+        out = out.at[pix[1,:],pix[0,:]].min(vector_lenghts[:,0], mode="drop") # fill with pixel vals and take the closest value for each pixel
+        out = jnp.where(jnp.isinf(out), 0, out) # replace inf values with 0
+
+        return {util.DEFAULT_OUTPUT_SLOT: out}
     return compute_kernel
 
-class PinHoleBackProjector(Step):
+class PinHoleProjector(Step):
     """
     Description
     ---------
-    Takes the depth image of a pinhole camera as input and transforms the image into a point cloud.
+    Takes a point cloud and transforms it into a depth image of a pinhole depth camera.
 
     Parameters
     ---------    
@@ -67,8 +65,7 @@ class PinHoleBackProjector(Step):
         self.M_cam = self.M_cam.at[1,1].set(s_y * f)
         self.M_cam = self.M_cam.at[1,2].set(v_0)
         self.M_cam = self.M_cam.at[2,2].set(1)
-        self.M_cam_inv = jnp.linalg.pinv(self.M_cam)
 
-        self.compute_kernel = compute_kernel_factory(self._params, self.M_cam_inv)
+        self.compute_kernel = compute_kernel_factory(self._params, self.M_cam)
 
     
