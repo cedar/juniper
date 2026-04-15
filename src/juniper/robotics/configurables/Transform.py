@@ -11,7 +11,7 @@ def compute_kernel_factory(params, M_func):
         out_vec = M_func(joint_state) @ out_vec.T
         return out_vec[:3].T
     return compute_kernel
-
+ 
 class Transform(Configurable):
     """
     Description
@@ -36,6 +36,7 @@ class Transform(Configurable):
     """
     def __init__(self, params):
         mandatory_params = ["M_func"]
+        self._name = "Transform"
         super().__init__(params, mandatory_params)
 
         self.M_func = params["M_func"]

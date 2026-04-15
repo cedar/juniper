@@ -70,6 +70,7 @@ class FrameGraph(Configurable):
     """
     def __init__(self, params):
         mandatory_params = []
+        self._name = "Frame_Graph"
         super().__init__(params, mandatory_params)
 
         if "edges" not in params:
