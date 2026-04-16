@@ -43,20 +43,22 @@ def jnp_dtype_to_cv_type(mat: jnp.ndarray) -> str:
     if dtype not in base_dtype_map:
         raise ValueError(f"Unsupported dtype for TCP serialization: {dtype}.")
 
-    cv_type = base_dtype_map[dtype]
-    channels = mat.shape[-1] if len(mat.shape) > 2 else 1
-    if channels > 1:
-        cv_type += f"C{channels}"
-    return cv_type
+    return base_dtype_map[dtype]
+
+
+def should_serialize_as_image(mat: jnp.ndarray) -> bool:
+    return mat.ndim == 3 and mat.shape[-1] == 3
 
 def serialize_cv_mat(mat: jnp.ndarray) -> bytes:
     #if not mat.flags['C_CONTIGUOUS']:
     #    mat = jnp.ascontiguousarray(mat) # jax has no flags attribute for mats
 
     cv_type = jnp_dtype_to_cv_type(mat)
+    if should_serialize_as_image(mat):
+        cv_type += "C3"
 
     # Header construction
-    dims = mat.shape[:-1] if len(mat.shape) > 2 and cv_type.endswith(f"C{mat.shape[-1]}") else mat.shape
+    dims = mat.shape[:-1] if should_serialize_as_image(mat) else mat.shape
     header = f"Mat,{cv_type},{','.join(str(x) for x in dims)},compact\n".encode("utf-8")
 
     # Binary data block (must be continuous!)
