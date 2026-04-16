@@ -17,11 +17,20 @@ def compute_kernel_factory(params, M_inv):
         rays4 = M_inv @ pix  # (4, HW)
         rays3 = rays4[:3, :]
 
-        # Normalize rays, then scale by per-pixel depth
-        rays_norm = jnp.linalg.norm(rays3, axis=0, keepdims=True) + 1e-8
-        unit_rays = rays3 / rays_norm                      # (3, HW)
         depth_flat = depth.reshape(-1)                     # (HW,)
-        output = unit_rays * depth_flat                    # (3, HW)
+
+        # Old radial-range reconstruction:
+        # rays_norm = jnp.linalg.norm(rays3, axis=0, keepdims=True) + 1e-8
+        # unit_rays = rays3 / rays_norm
+        # output = unit_rays * depth_flat
+
+        # Cedar-style planar depth reconstruction:
+        # the input depth is treated as forward camera depth, not Euclidean ray length.
+        x_ego = rays3[0, :] * depth_flat
+        y_ego = rays3[1, :] * depth_flat
+        z_ego = depth_flat
+        output = jnp.stack([x_ego, y_ego, z_ego], axis=0)  # (3, HW)
+
         output = jnp.stack([output[2], output[0], output[1]])
         output = output.T                                   # (HW, 3)
 

@@ -6,13 +6,16 @@ import jax
 
 def compute_kernel_factory(params, M):
     def compute_kernel(input_mats, buffer, **kwargs):
-
+        # this is not quite the same as the backprojection.... 
+        # the z-val needs to be tha val entry, not the vector norm
+        # TODO make this exact inverse of backprojection
         point_cloud = input_mats[util.DEFAULT_INPUT_SLOT] # (N,3)
         point_cloud_reorder = point_cloud.copy()
         point_cloud = point_cloud.at[:,0].set(point_cloud_reorder[:,1])
         point_cloud = point_cloud.at[:,1].set(point_cloud_reorder[:,2])
         point_cloud = point_cloud.at[:,2].set(point_cloud_reorder[:,0])
-        vector_lenghts = jnp.linalg.norm(point_cloud, axis=1, keepdims=True) + 1e-8 # (N,1)
+        #vector_lenghts = jnp.linalg.norm(point_cloud, axis=1, keepdims=True) + 1e-8 # (N,1)
+        vector_lenghts = jnp.array([point_cloud[:,2]]).T
         point_cloud = jnp.append(point_cloud, jnp.ones_like(vector_lenghts), axis=1) # (N,4)
 
         pix = M @ point_cloud.T # (3,N)
