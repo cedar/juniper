@@ -55,3 +55,6 @@ class TimedBoost(Step):
     def reset(self): # Override
         self.buffer["local_time"] = util_jax.ones(self._params["shape"])*0
         self.reset_buffer(util.DEFAULT_OUTPUT_SLOT)
+
+    def get_data(self):
+        pass

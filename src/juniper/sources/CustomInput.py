@@ -39,3 +39,9 @@ class CustomInput(Step):
         reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer["output"]
         reset_state["output"] = self.output
         return reset_state
+    
+    def set_data(self, data):
+        self.output = data
+
+    def get_data(self):
+        return self.output

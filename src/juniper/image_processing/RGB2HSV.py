@@ -18,7 +18,7 @@ def compute_kernel_factory():
     return compute_kernel
 
 
-class HSV_input(Step):
+class RGB2HSV(Step):
     """
     Description
     ---------

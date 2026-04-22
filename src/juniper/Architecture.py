@@ -267,21 +267,23 @@ class Architecture:
         gpu_pull_timings = []
         start_time = time.time()
         for _ in range(num_steps):
-            # TODO this implementation for generating prng keys is very slow. On the magnitude of 1 ms. There should be a faster way. Maybe move this into tick func or just use numpy generator
-            random_keys = util_jax.next_random_keys(len(self.dynamic_steps_c))
 
             # update exposed steps by pushing cpu side outputs mats to gpu
             t_gpu_push = time.time()
+            # TODO this implementation for generating prng keys is very slow. On the magnitude of 1 ms. There should be a faster way. Maybe move this into tick func or just use numpy generator
+            random_keys = util_jax.next_random_keys(len(self.dynamic_steps_c))
             new_state = dict(self.state)
             for step_name in self.sources:
                 step = self.get_element(step_name)
-                if step.read_from_cpu:
-                    state_buffer = new_state[step_name]
-                    class_buffer = step.buffer
-                    new_output =  step.output
+                state_buffer = new_state[step_name]
+                class_buffer = step.buffer
+
+                update_source =  step.get_data()
+                if update_source is not None:
+                    new_output = jnp.array(update_source)
                     state_buffer["output"] = new_output
                     class_buffer["output"] = new_output
-                    new_state[step_name] = state_buffer
+                new_state[step_name] = state_buffer
             self.state = new_state
             gpu_push_timings.append(time.time()-t_gpu_push)
 
@@ -289,8 +291,14 @@ class Architecture:
             t_tick = time.time()
             self.state, _, _ = tick_func(self.state, random_keys)
             tick_timings.append(time.time()-t_tick)
-            
+
             t_gpu_pull = time.time()
+            # pull gpu buffers of steps that are sinks
+            for step_name in self.sinks:
+                step = self.get_element(step_name)
+                step_state = dict(self.state[step_name])
+                step.set_data(np.array(step_state[util.DEFAULT_OUTPUT_SLOT]))
+            
             # pull gpu buffers for buffers we want to plot
             if len(steps_to_plot) > 0:
                 data = []
@@ -298,30 +306,18 @@ class Architecture:
                     step, slot = to_plot.split(".") if "." in to_plot else [to_plot, util.DEFAULT_OUTPUT_SLOT]
                     data.append(np.array(self.state[step][slot]))
                 history.append(data)
-
-            # pull gpu buffers of steps that are sinks
-            for step_name in self.sinks:
-                step = self.get_element(step_name)
-                #print(step_name)
-                #print(step.is_sink)
-                #print(step.output)
-                if step.is_sink and step.output is not None:
-                    step_state = dict(self.state[step_name])
-                    #print(step_state)
-                    step.output = np.array(step_state[util.DEFAULT_OUTPUT_SLOT])
-                
-            
-            # pull gpu buffers for buffers we want to save
-            for step_name in self.write_buffer_steps:
-                step = self.get_element(step_name)
-                for buffer in step.buffer_to_save:
-                    step.cpu_buffer[buffer] = np.array(self.state[step_name][buffer])
             gpu_pull_timings.append(time.time()-t_gpu_pull)
+
         t_total = time.time() - start_time
 
         
         t_buffer_write = time.time()
+        # pull gpu buffers for buffers we want to save
         if save_buffer:
+            for step_name in self.write_buffer_steps:
+                step = self.get_element(step_name)
+                for buffer in step.buffer_to_save:
+                    step.cpu_buffer[buffer] = np.array(self.state[step_name][buffer])
             self.save_buffer()
         t_buffer_write = (time.time()-t_buffer_write)
 

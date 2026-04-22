@@ -38,6 +38,7 @@ from .image_processing.ColorFMap import ColorFMap
 from .image_processing.ViewportCamera import ViewportCamera
 from .image_processing.ShuffleImage import ShuffleImage
 from .image_processing.RemoveBlackWhiteGreys import RemoveBlackWhiteGreys
+from .image_processing.RGB2HSV import RGB2HSV
 
 # sinks
 from .sinks.TCPWriter import TCPWriter
@@ -47,7 +48,6 @@ from .sinks.StaticDebug import StaticDebug
 from .sources.CustomInput import CustomInput
 from .sources.DemoInput import DemoInput
 from .sources.GaussInput import GaussInput
-from .sources.HSV_input import HSV_input
 from .sources.ImageLoader import ImageLoader
 from .sources.TCPReader import TCPReader
 from .sources.TimedBoost import TimedBoost
@@ -88,13 +88,13 @@ __all__ =[
     "ColorFMap",
     "ViewportCamera",
     "ShuffleImage",
-    "RemoveBlackWhiteGreys"
+    "RemoveBlackWhiteGreys",
+    "RGB2HSV",
     "TCPWriter",
     "StaticDebug",
     "CustomInput",
     "DemoInput",
     "GaussInput",
-    "HSV_input",
     "ImageLoader",
     "TCPReader",
     "TimedBoost",

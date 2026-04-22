@@ -42,3 +42,6 @@ class StaticDebug(Step):
     def update_input(self, arch, input_slot_shape="shape"):
         return {util.DEFAULT_INPUT_SLOT: jnp.zeros(self._params["shape"])}
     
+    def set_data(self, data):
+        pass
+    

@@ -51,3 +51,6 @@ class GaussInput(Step):
     @partial(jax.jit, static_argnames=['self'])
     def compute(self, input_mats, buffer, **kwargs):
         return self.compute_kernel(input_mats, buffer, **kwargs)
+
+    def get_data(self):
+        pass
