@@ -13,12 +13,12 @@ def hsv_to_onehot10(hue, sat, val, sat_threshold=0.3, value_threshold=0.3):
       invalid pixels (low sat/val): all zeros across all 10 channels
     """
     # boolean buckets (same boundaries as your numpy code)
-    red    = (hue < 0.04) | (hue >= 0.99)
+    red    = (hue < 0.04) | (hue >= 0.96)
     orange = (hue >= 0.04) & (hue < 0.10)
-    yellow = (hue >= 0.10) & (hue < 0.15)
-    green  = (hue >= 0.15) & (hue < 0.20)
-    blue   = (hue >= 0.20) & (hue < 0.70)
-    purple = (hue >= 0.70) & (hue < 0.99)
+    yellow = (hue >= 0.10) & (hue < 0.18)
+    green  = (hue >= 0.18) & (hue < 0.25)
+    blue   = (hue >= 0.25) & (hue < 0.70)
+    purple = (hue >= 0.70) & (hue < 0.96)
 
     # Build labels in 0..5
     labels = jnp.full(hue.shape, 5, dtype=jnp.int32)  # default purple=5

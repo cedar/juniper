@@ -39,8 +39,8 @@ def rgb_to_hsv(rgb):
 
 
 def compute_kernel_factory(params):
-    sat_threshold = float(params.get("saturation_threshold", 0.2))  # still [0,1]
-    val_threshold = float(params.get("value_threshold", 0.2))       # still [0,1]
+    sat_threshold = float(params.get("saturation_threshold", 0.2))  # [0,1]
+    val_threshold = float(params.get("value_threshold", 0.2))       # [0,1]
 
     def compute_kernel(input_mats, buffer, **kwargs):
         rgb_in = input_mats[util.DEFAULT_INPUT_SLOT]  # (H,W,3) in [0,255] or [0,1]
@@ -71,12 +71,11 @@ def compute_kernel_factory(params):
 
     return compute_kernel
 
-    return compute_kernel
 
 
 class RemoveBlackWhiteGreys(Step):
     """
-    A JAX-accelerated step that removes black, white, and grey pixels 
+    A step that removes black, white, and grey pixels 
     (based on value + saturation thresholds) and replaces them with white.
     """
 

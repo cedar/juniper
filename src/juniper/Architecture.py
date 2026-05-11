@@ -280,7 +280,7 @@ class Architecture:
 
                 update_source =  step.get_data()
                 if update_source is not None:
-                    new_output = jnp.array(update_source)
+                    new_output = jnp.array(update_source, dtype=jnp.float32)
                     state_buffer["output"] = new_output
                     class_buffer["output"] = new_output
                 new_state[step_name] = state_buffer

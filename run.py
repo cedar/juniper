@@ -56,7 +56,7 @@ if __name__ == "__main__":
 
     compile_time = time.time()
 
-    arch.compile()
+    arch.compile(arch.tick_jitted)
     tprint("Architecture compiled")
 
     compile_time = time.time() - compile_time
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     
     for i in range(args.num_runs): # Do multiple runs to check stability of timing results
         print(f"\nRun {i+1}")
-        plot_data_history, ms_per_tick, timing = arch.run_simulation(arch.tick, args.recording, args.num_ticks)
+        plot_data_history, ms_per_tick, timing = arch.run_simulation(arch.tick_jitted, args.recording, args.num_ticks)
         arch.reset_steps()
 
     print()

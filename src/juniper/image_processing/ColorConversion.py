@@ -4,8 +4,19 @@ import jax.numpy as jnp
 import jax.debug as jgdb
 
 # JAX rgb -> hsv, expects rgb in [0, 1], shape (..., 3)
-def rgb_to_hsv_jax(rgb: jnp.ndarray, eps: float = 1e-10) -> jnp.ndarray:
-    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+def rgb_to_hsv_jax(rgb: jnp.ndarray, channels : str, eps: float = 1e-10) -> jnp.ndarray:
+    if channels == "rgb":
+        r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    if channels == "bgr":
+        b, g, r = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    if channels == "rbg":
+        r, b, g = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    if channels == "brg":
+        b, r, g = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    if channels == "gbr":
+        g, b, r = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    if channels == "grb":
+        g, r, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
 
     cmax = jnp.maximum(jnp.maximum(r, g), b)
     cmin = jnp.minimum(jnp.minimum(r, g), b)
@@ -37,11 +48,10 @@ def rgb_to_hsv_jax(rgb: jnp.ndarray, eps: float = 1e-10) -> jnp.ndarray:
 
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
-        # Convert to NumPy
         rgb = input_mats[util.DEFAULT_INPUT_SLOT] / 255.0  # shape (H, W, 3)
     
         # Convert to HSV
-        hsv = rgb_to_hsv_jax(rgb)  # shape (H, W, 3), values in [0,1]
+        hsv = rgb_to_hsv_jax(rgb, channels=params["channels"])  # shape (H, W, 3), values in [0,1]
 
         return {util.DEFAULT_OUTPUT_SLOT: hsv[:,:,0],
                "out1": hsv[:,:,1],
@@ -68,6 +78,9 @@ class ColorConversion(Step):
     def __init__(self, name : str, params : dict):
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
+
+        if "channels" not in self._params.keys():
+            self._params["channels"] = "rgb"
         
         self.register_output("out1")
         self.register_output("out2")
