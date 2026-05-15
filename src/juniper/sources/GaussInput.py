@@ -19,6 +19,8 @@ class GaussInput(Step):
     - shape : tuple((Nx,Ny,...))
     - sigma : tuple((sx,sy,...))
     - amplitude : float
+    - center(optional) : tuple((cx,cy,...))
+        - Center of the gaussian. (Default: (Nx/2,Ny/2,...))
 
     Step Input/Output slots
     ---------

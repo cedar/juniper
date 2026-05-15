@@ -6,8 +6,10 @@ __pycache__/
 
 juniper.egg-info
 
+.vscode
 .vscode/*
 output/*
 jax_cache/*
 *.data
 .codex
+.agents
