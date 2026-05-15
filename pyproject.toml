@@ -31,3 +31,7 @@ package = [
   "misc/**",
   "steps/**"
 ]
+
+[pytest]
+addopts = ["--import-mode=importlib"]
+strict = true

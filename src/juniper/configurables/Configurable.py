@@ -7,5 +7,8 @@ class Configurable:
         self._params["name"] = self._name
         #self._params = params
         for param in mandatory_params:
-            if not param in params:
+            if param not in params.keys():
                 raise ValueError(f"Parameter {param} is mandatory.")
+            
+    def get_params(self):
+        return self._params
