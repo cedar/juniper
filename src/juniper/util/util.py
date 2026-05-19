@@ -1,4 +1,3 @@
-
 import os
 import numpy as np
 import time
@@ -15,8 +14,8 @@ if not os.path.exists(os.path.join(ROOT_FOLDER, "run_config.json")):
 def root():
     return ROOT_FOLDER
 
-def prettify(l):
-    return f'{np.mean(l):.5f} +- {np.std(l):.5f}  (min: {np.min(l)})'
+def prettify(num_2_prettify):
+    return f'{np.mean(num_2_prettify):.5f} +- {np.std(num_2_prettify):.5f}  (min: {np.min(num_2_prettify)})'
 
 ## --- Exceptions ---
 

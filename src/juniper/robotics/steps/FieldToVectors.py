@@ -57,7 +57,7 @@ def compute_kernel_factory(params):
         dx, dy, dz = map(float, params["field_units_per_meter"])
 
         mask = field > params["threshold"]
-        count = jnp.sum(mask, dtype=jnp.int32)        # how many valid voxels
+        count = jnp.sum(mask, dtype=jnp.int32)        # how many valid voxels  # noqa: F841
 
         # Get ALL indices in a fixed-size (padded) way
         # nonzero(..., size=...) guarantees a static-length result under jit.
