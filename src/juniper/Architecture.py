@@ -358,49 +358,6 @@ class Architecture:
 
         return history, {"total": t_total, "gpu_push": gpu_push_timings, "gpu_pull": gpu_pull_timings, "tick": tick_timings, "buffer": t_buffer_write}, t_total
 
-    def tick(self, state, rng_keys):
-        self.check_compiled()
-        start_time = time.time()
-        new_state = {}
-
-        ## -- Update static steps --
-
-        for graph_elem in self.compilation_graph_static_c:
-            step_name, incoming_steps = graph_elem
-            step = self.get_element(step_name) # TODO put step in graph_elem to avoid this call?
-
-            if step.is_source:
-                input_sum = None
-            else:
-                input_sum = step.update_input(self)
-            
-            step.buffer = step.compute(input_sum, step.buffer)
-            if step.is_source:
-                # copy over output state from cpu for steps with externally set output
-                step.buffer["output"] =  jax.device_put(step.output, device=jax.devices("gpu")[0])
-            new_state[step_name] = step.buffer
-        static_update_time = time.time() - start_time
-
-        ## -- Update dynamic steps --
-
-        delta_t = self.cfg_c["delta_t"]
-        random_keys = util_jax.next_random_keys(len(self.dynamic_steps_c))
-        dynamic_output = []
-
-        # Run compute on dynamic steps
-        for i, step in enumerate(self.dynamic_steps_c):
-            input_mats = step.update_input(self)
-            output = step.compute(input_mats, step.buffer, prng_key=random_keys[i], delta_t=delta_t)
-            dynamic_output.append(output)
-
-        # Block output and save to buffers *after* all executions are started to allow jax to parallelize compute calls
-        for i, step in enumerate(self.dynamic_steps_c):
-            step.post_compute(dynamic_output[i])
-            new_state[step._name] = step.buffer
-        dynamic_update_time = time.time() - (start_time + static_update_time)
-        
-        return new_state, static_update_time, dynamic_update_time
-
     @partial(jax.jit, static_argnames=["self"])
     def tick_jitted(self, state, rng_keys):
 
