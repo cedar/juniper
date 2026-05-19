@@ -64,7 +64,6 @@ class Step(Configurable):
         self.register_input(util.DEFAULT_INPUT_SLOT)
         self.register_output(util.DEFAULT_OUTPUT_SLOT)
 
-
     @partial(jax.jit, static_argnames=['self'])
     def compute(self, input_mats, buffer, **kwargs):
         return self.compute_kernel(input_mats, buffer, **kwargs)

@@ -36,6 +36,26 @@ class Architecture:
         if  _architecture_singleton is not None:
             raise Exception("Do not instantiate this class, use Architecture::get_arch() instead.")
 
+    def close_connections(self):
+        for source_name in self.sources:
+            source = self.get_element(source_name)
+            if hasattr(source, "close"):
+                source.close()
+        for sink_name in self.sinks:
+            sink = self.get_element(sink_name)
+            if hasattr(sink, "close"):
+                sink.close()
+
+    def open_connections(self):
+        for source_name in self.sources:
+            source = self.get_element(source_name)
+            if hasattr(source, "open"):
+                source.open()
+        for sink_name in self.sinks:
+            sink = self.get_element(sink_name)
+            if hasattr(sink, "open"):
+                sink.open()
+
     def is_compiled(self):
         return self.compiled
 
@@ -120,6 +140,8 @@ class Architecture:
                 self.sinks.append(step._name)
             if len(step.buffer_to_save) != 0:
                 self.write_buffer_steps.append(step._name)
+
+        self.open_connections()
 
         ## Warmup
         self.compiled = True
@@ -249,7 +271,6 @@ class Architecture:
                     print("Buffer for step " + step + " could not be loaded")
             return loaded_buffer
                     
-
     def run_simulation(self, tick_func, steps_to_plot, num_steps, print_timing=True, save_buffer=False):
         """
         Parameter
@@ -394,7 +415,6 @@ class Architecture:
 
         return state, None, None
     
-
 def update_static_steps_jax(state, graph_info, static_step_names):
     new_state = dict(state)
     for step_name in static_step_names:
@@ -459,4 +479,3 @@ def update_dynamic_steps_jax(state, graph_info, dynamic_step_names, rng_keys):
             new_state[step_name][slot_key] = out_mat
     
     return new_state
-

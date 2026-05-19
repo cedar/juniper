@@ -58,9 +58,19 @@ class TCPWriter(Step):
         self.shared_data = np.ndarray(initial_data.shape, dtype=initial_data.dtype, buffer=self.shared_memory.buf)
         self.shared_data[:] = initial_data[:]
         self.comm_thread = Process(target=TCPWorker, args=(self._name, self._params, self.shared_memory.name))
-        self.comm_thread.start()
 
-    
+    def close(self):
+        if self.comm_thread.is_alive():
+            self.comm_thread.kill()
+            self.comm_thread.join(timeout=1.)
+        self.comm_thread.close()
+        self.shared_memory.close()
+        self.shared_memory.unlink()
+
+    def open(self):
+        if not self.comm_thread.is_alive():
+            self.comm_thread.start()
+
     def set_data(self, data):
         data = np.asanyarray(data, dtype=self.shared_data.dtype)
         if data.shape != self.shared_data.shape:
