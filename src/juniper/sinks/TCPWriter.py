@@ -15,9 +15,7 @@ class TCPWriter(Step):
     """
     Description
     ---------
-    Launches a TCP write communication thread. 
-    
-    TODO: Remove dependency on shape and dynamic step setting. This requires reworking how the buffers and shapes re allocated and it requires rethinking how the computational graph is constructed.
+    Launches a TCP write communication thread.
 
     Parameters
     ----------

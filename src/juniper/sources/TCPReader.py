@@ -15,8 +15,6 @@ class TCPReader(Step):
     ---------
     Launches a TCP read communication thread.
     
-    TODO: Remove dependency on shape and dynamic step setting. This requires reworking how the buffers and shapes re allocated and it requires rethinking how the computational graph is constructed.
-
     Parameters
     ----------
     - ip :

@@ -75,13 +75,6 @@ if __name__ == "__main__":
     if len(args.recording) > 0:
         plot_history(args.num_ticks, plot_data_history, args.save_plot, args.recording)
 
-
-# TODO
-# check TODOs in source code
-# Add documentation to each class 
-# Reorganize steps into categories dynamic, processing, sinks, sources, robotics, auxillaries
-# use needs_incoming_connections to check if income slots needs to be specified and deal with bug when it is not.
-
 # performance steps to update
 """
 - Custom Input

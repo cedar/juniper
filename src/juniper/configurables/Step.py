@@ -124,21 +124,21 @@ class Step(Configurable):
             raise Exception(f"Cannot connect to unknown type ({type(other)})")
     
     def register_output(self, slot_name):
+        if slot_name in self.output_slot_names:
+            raise ValueError(f"Output slot {slot_name} already registered in step {self.get_name()}")
         # Initialize output buffer
         self.register_buffer(slot_name)
         # Register output slot shortcut
-        setattr(self, f"o{len(self.output_slot_names)}", Slot(self, slot_name))
+        setattr(self, f"{slot_name}", Slot(self, slot_name))
         # Save output slot name
-        if slot_name in self.output_slot_names:
-            raise ValueError(f"Output slot {slot_name} already registered in step {self.get_name()}")
         self.output_slot_names.append(slot_name)
 
     def register_input(self, slot_name, max_incoming_connections=1):
-        # Register input slot shortcut
-        setattr(self, f"i{len(self.output_slot_names)}", Slot(self, slot_name))
-        # Register input slot
         if slot_name in self.input_slot_names:
             raise ValueError(f"Input slot {slot_name} already registered in step {self.get_name()}")
+        # Register input slot shortcut
+        setattr(self, f"{slot_name}", Slot(self, slot_name))
+        # Register input slot
         self.input_slot_names.append(slot_name)
         # Save max incoming connections
         self._max_incoming_connections[slot_name] = max_incoming_connections
