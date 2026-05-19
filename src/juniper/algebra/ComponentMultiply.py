@@ -1,9 +1,7 @@
 from ..configurables.Step import Step
 from ..util import util_jax
 from ..util import util
-import jax
 import jax.numpy as jnp
-from functools import partial
 
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):

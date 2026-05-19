@@ -2,8 +2,6 @@ from ..configurables.Step import Step
 from ..util import util
 import jax.numpy as jnp
 import jax.scipy as jsp
-import jax
-from functools import partial
 
 def compute_kernel_factory(params, kernel, use_dynamic):
     if use_dynamic:

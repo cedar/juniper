@@ -1,8 +1,6 @@
 from ...configurables.Step import Step
-from functools import partial
 from ...util import util
 import jax.numpy as jnp
-import jax
 
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
@@ -16,7 +14,7 @@ def compute_kernel_factory(params):
         # transform to spherical
         eps = 1e-8
         x, y, z = v[..., 0], v[..., 1], v[..., 2]
-        rho = jnp.sqrt(x*x + y*y) + eps
+        #rho = jnp.sqrt(x*x + y*y) + eps
         r = jnp.sqrt(x * x + y * y + z * z) + eps
 
         pan = jnp.arctan2(y, x)

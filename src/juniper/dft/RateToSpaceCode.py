@@ -1,9 +1,7 @@
 from ..configurables.Step import Step
-from functools import partial
 from ..util import util
 from ..configurables.Gaussian import Gaussian
 import jax.numpy as jnp
-import jax
 
 def compute_kernel_factory(params, limits, gaussian, scaling_factor):
     def compute_kernel(input_mats, buffer, **kwargs):

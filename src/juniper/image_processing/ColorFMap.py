@@ -18,7 +18,7 @@ def hsv_to_onehot10(hue, sat, val, sat_threshold=0.3, value_threshold=0.3):
     yellow = (hue >= 0.10) & (hue < 0.18)
     green  = (hue >= 0.18) & (hue < 0.25)
     blue   = (hue >= 0.25) & (hue < 0.70)
-    purple = (hue >= 0.70) & (hue < 0.96)
+    purple = (hue >= 0.70) & (hue < 0.96)  # noqa: F841
 
     # Build labels in 0..5
     labels = jnp.full(hue.shape, 5, dtype=jnp.int32)  # default purple=5

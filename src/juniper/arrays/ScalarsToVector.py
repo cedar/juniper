@@ -1,6 +1,4 @@
-import jax
 import jax.numpy as jnp
-from functools import partial
 from ..configurables.Step import Step
 from ..util import util
 
@@ -41,5 +39,5 @@ class ScalarsToVector(Step):
         for i in range(1, self._params["N_scalars"]):
             self.register_input(f'in{i}')
 
-        self.needs_input_connections == False
+        self.needs_input_connections = False
         self.compute_kernel = compute_kernel_factory(self._params)

@@ -1,5 +1,3 @@
-import jax
-from functools import partial
 from ..configurables.Step import Step
 from .ExpandAxes import ExpandAxes
 from .CompressAxes import CompressAxes

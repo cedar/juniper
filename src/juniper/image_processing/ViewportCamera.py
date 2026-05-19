@@ -1,7 +1,6 @@
 from ..configurables.Step import Step
 from ..util import util, util_jax
 
-import numpy as np
 import jax.numpy as jnp
 from jax import lax
 

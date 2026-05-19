@@ -45,7 +45,7 @@ class Step(Configurable):
         if "." in name:
             raise ValueError(f"Step names cannot contain dots. ({name})")
         self.is_dynamic = is_dynamic
-        if is_dynamic and not "shape" in params:
+        if is_dynamic and "shape" not in params.keys():
             raise ValueError(f"Dynamic steps require a shape parameter. ({name})")
         self._max_incoming_connections = {}
         self.needs_input_connections = True
@@ -153,14 +153,14 @@ class Step(Configurable):
             self.buffer_to_save.append(buf_name)
 
     def load_buffer(self, tree):
-        if not "BUFFER" in tree:
+        if "BUFFER" not in tree:
             raise Exception(f"Invalid buffer format. Expected BUFFER, got {tree.keys()}")
         buffer_tree = tree["BUFFER"]
         # Iterate through every saved buffer of this step
         step_buffer = {}
         for buffer in buffer_tree.keys():
             # Check if the saved buffer exists in the current step
-            if not buffer in self.buffer:
+            if buffer not in self.buffer:
                 raise Exception(f"Step {self.get_name()} has no buffer '{buffer}': {list(self.buffer.keys())}")
             buf_str = buffer_tree[buffer]
             #print(type(buf_str))

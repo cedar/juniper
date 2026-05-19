@@ -2,7 +2,9 @@ from .Configurable import Configurable
 from ..util.util_tcp import get_tcp_logger
 
 import numpy as np
-import re, time, socket
+import re
+import time
+import socket
 from multiprocessing import shared_memory
 
 def cpp_crc32(data: bytes) -> int:

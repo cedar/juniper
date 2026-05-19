@@ -35,7 +35,7 @@ def plot_history(num_ticks, history, save_plot, step_names):
 
         if not np.any([step_mats[step_idx] is not None for step_mats in history]):
             continue
-        step_history_notna = [step_mats[step_idx] for step_mats in history if not step_mats[step_idx] is None]
+        step_history_notna = [step_mats[step_idx] for step_mats in history if step_mats[step_idx] is not None]
         vmin = min([np.min(mat) for mat in step_history_notna])
         vmax = max([np.max(mat) for mat in step_history_notna])
 

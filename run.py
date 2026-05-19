@@ -37,14 +37,14 @@ if __name__ == "__main__":
     print("Computing devices found by JAX:")
     print(jax.local_devices())
     if args.cpu:
-        if not "Cpu" in str(jax.local_devices()):
+        if "Cpu" not in str(jax.local_devices()):
             raise Exception("CPU not loaded. Make sure util_jax is not (in)directly imported before this line")
 
     # These imports have to happen *after* the jax config is set
     from juniper.util import util_jax
     import juniper.util.architecture_import as architecture_import
 
-    util_jax.get_config()["euler_step_static_precompile"] = args.static_euler_compilation == True
+    util_jax.get_config()["euler_step_static_precompile"] = args.static_euler_compilation == True  # noqa: E712
     util_jax.get_config()["arch_file_path"] = args.arch
 
     ## --- Load architecture ---
@@ -69,7 +69,7 @@ if __name__ == "__main__":
         arch.reset_steps()
 
     print()
-    tprint(f"Simulations done")
+    tprint("Simulations done")
 
     ## --- Plotting ---
     if len(args.recording) > 0:

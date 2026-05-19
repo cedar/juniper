@@ -35,11 +35,11 @@ def _import_json_file(file_path):
     for step_class in steps:
         for step_elem in steps[step_class]:
             if step_class == "cedar.processing.sources.GaussInput":
-                gi = GaussInput(step_elem["name"][0], {"shape": [int(size) for size in step_elem["sizes"][0]], "sigma": float(step_elem["sigma"][0][0]), "amplitude": float(step_elem["amplitude"][0])})
+                GaussInput(step_elem["name"][0], {"shape": [int(size) for size in step_elem["sizes"][0]], "sigma": float(step_elem["sigma"][0][0]), "amplitude": float(step_elem["amplitude"][0])})
             elif step_class == "cedar.processing.StaticGain":
-                st = StaticGain(step_elem["name"][0], {"factor": float(step_elem["gain factor"][0])})
+                StaticGain(step_elem["name"][0], {"factor": float(step_elem["gain factor"][0])})
             elif step_class == "cedar.dynamics.NeuralField":
-                nf = NeuralField(step_elem["name"][0], {"resting_level": float(step_elem["resting level"][0]), 
+                NeuralField(step_elem["name"][0], {"resting_level": float(step_elem["resting level"][0]), 
                             "global_inhibition": float(step_elem["global inhibition"][0]), 
                             "tau": float(step_elem["time scale"][0]) / 1000, 
                             "input_noise_gain": float(step_elem["input noise gain"][0]),

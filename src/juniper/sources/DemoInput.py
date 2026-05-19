@@ -2,7 +2,6 @@ from ..configurables.Step import Step
 from ..configurables.Gaussian import Gaussian
 from ..util import util
 import warnings
-import jax.numpy as jnp
 
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):

@@ -7,7 +7,6 @@ import numpy as np
 import json
 import os
 import jax.numpy as jnp
-import jax.debug as jgdb
 
 _architecture_singleton = None
 def get_arch():
@@ -34,7 +33,7 @@ class Architecture:
         self.write_buffer_steps = [] # list of step names of which to automatically write the wheight buffer (atm its just the HebbianConnectionSteps and BCM stepps)
 
 
-        if not _architecture_singleton is None:
+        if  _architecture_singleton is not None:
             raise Exception("Do not instantiate this class, use Architecture::get_arch() instead.")
 
     def is_compiled(self):
@@ -125,18 +124,18 @@ class Architecture:
         ## Warmup
         self.compiled = True
         self.check_compiled()
-        random_keys = util_jax.next_random_keys(len(self.dynamic_steps_c))
-        if print_compile_info: print("######## compile run ############") # TODO update logging in juniper in general...
+        if print_compile_info: 
+            print("######## compile run ############") # TODO update logging in juniper in general...
         self.run_simulation(tick_func, steps_to_plot=[], num_steps=warmup, print_timing=print_compile_info)
-        #for i in range(warmup):
-        #    tick_func(self.state, random_keys)
         #self.reset_steps() # TODO in some unknown steps, reset triggers a new tracing call, thereby resetting the computational graph..
-        if print_compile_info: print("############")
+        if print_compile_info: 
+            print("############")
         
         # Load buffers if any were saved during the last run
         data_file = self.cfg_c["arch_file_path"] + ".data"
         if os.path.exists(data_file) and load_buffer:
-            if print_compile_info: print("Loading saved buffers...")
+            if print_compile_info: 
+                print("Loading saved buffers...")
             loaded_buffer = self.load_buffer(data_file)
             for step_name in loaded_buffer:
                 for buffer_name in loaded_buffer[step_name]:
@@ -177,9 +176,9 @@ class Architecture:
         if not isinstance(source, str) or not isinstance(dest, str):
             raise Exception(f"Architecture::connect_to(): source and dest must be strings, but got {type(source)} and {type(dest)}. (TODO: add support for Step and Slot type as argument)")
         # Set default slot if not specified
-        if not "." in source:
+        if "." not in source:
             source = source + "." + util.DEFAULT_OUTPUT_SLOT
-        if not "." in dest:
+        if "." not in dest:
             dest = dest + "." + util.DEFAULT_INPUT_SLOT
         
         source_step = source.split(".")[0]
@@ -219,7 +218,7 @@ class Architecture:
         steps += self.dynamic_steps_c
         for step in steps:
             step_tree = step.save_buffer()
-            if not step_tree is None:
+            if step_tree is not None:
                 step_gpu_tree = {}
                 # Add buffer dict to tree
                 #step_tree = {self._name: {"BUFFER": buffer_dict}}
@@ -332,7 +331,8 @@ class Architecture:
             print(f"{(1000 * avg_gpu_push):6.2f} ms average time for gpu write operation")
             print(f"{(1000 * avg_tick):6.2f} ms average time for tick computation")
             print(f"{(1000 * avg_gpu_pull):6.2f} ms average time for gpu read operation")
-            if save_buffer: print(f"{(1000 * t_buffer_write):6.2f} ms time for buffer write operation")
+            if save_buffer: 
+                print(f"{(1000 * t_buffer_write):6.2f} ms time for buffer write operation")
             print("\n")
 
         return history, {"total": t_total, "gpu_push": gpu_push_timings, "gpu_pull": gpu_pull_timings, "tick": tick_timings, "buffer": t_buffer_write}, t_total

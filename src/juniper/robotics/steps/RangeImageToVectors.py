@@ -1,9 +1,6 @@
 from ...configurables.Step import Step
-from functools import partial
 from ...util import util
 import jax.numpy as jnp
-import jax
-
 
 def compute_kernel_factory(params):
     def az_tilt_dirs(az, tilt):

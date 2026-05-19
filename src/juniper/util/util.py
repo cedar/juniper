@@ -1,12 +1,13 @@
+
+import os
+import numpy as np
+import time
+import atexit
 ROOT_FOLDER = ""
 DEFAULT_INPUT_SLOT = "in0"
 DEFAULT_OUTPUT_SLOT = "out0"
 
-import os
 ROOT_FOLDER = os.path.dirname(__file__)
-import numpy as np
-import time
-import atexit
 
 if not os.path.exists(os.path.join(ROOT_FOLDER, "run_config.json")):
     raise Exception(f"No run_config found in root folder {os.path.join(ROOT_FOLDER )}. Please specify the correct path in the first line of util.py")
@@ -36,7 +37,7 @@ def tprint(label=None):
     global _last_time
     current_time = time.time()
     print_string = f"{current_time - _last_time:>7.3f}s -"
-    if not label is None:
+    if label is not None:
         print_string += f" {label} -"
     print(print_string)
     _last_time = current_time

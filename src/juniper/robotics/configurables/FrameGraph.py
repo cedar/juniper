@@ -3,7 +3,7 @@ from .Transform import Transform
 from collections import deque
 
 import jax.numpy as jnp
-from collections import defaultdict, deque
+from collections import defaultdict
 
 def find_path(edges, start, goal): 
     """

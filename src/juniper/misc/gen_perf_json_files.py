@@ -16,8 +16,8 @@ def json(size, num_fields, dims, increment=0):
             "dimensionality": "''' + str(dims) + '''",
             "sizes": [''' + repeat(f'"{size}"', dims) + '''],
             "amplitude": "1",
-            "centers": [''' + repeat(f'"24"', dims) + '''],
-            "sigma": [''' + repeat(f'"3"', dims) + '''],
+            "centers": [''' + repeat('"24"', dims) + '''],
+            "sigma": [''' + repeat('"3"', dims) + '''],
             "cyclic": "false",
             "comments": ""
         },'''
@@ -46,11 +46,11 @@ def json(size, num_fields, dims, increment=0):
             "lateral kernels": {
                 "cedar.aux.kernel.Gauss": {
                     "dimensionality": "''' + str(dims) + '''",
-                    "anchor": [''' + repeat(f'"0"', dims) + '''],
+                    "anchor": [''' + repeat('"0"', dims) + '''],
                     "amplitude": "1",
-                    "sigmas": [''' + repeat(f'"3"', dims) + '''],
+                    "sigmas": [''' + repeat('"3"', dims) + '''],
                     "normalize": "true",
-                    "shifts": [''' + repeat(f'"0"', dims) + '''],
+                    "shifts": [''' + repeat('"0"', dims) + '''],
                     "limit": "5"
                 }
             },
@@ -64,11 +64,11 @@ def json(size, num_fields, dims, increment=0):
             },
             "noise correlation kernel": {
                 "dimensionality": "''' + str(dims) + '''",
-                "anchor": [''' + repeat(f'"0"', dims) + '''],
+                "anchor": [''' + repeat('"0"', dims) + '''],
                 "amplitude": "0",
-                "sigmas": [''' + repeat(f'"3"', dims) + '''],
+                "sigmas": [''' + repeat('"3"', dims) + '''],
                 "normalize": "true",
-                "shifts": [''' + repeat(f'"0"', dims) + '''],
+                "shifts": [''' + repeat('"0"', dims) + '''],
                 "limit": "5"
             },
             "comments": ""
