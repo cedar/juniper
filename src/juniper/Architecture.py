@@ -128,9 +128,9 @@ class Architecture:
         random_keys = util_jax.next_random_keys(len(self.dynamic_steps_c))
         if print_compile_info: print("######## compile run ############") # TODO update logging in juniper in general...
         self.run_simulation(tick_func, steps_to_plot=[], num_steps=warmup, print_timing=print_compile_info)
-        for i in range(warmup):
-            tick_func(self.state, random_keys)
-        self.reset_steps()
+        #for i in range(warmup):
+        #    tick_func(self.state, random_keys)
+        #self.reset_steps() # TODO in some unknown steps, reset triggers a new tracing call, thereby resetting the computational graph..
         if print_compile_info: print("############")
         
         # Load buffers if any were saved during the last run

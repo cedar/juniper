@@ -4,8 +4,6 @@ import flaxmodels as fm
 from ..configurables.Step import Step
 from ..util import util
 
-import jax.debug as jgdb
-
 def compute_kernel_factory(params, model, variables):
     layer = "relu" + params["layer"]
 

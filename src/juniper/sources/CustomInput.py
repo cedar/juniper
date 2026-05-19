@@ -21,7 +21,7 @@ class CustomInput(Step):
     """
     def __init__(self, name : str, params : dict):
         mandatory_params = ["shape"]
-        super().__init__(name, params, mandatory_params)
+        super().__init__(name, params, mandatory_params, is_dynamic=True)
         
         self.is_source = True
         self.read_from_cpu = True
