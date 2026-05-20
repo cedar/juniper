@@ -12,6 +12,9 @@ class Slot():
         self._step = step
         self.name = step.get_name() + "." + slot_name
 
+    def get_name(self):
+        return self.name
+
     def __rshift__(self, other):
         if isinstance(other, Step):
             get_arch().connect_to(self.name, other.get_name())
@@ -76,7 +79,7 @@ class Step(Configurable):
     
     def reset(self):
         reset_state = {}
-        for name in self.output_slot_names:
+        for name in self.output_slot_map:
             self.reset_buffer(name)
             reset_state[name] = self.buffer[name]#jax.device_put(self.buffer[name], device= jax.devices("gpu")[0])
         return reset_state
@@ -200,7 +203,7 @@ class Step(Configurable):
 
     def update_input(self, arch, input_slot_shape="shape"):
         input_sums = {}
-        for input_slot in self.input_slot_names:
+        for input_slot in self.input_slot_map:
             input_sum = None
             incoming_steps = arch.get_incoming_steps(self.get_name() + "." + input_slot)
             if len(incoming_steps) == 0:

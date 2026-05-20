@@ -37,7 +37,7 @@ class ComponentMultiply(Step):
     def update_input(self, arch, input_slot_shape="shape"):
         # overriding the step.update_input() function to do multiplication instead of summation of inputs
         input_prods = {}
-        for input_slot in self.input_slot_names:
+        for input_slot in self.input_slot_map:
             input_prod = None
             incoming_steps = arch.get_incoming_steps(self.get_name() + "." + input_slot)
             if len(incoming_steps) == 0:
