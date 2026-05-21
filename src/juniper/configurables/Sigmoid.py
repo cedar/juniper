@@ -14,7 +14,7 @@ class Sigmoid(Configurable):
     def __init__(self, params : dict):
         mandatory_params = ["sigmoid"]
         self._name = "simgoid"
-        super().__init__(params, mandatory_params)
+        super().__init__(name="simoid", params=params, mandatory_params=mandatory_params)
         try:
             self.sigmoid = SIGMOID_MAP[self._params["sigmoid"]]
         except KeyError:

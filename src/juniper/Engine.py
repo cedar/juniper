@@ -2,10 +2,12 @@
 from .util import util
 from .util import util_jax
 import jax.numpy as jnp
+import jax
 import numpy as np
 import time
 import json
 import os
+from functools import partial
 
 class Engine:
     def __init__(self):
@@ -269,3 +271,131 @@ class Engine:
             for step_name in loaded_buffer:
                 for buffer_name in loaded_buffer[step_name]:
                     self.state[step_name][buffer_name] = loaded_buffer[step_name][buffer_name]
+
+
+    @partial(jax.jit, static_argnames=["self"])
+    def tick_jitted(self, state, rng_keys):
+
+        static_step_names = [key for key, value in self.graph_info.items() if value["kind"]=="static"]
+        dynamic_step_names = [key for key, value in self.graph_info.items() if value["kind"]=="dynamic"]
+
+        # 2. Statische Steps
+        state = update_static_steps_jax(state, self.graph_info, static_step_names)
+        
+        # 3. Dynamische Steps
+        state = update_dynamic_steps_jax(state, self.graph_info, dynamic_step_names, rng_keys)
+
+        return state, None, None
+    
+def update_static_steps_jax(state, graph_info, static_step_names):
+    new_state = dict(state)
+    for step_name in static_step_names:
+        step_buffer = state[step_name]
+        step_inputs = graph_info[step_name]["incoming"]
+        step_compute_kernel = graph_info[step_name]["compute_kernel"]
+        input_sums = {}
+        for slot, input_steps in step_inputs.items():
+            input_sum = None 
+            for in_step in input_steps:
+                in_step_name, in_step_slot = in_step.split(".")
+                #print("CURRENT STEP: ", step_name)
+                #print("CURRENT IN: ", in_step)
+                #print("CURRENT INPUT SHAPE: ", new_state[in_step_name][in_step_slot].shape)
+                if graph_info[step_name]["update_input_product"]:
+                    input_sum = (input_sum * new_state[in_step_name][in_step_slot]) if input_sum is not None else new_state[in_step_name][in_step_slot]
+                else:
+                    input_sum = (input_sum + new_state[in_step_name][in_step_slot]) if input_sum is not None else new_state[in_step_name][in_step_slot]
+            #if input_sum is None:
+            #    raise ValueError(f"Step {step_name} has no valid input sum at slot {slot}. This should never happen")
+            input_sums[slot] = input_sum
+        
+        #print(input_sums)
+        #print(step_buffer)
+        new_state[step_name] = step_compute_kernel(input_sums, step_buffer)
+    return new_state
+        
+def update_dynamic_steps_jax(state, graph_info, dynamic_step_names, rng_keys):
+    # compute
+    new_state = dict(state)
+    random_keys = rng_keys
+    steps_outputs = {}
+    for i, step_name in enumerate(dynamic_step_names):
+        step_buffer = state[step_name]
+        step_inputs = graph_info[step_name]["incoming"]
+        step_compute_kernel = graph_info[step_name]["compute_kernel"]
+        input_sums = {}
+        for slot, input_steps in step_inputs.items():
+            input_sum = None 
+            for in_step in input_steps:
+                #print("CURRENT STEP: ", step_name)
+                #print("CURRENT IN: ", in_step)
+                #print("CURRENT SUM: ", input_sum)
+                in_step_name, in_step_slot = in_step.split(".")
+                
+                #jgdb.print("{x}",x=new_state[in_step_name][in_step_slot])
+                #print(new_state[in_step_name][in_step_slot])
+                input_sum = (input_sum + state[in_step_name][in_step_slot]) if input_sum is not None else state[in_step_name][in_step_slot]
+            if len(input_steps) == 0:
+                input_sum = 0*state[step_name][util.DEFAULT_OUTPUT_SLOT]
+            if input_sum is None:
+                raise ValueError(f"Step {step_name} has no valid input sum at slot {slot}. This should never happen. {step_inputs}")
+            input_sums[slot] = input_sum
+        steps_outputs[step_name] = step_compute_kernel(input_sums, step_buffer, **{"prng_key": random_keys[i]})
+    
+    # post compute
+    for step_name, output in steps_outputs.items():
+        #print(output)
+        for slot_key in output.keys():
+            out_mat = output[slot_key]
+            #out_mat.block_until_ready()
+            new_state[step_name][slot_key] = out_mat
+    
+    return new_state
+
+
+    def load_buffer(self, tree):
+        if "BUFFER" not in tree:
+            raise Exception(f"Invalid buffer format. Expected BUFFER, got {tree.keys()}")
+        buffer_tree = tree["BUFFER"]
+        # Iterate through every saved buffer of this step
+        step_buffer = {}
+        for buffer in buffer_tree.keys():
+            # Check if the saved buffer exists in the current step
+            if buffer not in self.buffer:
+                raise Exception(f"Step {self.get_name()} has no buffer '{buffer}': {list(self.buffer.keys())}")
+            buf_str = buffer_tree[buffer]
+            #print(type(buf_str))
+            buf_array = np.array(buf_str)
+            #print(buf_array.shape)
+            """metadata, data = buf_str.split("\n")
+            # Check metadata format
+            metadata = metadata.split(",")
+            if not metadata[0] == "Mat":
+                raise Exception(f"Invalid buffer format. Expected Mat, got {metadata[0]}")
+            # Check datatype
+            if not metadata[1] == util_jax.dtype_CV_string():
+                raise Exception(f"Datatype of saved buffer ({metadata[1]}) has to match the datatype of the current architecture ({util_jax.dtype_CV_string()})")
+            # Fill buffer
+            shape = tuple([int(value_str) for value_str in metadata[2:]])
+            arr = jnp.array([float(value_str) for value_str in data.split(",")]).reshape(shape)"""
+
+            self.buffer[buffer] = buf_array
+            self.cpu_buffer[buffer] = np.array(buf_array)
+            step_buffer[buffer] = buf_array
+            print(f"loaded buffer for {self.get_name()} with shape {buf_array.shape}")
+        return step_buffer
+
+    def save_buffer(self):
+        if len(self.buffer_to_save) == 0:
+            return None
+        buffer_dict = {}
+        for buf_name in self.buffer_to_save:
+            mat = self.cpu_buffer[buf_name]
+            # Save metadata containing datatype and matrix shape
+            buf_str = f"Mat,{util_jax.dtype_CV_string()},{','.join([str(size) for size in mat.shape])}" + "\n"
+            # Add flattened matrix elements
+            buf_str += str(np.asarray(mat).flatten().tolist())[1:-1]
+            buffer_dict[buf_name] = buf_str
+        # return dict containing all saved buffers
+        tree = {self._name: {"BUFFER": buffer_dict}}
+        return tree

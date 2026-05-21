@@ -226,7 +226,7 @@ class HebbianConnection(Step):
         if self._params["wheight_reset_slot"]: self.register_input("in3") # weight reset signal: should be a binary scalar signal. Gets multiplied with weights each step.
         self.register_output("out1") # rev_output
 
-        self.register_buffer("wheights", "wheight_shape", save=True) # dynamic wheight parameter
+        self.register_buffer("wheights", "wheight_shape", permanent=True) # dynamic wheight parameter
         self.register_buffer("reward_timer", "scalar_shape") # time since reward onset
         self.register_buffer("reward_onset", "scalar_shape") # reward onset
 

@@ -26,7 +26,7 @@ class Gaussian(Configurable):
     def __init__(self, params):
         mandatory_params = ["sigma", "amplitude", "normalized"]
         self._name = "Gauss"
-        super().__init__(params, mandatory_params)
+        super().__init__(name="Gauss", params=params, mandatory_params=mandatory_params)
         self._dimensionality = len(params["sigma"])
         # Estimate width if not explicitly set
         if "shape" not in params:

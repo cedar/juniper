@@ -122,9 +122,7 @@ def parse_cv_mat(data: bytes):
 class TCPWorker(Configurable):
     def __init__(self, name : str, params : dict, shared_memory_name):
         mandatory_params = ['ip', 'port', 'shape', 'mode']
-        self._name = name
-        super().__init__(params, mandatory_params)
-        #self._params = params.copy()
+        super().__init__(name=name, params=params, mandatory_params=mandatory_params)
 
         if 'timeout' not in params:
             self._params['timeout'] = 3

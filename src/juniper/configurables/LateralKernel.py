@@ -16,9 +16,8 @@ class LateralKernel(Configurable):
     """
     def __init__(self, params):
         mandatory_params = ["kernels"]
-        self._name = "lateral_kernel"
         # optional parameters: wheights
-        super().__init__(params, mandatory_params)
+        super().__init__(name="lateral_kernel", params=params, mandatory_params=mandatory_params)
         
         self._shapes = [kernel._params["shape"] for kernel in params["kernels"]]
         self._dimensionalities = [len(shape) for shape in self._shapes]
