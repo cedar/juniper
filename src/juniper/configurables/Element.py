@@ -7,21 +7,21 @@ class Element(Connectable):
             raise ValueError(f"Element names cannot contain dots. ({name})")
         
         super().__init__(name=name,params=params, mandatory_params=mandatory_params)
-        self.input_slot_map = {}
-        self.output_slot_map = {}
+        self.input_slot_map : dict[str, Slot] = {}
+        self.output_slot_map : dict[str, Slot] = {}
 
     def register_output_slot(self, slot_id : str):
         if slot_id in self.output_slot_map.keys():
-            raise ValueError(f"Output slot {slot_id} already registered in step {self.get_name()}")
+            raise Exception(f"Output slot {slot_id} already registered in step {self.get_name()}")
         slot = Slot(self, slot_id)
         # Register output slot shortcut
         setattr(self, f"{slot_id}", slot)
         # register slot
-        self.output_slot_map[slot_id] = Slot
+        self.output_slot_map[slot_id] = slot
 
     def register_input_slot(self, slot_id : str, max_incoming_connections : int = 1):
         if slot_id in self.input_slot_map.keys():
-            raise ValueError(f"Input slot {slot_id} already registered in step {self.get_name()}")
+            raise Exception(f"Input slot {slot_id} already registered in step {self.get_name()}")
         slot = Slot(self, slot_id, max_incoming_connections)
         # Register input slot shortcut
         setattr(self, f"{slot_id}", slot)
@@ -33,7 +33,24 @@ class Element(Connectable):
         return slot.max_incoming_connections
     
     def get_slot(self, slot_id : str) -> Slot:
+        try:
+            slot = self.get_input_slot(slot_id)
+            return slot
+        except Exception:
+            try:
+                slot = self.get_output_slot(slot_id)
+                return slot
+            except Exception:
+                raise Exception(f"Slot {slot_id} does not exist in step {self.get_name()}")
+    
+    def get_input_slot(self, slot_id : str) -> Slot:
         if slot_id not in self.input_slot_map.keys():
-            raise ValueError(f"Slot {slot_id} does not exist in step {self.get_name()}")
+            raise Exception(f"Slot {slot_id} does not exist in step {self.get_name()}")
         return self.input_slot_map[slot_id]
+    
+    def get_output_slot(self, slot_id : str) -> Slot:
+        if slot_id not in self.output_slot_map.keys():
+            raise Exception(f"Slot {slot_id} does not exist in step {self.get_name()}")
+        return self.output_slot_map[slot_id]
+
         

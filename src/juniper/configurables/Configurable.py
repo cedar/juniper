@@ -15,4 +15,4 @@ class Configurable:
         return self._params
 
     def get_name(self) -> str:
-        return self.name
+        return self._name

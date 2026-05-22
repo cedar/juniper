@@ -8,7 +8,7 @@ from ..util import util
 class Connectable(Configurable):
     def __init__(self, name : str, params : dict = {}, mandatory_params : dict = {}):
         super().__init__(name=name, params=params, mandatory_params=mandatory_params)
-        self.parent_circuit = Circuit.parent_circuit()
+        self.parent_circuit : Circuit = Circuit.parent_circuit()
 
     def __rshift__(self, other : Connectable | str) -> Connectable:
         if isinstance(other, Step) or isinstance(other, Slot) or isinstance(other, Circuit) or isinstance(other, str):
@@ -28,7 +28,7 @@ class Connectable(Configurable):
         
     def get_slot_from_connectable(self, connectable : Connectable | str, dir : str = "out") -> Slot:
         if isinstance(connectable, Slot):
-            return Slot
+            return connectable
         if isinstance(connectable, Step) or isinstance(connectable, Circuit):
             return connectable.get_slot(util.DEFAULT_OUTPUT_SLOT) if dir == "out" else connectable.get_slot(util.DEFAULT_INPUT_SLOT)
         if isinstance(connectable, str):

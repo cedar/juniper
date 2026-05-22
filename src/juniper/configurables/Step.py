@@ -15,7 +15,7 @@ class Step(Element):
         self.is_source = False
         self.is_sink = False
 
-        self.buffer_map = {}
+        self.buffer_map : dict[str, Buffer] = {}
 
         # register default step input/output slots
         self.register_input_slot(util.DEFAULT_INPUT_SLOT)

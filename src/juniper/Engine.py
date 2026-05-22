@@ -8,6 +8,31 @@ import time
 import json
 import os
 from functools import partial
+from .configurables.Circuit import Circuit
+from .configurables.Step import Step
+
+def extract_state_from_step(step : Step):
+    state = {}
+    for buf_name, buffer in step.buffer_map.items():
+        state[buf_name] = jnp.zeros((1,)) # has to be infered or given infer_shape(out_slot)
+
+    for out_slot_id, out_slot in step.output_slot_map.items():
+        state[out_slot_id] = jnp.zeros((1,)) # has to be infered somehow
+    
+    return state
+
+def extarct_state_from_circuit(circuit : Circuit):
+    state = {}
+    for out_slot_id, out_slot in circuit.output_slot_map.items():
+        state[out_slot_id] = jnp.zeros((1,)) # has to be infered infer_shape(out_slot)
+
+    state["inner_state"] = {}
+    for elment_name, element in circuit.element_map.itmes():
+        if isinstance(element, Circuit):
+            state["inner_state"] = extarct_state_from_circuit(element)
+        if isinstance(element, Step):
+            state["inner_state"][elment_name] = extract_state_from_step(element)
+
 
 class Engine:
     def __init__(self):
@@ -40,7 +65,6 @@ class Engine:
                 tree.update(step_gpu_tree)
         with open(f"{self.cfg_c['arch_file_path']}.data", "w") as f:
             f.write(json.dumps(tree, indent=4))
-
 
     def load_buffer(self, data_file):
         with open(data_file, "r") as f:
@@ -144,7 +168,6 @@ class Engine:
 
         return history, {"total": t_total, "gpu_push": gpu_push_timings, "gpu_pull": gpu_pull_timings, "tick": tick_timings, "buffer": t_buffer_write}, t_total
 
-
     def close_connections(self):
         for source_name in self.sources:
             source = self.get_element(source_name)
@@ -202,7 +225,7 @@ class Engine:
         #print("\nStatic step compilation graph:\n" + "\n".join([f"{elem[0]:<8} <-- {str(elem[1])}" for elem in compilation_graph_static]) + "\n")
 
     # If warmup is set to true, the architecture is run once and then reset, effectively precompiling all JIT compilable functions in the architecture (e.g. euler step of fields)
-    def compile(self, tick_func, warmup=10, print_compile_info=False, load_buffer=False):
+    def compile_old(self, tick_func, warmup=10, print_compile_info=False, load_buffer=False):
         self.check_not_compiled()
 
         ## Compile
