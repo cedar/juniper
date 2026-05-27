@@ -69,7 +69,10 @@ class Element(Connectable):
             raise Exception(f"Slot {slot_id} does not exist in step {self.get_name()}")
         return self.output_slot_map[slot_id]
     
-    def commpile_state(self, input_slots : dict[str,Slot]) -> bool:
+    def compile_state(self, input_slots : dict[str,Slot]) -> bool:
         # Default state inference behavior. No buffer and same shape and dtype of default input slot for default output slot.
         
         return False
+
+    def commpile_state(self, input_slots : dict[str,Slot]) -> bool:
+        return self.compile_state(input_slots)

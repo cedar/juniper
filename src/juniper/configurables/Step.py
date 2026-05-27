@@ -39,6 +39,9 @@ class Step(Element):
         self.is_compiled = True
         return self.is_compiled       
     
-    def commpile_state(self, input_slots):
+    def compile_state(self, input_slots):
         # Step specific comile function to determine the state of each slot and buffer of the step, given the input slots
         raise NotImplementedError(f"Step missing compile function for state inference ({self.get_name()})")
+
+    def commpile_state(self, input_slots):
+        return self.compile_state(input_slots)

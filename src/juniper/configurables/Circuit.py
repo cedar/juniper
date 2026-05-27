@@ -6,40 +6,49 @@ from .Slot import Slot
 from .Element import Element
 import jax.numpy as jnp
 
-def compute_kernel_factory(output_slot_map : dict[str,Slot], input_slot_map : dict[str,Slot], connection_map_reversed: dict[str,list[Slot]]) -> Callable[[dict, dict, Optional[dict]], dict]:
+def compute_kernel_factory(element_map : dict[str,Element], output_slot_map : dict[str,Slot], input_slot_map : dict[str,Slot], connection_map_reversed: dict[str,list[Slot]]) -> Callable[[dict, dict, Optional[dict]], dict]:
     def compute_kernel(input : dict, inner_state : dict, **kwargs : Optional[dict]) -> dict:
         new_state = inner_state.copy()
 
-        # gather sub-inputs of sub-circuits
-        sub_inputs = {}
-        for dest, sources in connection_map_reversed.items():
-            dest_name, dest_slot_id = dest.split(".")
-            sub_inputs[dest_name] = {dest_slot_id: []}
-            for source in sources:
-                source_name, source_slot_id = source.get_name().split(".")
-                sub_inputs[dest_name][dest_slot_id].append(inner_state[source_name][source_slot_id])
+        for element_name, element in element_map.items():
+            sub_inputs = {}
+            for input_slot_id, input_slot in element.input_slot_map.items():
+                input_values = []
+                for source in connection_map_reversed[input_slot.get_name()]:
+                    source_name, source_slot_id = source.get_name().split(".")
+                    if source_name == source.parent.get_name():
+                        if source.parent is element:
+                            raise Exception(f"Circuit::compute_kernel(): Element {element_name} cannot receive input from itself")
+                        if source.parent in element_map.values():
+                            input_values.append(new_state[source_name][source_slot_id])
+                        else:
+                            input_values.append(input[source_slot_id])
 
-        # gather external input sums for sub-inputs
-        for slot_name, dest in input_slot_map.items():
-            dest_name, dest_slot_id = dest.get_name().split(".")
-            if dest.get_name() in connection_map_reversed.keys():
-                sub_inputs[dest_name][dest_slot_id].append(jnp.sum(input[slot_name], axis=0))
-            else:
-                sub_inputs[dest_name] = {dest_slot_id: [jnp.sum(input[slot_name], axis=0)]}
+                if len(input_values) == 0:
+                    continue
 
-        # compute sub-circuits
-        for element in connection_map_reversed.keys():
-            element_name, _ = element.split(".")
+                input_sum = input_values[0]
+                for value in input_values[1:]:
+                    input_sum = input_sum + value
+                sub_inputs[input_slot_id] = input_sum
+
             kernel = kwargs["kernel_map"][element_name]["kernel"]
             sub_kernel = kwargs["kernel_map"][element_name]["sub_kernel"]
             prng_keys = kwargs["prng_keys"][element_name]
-            new_state[element_name] =  kernel(sub_inputs, inner_state[element_name], **{"prng_keys": prng_keys, "kernel_map":sub_kernel})
+            new_state[element_name] =  kernel(sub_inputs, inner_state[element_name], **{"prng_key": prng_keys, "prng_keys": prng_keys, "kernel_map":sub_kernel})
 
         # set output
-        out = {}
-        for slot_name, out_element in output_slot_map.items():
-            out_element_name, out_element_slot_id = out_element.get_name().split(".")
-            out[slot_name] = new_state[out_element_name][out_element_slot_id]
+        out = new_state.copy()
+        for slot_name, out_slot in output_slot_map.items():
+            incoming = connection_map_reversed[out_slot.get_name()]
+            if len(incoming) == 0:
+                continue
+            source = incoming[0]
+            out_element_name, out_element_slot_id = source.get_name().split(".")
+            if source.parent in element_map.values():
+                out[slot_name] = new_state[out_element_name][out_element_slot_id]
+            else:
+                out[slot_name] = input[out_element_slot_id]
 
         out["inner_state"] = new_state
         return out # {"inner_state": {"step1":{"buffer":123, "out":123}, "step2"...}, "out_slot1":123, "out_slot2":123,...}
@@ -53,6 +62,7 @@ class Circuit(Element):
         super().__init__(name=name, params=params, mandatory_params=mandatory_params)
         self.element_map : dict[str,Element] = {}
         self.connection_map_reversed : dict[str, list[Slot]] = {}
+        self.compile_info : dict = self.empty_compile_info()
 
         with self:
             self.build_circuit()
@@ -103,11 +113,13 @@ class Circuit(Element):
         source_name = source.get_name()
         dest_name = dest.get_name()
         
-        for name in [source._parent.get_name(), dest._parent.get_name()]:
-            if name not in self.element_map.keys():
-                raise Exception(f"Circuit::connect_to(): Element {name} not found in Circuit (source:{source._parent.get_name()},dest:{dest._parent.get_name()}). This should never happen.")
+        for parent in [source.parent, dest.parent]:
+            if parent is not self and parent.get_name() not in self.element_map.keys():
+                raise Exception(f"Circuit::connect_to(): Element {parent.get_name()} not found in Circuit (source:{source.parent.get_name()},dest:{dest.parent.get_name()}). This should never happen.")
             
-        if source_name in self.connection_map_reversed[dest_name]:
+        self.connection_map_reversed.setdefault(dest_name, [])
+
+        if source in self.connection_map_reversed[dest_name]:
             raise Exception(f"Circuit::connect_to(): Connection from {source_name} to {dest_name} already exists ({self.get_name()})")
         
         if len(self.connection_map_reversed[dest_name]) >= dest.max_incoming_connections:
@@ -126,11 +138,95 @@ class Circuit(Element):
         self.connect_to(source_slot, self.output_slot_map[output_slot_id])
 
     def generate_kernel(self):
-        self.compute_kernel = compute_kernel_factory(self.output_slot_map, self.input_slot_map, self.connection_map_reversed)
+        self.compute_kernel = compute_kernel_factory(self.element_map, self.output_slot_map, self.input_slot_map, self.connection_map_reversed)
 
     def build_circuit(self):
         # --- circuit description ---
         self.generate_kernel()
+
+    def empty_compile_info(self) -> dict:
+        return {
+            "circuit": self,
+            "known_state": {},
+            "dynamic": [],
+            "static": [],
+            "sources": [],
+            "sinks": [],
+            "sub_processes": [],
+            "state_info": {},
+            "kernel_map": {},
+            "children": {},
+        }
+
+    def _prefixed_path(self, prefix : str, path : tuple[str, ...]) -> tuple[str, ...]:
+        return (prefix,) + path
+
+    def _compile_entry(self, path : tuple[str, ...], element : Element) -> dict:
+        return {"path": path, "element": element}
+
+    def _element_state_info(self, element : Element) -> dict:
+        return {
+            "element": element,
+            "kind": "dynamic" if element.is_dynamic else "static",
+            "is_dynamic": element.is_dynamic,
+            "is_source": element.is_source,
+            "is_sink": element.is_sink,
+            "manages_sup_process": element.manages_sup_process,
+            "input_slots": element.input_slot_map,
+            "output_slots": element.output_slot_map,
+            "buffer_map": getattr(element, "buffer_map", {}),
+        }
+
+    def collect_compile_info(self) -> dict:
+        compile_info = self.empty_compile_info()
+
+        for element_name, element in self.element_map.items():
+            if not element.is_compiled:
+                continue
+
+            element_path = (element_name,)
+            compile_info["known_state"][element_path] = element
+            if element.is_dynamic:
+                compile_info["dynamic"].append(self._compile_entry(element_path, element))
+            else:
+                compile_info["static"].append(self._compile_entry(element_path, element))
+            if element.is_source:
+                compile_info["sources"].append(self._compile_entry(element_path, element))
+            if element.is_sink:
+                compile_info["sinks"].append(self._compile_entry(element_path, element))
+            if element.manages_sup_process:
+                compile_info["sub_processes"].append(self._compile_entry(element_path, element))
+
+            element_info = self._element_state_info(element)
+            compile_info["state_info"][element_path] = element_info
+
+            if isinstance(element, Circuit):
+                child_info = element.compile_info
+                compile_info["children"][element_name] = child_info
+                compile_info["state_info"][element_path]["children"] = child_info["state_info"]
+                for child_path, child_element in child_info["known_state"].items():
+                    compile_info["known_state"][self._prefixed_path(element_name, child_path)] = child_element
+                for key in ["dynamic", "static", "sources", "sinks", "sub_processes"]:
+                    for entry in child_info[key]:
+                        compile_info[key].append({
+                            "path": self._prefixed_path(element_name, entry["path"]),
+                            "element": entry["element"],
+                        })
+                compile_info["kernel_map"][element_name] = {
+                    "kernel": element.compute_kernel,
+                    "sub_kernel": child_info["kernel_map"],
+                }
+            else:
+                compile_info["kernel_map"][element_name] = {
+                    "kernel": element.compute_kernel,
+                    "sub_kernel": None,
+                }
+
+        return compile_info
+
+    def refresh_compile_info(self):
+        self.compile_info = self.collect_compile_info()
+        return self.compile_info
 
     def compile_state(self, input_slots : dict[str,Slot]):
         state_updated = False
@@ -140,7 +236,7 @@ class Circuit(Element):
             # update sub-elements
             sub_state_updated = False
             for element_name, element in self.element_map.items():
-                if element_name in self.known_state_map.keys():
+                if (element_name,) in self.compile_info["known_state"]:
                     continue
                 input_slots = {slot.get_name(): self.connection_map_reversed[slot.get_name()] for slot in element.input_slot_map.values()}
                 sub_state_updated = element.compile_state(input_slots)
@@ -151,20 +247,21 @@ class Circuit(Element):
 
                 # if element is compiled successfully, store its meta data in state_info dicts
                 if element.is_compiled and sub_state_updated:
-                    self.known_state_map[element_name] = element
+                    element_path = (element_name,)
+                    self.compile_info["known_state"][element_path] = element
 
                     if element.is_dynamic:
-                        self.dynamic_map[element_name] = element
+                        self.compile_info["dynamic"].append(self._compile_entry(element_path, element))
                     else:
-                        self.static_map[element_name] = element
+                        self.compile_info["static"].append(self._compile_entry(element_path, element))
 
                     if element.is_sink:
-                        self.sink_map[element_name] = element
+                        self.compile_info["sinks"].append(self._compile_entry(element_path, element))
                     elif element.is_source:
-                        self.sink_map[element_name] = element
+                        self.compile_info["sources"].append(self._compile_entry(element_path, element))
 
                     if element.manages_sup_process:
-                        self.sub_process_map[element_name] = element
+                        self.compile_info["sub_processes"].append(self._compile_entry(element_path, element))
             
             # update input and output slots
             for input_slot in self.input_slot_map.values():
@@ -173,6 +270,7 @@ class Circuit(Element):
                 continue
 
         self.check_compiled()
+        self.refresh_compile_info()
 
         return state_updated
     
