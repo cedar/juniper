@@ -11,27 +11,6 @@ from functools import partial
 from .configurables.Circuit import Circuit
 from .configurables.Step import Step
 
-def extract_state_from_step(step : Step):
-    state = {}
-    for buf_name, buffer in step.buffer_map.items():
-        state[buf_name] = jnp.zeros((1,)) # has to be infered or given infer_shape(out_slot)
-
-    for out_slot_id, out_slot in step.output_slot_map.items():
-        state[out_slot_id] = jnp.zeros((1,)) # has to be infered somehow
-    
-    return state
-
-def extarct_state_from_circuit(circuit : Circuit):
-    state = {}
-    for out_slot_id, out_slot in circuit.output_slot_map.items():
-        state[out_slot_id] = jnp.zeros((1,)) # has to be infered infer_shape(out_slot)
-
-    state["inner_state"] = {}
-    for elment_name, element in circuit.element_map.itmes():
-        if isinstance(element, Circuit):
-            state["inner_state"] = extarct_state_from_circuit(element)
-        if isinstance(element, Step):
-            state["inner_state"][elment_name] = extract_state_from_step(element)
 
 
 class Engine:
