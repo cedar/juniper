@@ -50,11 +50,9 @@ class TimedBoost(Step):
 
         self.compute_kernel = compute_kernel_factory(self._params, self._start, self._end, self._delta_t)
 
-        self.reset()
-    
-    def reset(self): # Override
-        self.buffer["local_time"] = util_jax.ones(self._params["shape"])*0
-        self.reset_buffer(util.DEFAULT_OUTPUT_SLOT)
+    def compile_state(self, input_slots):
+        self.register_buffer("local_time", "shape") if "local_time" not in self.buffer_map else None
+        return super().compile_state(input_slots)
 
     def get_data(self):
         pass

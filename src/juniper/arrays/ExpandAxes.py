@@ -40,4 +40,12 @@ class ExpandAxes(Step):
         super().__init__(name, params, mandatory_params)
 
         self.compute_kernel = compute_kernel_factory(self._params)
+
+    def infer_output_shapes(self, input_specs):
+        if util.DEFAULT_INPUT_SLOT not in input_specs:
+            return {}
+        shape = list(input_specs[util.DEFAULT_INPUT_SLOT][0])
+        for axis, size in sorted(zip(self._params["axis"], self._params["sizes"])):
+            shape.insert(axis, size)
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(shape)}
     

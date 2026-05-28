@@ -45,3 +45,16 @@ class MatrixPadding(Step):
             self._params["mode"] = "constant"
 
         self.compute_kernel = compute_kernel_factory(self._params)
+
+    def infer_output_shapes(self, input_specs):
+        if util.DEFAULT_INPUT_SLOT not in input_specs:
+            return {}
+        shape = tuple(input_specs[util.DEFAULT_INPUT_SLOT][0])
+        border = self._params["border_size"]
+        if isinstance(border, int):
+            pads = [(border, border)] * len(shape)
+        elif len(border) == 2 and all(isinstance(x, int) for x in border):
+            pads = [tuple(border)] * len(shape)
+        else:
+            pads = [tuple(pair) for pair in border]
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(size + before + after for size, (before, after) in zip(shape, pads))}

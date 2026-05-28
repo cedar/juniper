@@ -27,18 +27,14 @@ class CustomInput(Step):
         self.read_from_cpu = True
 
         self.output = jnp.zeros(self._params["shape"])
-        self.register_buffer("output")
-        self.buffer["output"] = self.output
+        self.register_buffer("output", self._params["shape"])
         self.compute_kernel = compute_kernel_factory()
         
     def compute(self, input_mats, buffer, **kwargs):
         return self.compute_kernel(input_mats, buffer, **kwargs)
     
     def reset(self):
-        reset_state = {}
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer["output"]
-        reset_state["output"] = self.output
-        return reset_state
+        return {util.DEFAULT_OUTPUT_SLOT: self.output, "output": self.output}
     
     def set_data(self, data):
         self.output = data

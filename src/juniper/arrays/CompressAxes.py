@@ -57,7 +57,12 @@ class CompressAxes(Step):
 
         self.compute_kernel = compute_kernel_factory(self._params, self._red_func)
 
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, buffer, **kwargs):
-        return self.compute_kernel(input_mats, buffer, **kwargs)
+    def infer_output_shapes(self, input_specs):
+        if util.DEFAULT_INPUT_SLOT not in input_specs:
+            return {}
+        shape = tuple(input_specs[util.DEFAULT_INPUT_SLOT][0])
+        if self._params["compress_all"]:
+            return {util.DEFAULT_OUTPUT_SLOT: (1,)}
+        axes = set(self._params["axis"] if isinstance(self._params["axis"], (tuple, list)) else (self._params["axis"],))
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(size for axis, size in enumerate(shape) if axis not in axes)}
     

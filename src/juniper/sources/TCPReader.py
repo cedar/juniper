@@ -42,7 +42,7 @@ class TCPReader(Step):
         self.is_source = True
         self._params["mode"] = "read"
 
-        self.register_buffer("output")
+        self.register_buffer("output", shape=self._params["shape"])
 
         self.compute_kernel = compute_kernel_factory()
 
@@ -67,12 +67,8 @@ class TCPReader(Step):
             self.comm_thread.start()
     
     def reset(self):
-        self.buffer["output"] = util_jax.ones(self._params["shape"])
-        self.reset_buffer(util.DEFAULT_OUTPUT_SLOT)
-        reset_state = {}
-        reset_state["output"] = self.buffer["output"]  
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        return reset_state
+        output = util_jax.ones(self._params["shape"])
+        return {"output": output, util.DEFAULT_OUTPUT_SLOT: output}
 
     def get_data (self):
         return_data = np.zeros(self.shared_data.shape, dtype=self.shared_data.dtype)

@@ -60,4 +60,7 @@ class VectorsToRangeImage(Step):
         super().__init__(name, params, mandatory_params)
         self.compute_kernel = compute_kernel_factory(self._params)
 
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["image_shape"])}
+
     

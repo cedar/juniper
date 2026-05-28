@@ -1,34 +1,41 @@
 from ..configurables.Step import Step
-from .ExpandAxes import ExpandAxes
-from .CompressAxes import CompressAxes
-from .ReorderAxes import ReorderAxes
 from ..util import util
+import jax.numpy as jnp
 
 def compute_kernel_factory(params, in_dim, out_dim, name):
     if in_dim < out_dim:
-        sizes = (params["output_shape"][params["order"][i]] for i in params["axis"])
-        expand_obj = ExpandAxes(name + "_expand", {"axis": params["axis"], "sizes": sizes})
-        reorder_obj = ReorderAxes(name + "_reorder", {"order": params["order"]})
+        sizes = tuple(params["output_shape"][params["order"][i]] for i in params["axis"])
         def compute_kernel(input_mats, buffer, **kwargs):
-            output = expand_obj.compute_kernel(input_mats, buffer, **kwargs)
-            output = reorder_obj.compute_kernel({util.DEFAULT_INPUT_SLOT: output[util.DEFAULT_OUTPUT_SLOT]}, buffer, **kwargs)
-            return output
+            output = jnp.expand_dims(input_mats[util.DEFAULT_INPUT_SLOT], axis=params["axis"])
+            for ax, size in zip(params["axis"], sizes):
+                output = jnp.repeat(output, size, axis=ax)
+            output = jnp.transpose(output, axes=params["order"])
+            return {util.DEFAULT_OUTPUT_SLOT: output}
 
     elif in_dim > out_dim:
-        reorder_obj = ReorderAxes(name + "_reorder", {"order": params["order"]})
-        compress_obj = CompressAxes(name + "_compress", {"axis": params["axis"], "compression_type": params["compression_type"]})
         def compute_kernel(input_mats, buffer, **kwargs):
-            output = compress_obj.compute_kernel(input_mats, buffer, **kwargs)
-            output = reorder_obj.compute_kernel({util.DEFAULT_INPUT_SLOT: output[util.DEFAULT_OUTPUT_SLOT]}, buffer, **kwargs)
-            return output
+            output = input_mats[util.DEFAULT_INPUT_SLOT]
+            output = _compress(output, axis=params["axis"], compression_type=params["compression_type"])
+            output = jnp.transpose(output, axes=params["order"])
+            return {util.DEFAULT_OUTPUT_SLOT: output}
 
     else:
-        reorder_obj = ReorderAxes(name + "_reorder", {"order": params["order"]})
         def compute_kernel(input_mats, buffer, **kwargs):
-            output = reorder_obj.compute_kernel(input_mats, buffer, **kwargs)
-            return output
+            output = jnp.transpose(input_mats[util.DEFAULT_INPUT_SLOT], axes=params["order"])
+            return {util.DEFAULT_OUTPUT_SLOT: output}
 
     return compute_kernel
+
+def _compress(input, axis, compression_type):
+    if compression_type == "Sum":
+        return jnp.sum(input, axis=axis)
+    if compression_type == "Average":
+        return jnp.average(input, axis=axis)
+    if compression_type == "Maximum":
+        return jnp.max(input, axis=axis)
+    if compression_type == "Minimum":
+        return jnp.min(input, axis=axis)
+    raise ValueError(f"Unknown compression type: {compression_type}")
 
 class Projection(Step):
     """
@@ -70,3 +77,5 @@ class Projection(Step):
 
         self.compute_kernel = compute_kernel_factory(self._params, in_dim, out_dim, self._name)
 
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["output_shape"])}

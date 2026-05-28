@@ -220,21 +220,15 @@ class HebbianConnection(Step):
         self._delta_t = util_jax.get_config()["delta_t"]
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
 
-        #self.register_input(util.DEFAULT_INPUT_SLOT) # source activation
-        self.register_input("in1") # target activaiton
-        self.register_input("in2") # reward signal
-        if self._params["wheight_reset_slot"]: self.register_input("in3") # weight reset signal: should be a binary scalar signal. Gets multiplied with weights each step.
+        #self.register_input_slot(util.DEFAULT_INPUT_SLOT) # source activation
+        self.register_input_slot("in1") # target activaiton
+        self.register_input_slot("in2") # reward signal
+        if self._params["wheight_reset_slot"]: self.register_input_slot("in3") # weight reset signal: should be a binary scalar signal. Gets multiplied with weights each step.
         self.register_output("out1") # rev_output
 
         self.register_buffer("wheights", "wheight_shape", permanent=True) # dynamic wheight parameter
         self.register_buffer("reward_timer", "scalar_shape") # time since reward onset
         self.register_buffer("reward_onset", "scalar_shape") # reward onset
-
-        self.buffer_to_save = ["wheights"]
-        self.cpu_buffer = {}
-
-        self.reset()
-        
 
     def compute(self, input_mats, **kwargs):
         if "prng_key" not in kwargs:
@@ -246,25 +240,12 @@ class HebbianConnection(Step):
         reward_signal = input_mats["in2"]
         
         # Computation
-        reward, onset, timer = self._reward_func(self._delta_t, reward_signal, self.buffer["reward_onset"], self.buffer["reward_timer"], self._params["reward_duration"])
-        output, output_rev, wheights = self._euler_func(self._delta_t, prng_key, self.buffer["wheights"], source_mat, target_mat, reward, self._params["learning_rate"], self._params["tau"], self._params["tau_decay"])
+        raise RuntimeError("HebbianConnection.compute() requires engine state buffers; use compute_kernel through Engine")
 
         # Return output and buffer update
-        return {util.DEFAULT_OUTPUT_SLOT: output, "out1": output_rev, 
-                "wheights": wheights, "reward_timer": timer, "reward_onset": onset}
-    
-    def reset(self): # Override default reset, to handle shapes of buffer explicitly.
-        self.buffer["wheights"] = util_jax.zeros(self._params["shape"]+self._params["target_shape"])
-        self.buffer["reward_timer"] = util_jax.zeros((1,))
-        self.buffer["reward_onset"] = util_jax.zeros((1,))
-        self.reset_buffer(util.DEFAULT_OUTPUT_SLOT, slot_shape="target_shape")
-        self.reset_buffer("out1", slot_shape="shape")
-        self.cpu_buffer["wheights"] = np.array(self.buffer["wheights"])
-        reset_state = {}
-        reset_state["wheights"] = self.buffer["wheights"]
-        reset_state["reward_timer"] = self.buffer["reward_timer"]
-        reset_state["reward_onset"] = self.buffer["reward_onset"]
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        reset_state["out1"] = self.buffer["out1"]
-        return reset_state
 
+    def infer_output_shapes(self, input_specs):
+        return {
+            util.DEFAULT_OUTPUT_SLOT: tuple(self._params["target_shape"]),
+            "out1": tuple(self._params["shape"]),
+        }

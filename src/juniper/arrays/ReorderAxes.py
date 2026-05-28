@@ -30,5 +30,10 @@ class ReorderAxes(Step):
         super().__init__(name, params, mandatory_params)
         self.compute_kernel = compute_kernel_factory(self._params)
         
+    def infer_output_shapes(self, input_specs):
+        if util.DEFAULT_INPUT_SLOT not in input_specs:
+            return {}
+        shape = input_specs[util.DEFAULT_INPUT_SLOT][0]
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(shape[i] for i in self._params["order"])}
 
     

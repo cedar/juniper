@@ -35,7 +35,7 @@ class CoordinateTransformation(Step):
         self._frame_graph = self._params["FrameGraph"]
         self._T = self._frame_graph.lookup(source=self._params["source_frame"], target=self._params["target_frame"])
 
-        self.register_input("in1") # input slot for joint angles
+        self.register_input_slot("in1") # input slot for joint angles
 
         self.compute_kernel = compute_kernel_factory(self._params, self._T)
 

@@ -32,6 +32,7 @@ class ComponentMultiply(Step):
         super().__init__(name, params, mandatory_params)
         self.needs_input_connections = True
         self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = jnp.inf
+        self.input_aggregation = "product"
         self.compute_kernel = compute_kernel_factory(self._params)
     
     def update_input(self, arch, input_slot_shape="shape"):
@@ -52,4 +53,3 @@ class ComponentMultiply(Step):
                 raise ValueError(f"Step {self.get_name()} has no valid input sum at slot {input_slot}. This should never happen")
             input_prods[input_slot] = input_prod
         return input_prods
-

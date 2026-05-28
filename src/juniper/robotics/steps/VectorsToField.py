@@ -79,4 +79,7 @@ class VectorsToField(Step):
     def compute(self, input_mats, buffer, **kwargs):
         return self.compute_kernel(input_mats, buffer, **kwargs)
 
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["field_shape"])}
+
     

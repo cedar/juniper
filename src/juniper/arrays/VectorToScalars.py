@@ -43,3 +43,6 @@ class VectorToScalars(Step):
     @partial(jax.jit, static_argnames=['self'])
     def compute(self, input_mats, buffer, **kwargs):
         return self.compute_kernel(input_mats, buffer, **kwargs)
+
+    def infer_output_shapes(self, input_specs):
+        return {f"out{i}": () for i in range(self._params["N_scalars"])}

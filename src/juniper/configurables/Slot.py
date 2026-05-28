@@ -1,8 +1,7 @@
 from .Connectable import Connectable
-from .Element import Element
 
 class Slot(Connectable):
-    def __init__(self, element : Element, slot_id : str, max_incoming_connections : int = 1):
+    def __init__(self, element, slot_id : str, max_incoming_connections : int = 1):
         slot_name = element.get_name() + "." + slot_id
         super().__init__(name=slot_name)
         self.parent = element

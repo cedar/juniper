@@ -47,6 +47,15 @@ class FieldToVectors(Step):
 
         self.compute_kernel = compute_kernel_factory(self._params)
 
+    def infer_output_shapes(self, input_specs):
+        if util.DEFAULT_INPUT_SLOT not in input_specs:
+            return {}
+        shape = input_specs[util.DEFAULT_INPUT_SLOT][0]
+        n_vec = self._params["N_vec"]
+        if n_vec == jnp.inf:
+            n_vec = int(np.prod(shape)) if "np" in globals() else shape[0] * shape[1] * shape[2]
+        return {util.DEFAULT_OUTPUT_SLOT: (int(n_vec), 3)}
+
     
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):

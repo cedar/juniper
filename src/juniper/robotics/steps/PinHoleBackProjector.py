@@ -78,4 +78,8 @@ class PinHoleBackProjector(Step):
 
         self.compute_kernel = compute_kernel_factory(self._params, self.M_cam_inv)
 
+    def infer_output_shapes(self, input_specs):
+        h, w = self._params["img_shape"]
+        return {util.DEFAULT_OUTPUT_SLOT: (h * w, 3)}
+
     

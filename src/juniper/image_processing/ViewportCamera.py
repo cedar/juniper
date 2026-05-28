@@ -324,8 +324,8 @@ class ViewportCamera(Step):
         if "learn_total_s"  not in self._params.keys():
             self._params["learn_total_s"] = 0.325
 
-        self.register_input("viewport_center")
-        self.register_input("learn_mode")
+        self.register_input_slot("viewport_center")
+        self.register_input_slot("learn_mode")
         self.register_output("kernel")
         self.register_output("CoS")
         
@@ -338,29 +338,18 @@ class ViewportCamera(Step):
 
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
 
-        self.reset()
+    def infer_output_shapes(self, input_specs):
+        return {
+            util.DEFAULT_OUTPUT_SLOT: tuple(self._params["output_shape"]),
+            "kernel": tuple(self._params["kernel_shape"]),
+            "CoS": tuple(self._params["CoS_shape"]),
+        }
 
-    def reset(self): # Override default reset, to handle shapes of buffer explicitly.
-        self.buffer["startSC"] = jnp.int32(0) #util_jax.zeros((1,))
-        self.buffer["endSC"] = jnp.int32(0)
-        self.buffer["elapsed_time"] = jnp.float32(0)
-        self.buffer["elapsed_learn_time"] =  jnp.float32(0)
-        self.buffer["lastX"] = jnp.float32(0)
-        self.buffer["lastY"] = jnp.float32(0)
-        self.reset_buffer(util.DEFAULT_OUTPUT_SLOT, slot_shape="output_shape")
-        self.reset_buffer("kernel", slot_shape="kernel_shape")
-        self.reset_buffer("CoS", slot_shape="CoS_shape")
-        reset_state = {}
-        reset_state["startSC"] = self.buffer["startSC"]
-        reset_state["endSC"] = self.buffer["endSC"]
-        reset_state["elapsed_time"] = self.buffer["elapsed_time"]
-        reset_state["elapsed_learn_time"] = self.buffer["elapsed_learn_time"]
-        reset_state["lastX"] = self.buffer["lastX"]
-        reset_state["lastY"] = self.buffer["lastY"]
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        reset_state["kernel"] = self.buffer["kernel"]
-        reset_state["CoS"] = self.buffer["CoS"]
-        return reset_state
+    def compile_state(self, input_slots):
+        for buffer_id in ["startSC", "endSC", "elapsed_time", "elapsed_learn_time", "lastX", "lastY"]:
+            if buffer_id in self.buffer_map:
+                self.buffer_map[buffer_id].shape = ()
+        return super().compile_state(input_slots)
 
     
     

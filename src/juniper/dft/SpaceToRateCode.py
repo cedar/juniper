@@ -59,20 +59,12 @@ class SpaceToRateCode(Step):
 
         self._limits = jnp.asarray(self._params["limits"], dtype=jnp.float32)
 
-        self.register_buffer("peak_pos", slot_shape="space_dim")
+        self.register_buffer("peak_pos", shape=self._params["shape"])
 
         self.compute_kernel = compute_kernel_factory(self._params)
 
-        self.reset()
-
-
-    def reset(self):
-        self.buffer[util.DEFAULT_OUTPUT_SLOT] = jnp.zeros((len(self._params["shape"]),))
-        self.buffer["peak_pos"] = jnp.zeros((len(self._params["shape"]),))
-        reset_state = {}
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        reset_state["peak_pos"] = self.buffer["peak_pos"]
-        return reset_state
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: (len(self._params["shape"]),)}
 
 
     

@@ -36,3 +36,7 @@ class ImageLoader(Step):
 
     def get_data(self):
         pass
+
+    def infer_output_shapes(self, input_specs):
+        img = np.array(Image.open(self._params["image_path"]))
+        return {util.DEFAULT_OUTPUT_SLOT: img.shape}

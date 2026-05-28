@@ -72,22 +72,8 @@ class NeuralField(Step):
         self.compute_kernel = compute_kernel_factory(self._delta_t, self._params["resting_level"], self._params["global_inhibition"], 
                                                        self._params["beta"], self._params["theta"], self._params["tau"], self._params["input_noise_gain"], 
                                                        self.sigmoid, self._lateral_kernel_convolve)
-
-        self.reset()
-
-    # required kwargs are: delta_t, prng_key
-    def compute(self, input_mats, buffer, **kwargs):
-        if "prng_key" not in kwargs:
-            raise Exception("prng_key is a mandatory kwarg to dynamic compute()")
-        #input_mat = input_mats[util.DEFAULT_INPUT_SLOT]
         
-        # Return output
-        return self.compute_kernel(input_mats, buffer, **kwargs)
+        self.register_buffer("activation", self._params["shape"])
     
-    def reset(self): # Override
-        self.buffer["activation"] = util_jax.ones(self._params["shape"]) * self._params["resting_level"]
-        self.reset_buffer(util.DEFAULT_OUTPUT_SLOT)
-        reset_state = {}
-        reset_state["activation"] = self.buffer["activation"]#jax.device_put(self.buffer["activation"], device=jax.devices("gpu")[0])  
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]#jax.device_put(self.buffer[util.DEFAULT_OUTPUT_SLOT], device=jax.devices("gpu")[0])
-        return reset_state
+    def compile_state(self, input_slots):
+        return super().compile_state(input_slots)

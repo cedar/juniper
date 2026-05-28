@@ -79,6 +79,11 @@ class ColorFMap(Step):
         if "value_threshold" not in self._params.keys():
             self._params["value_threshold"] = 0
 
-        self.register_input("in1")
-        self.register_input("in2")
+        self.register_input_slot("in1")
+        self.register_input_slot("in2")
 
+    def infer_output_shapes(self, input_specs):
+        if util.DEFAULT_INPUT_SLOT not in input_specs:
+            return {}
+        hue_shape = input_specs[util.DEFAULT_INPUT_SLOT][0]
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(hue_shape) + (10,)}

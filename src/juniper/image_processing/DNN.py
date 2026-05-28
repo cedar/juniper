@@ -76,16 +76,12 @@ class DNN(Step):
         self._model = fm.VGG16(output="activations", include_head=False, pretrained="imagenet", ckpt_dir=self._params["model_dir"])
         self._variables = self._model.init(jax.random.PRNGKey(0), jnp.zeros((1, 224, 224, 3), dtype=jnp.float16))
 
-        self.register_buffer("lastkey") 
+        self.register_buffer("lastkey", shape=()) 
 
         self.compute_kernel = compute_kernel_factory(self._params, self._model, self._variables)
-        self.reset()
 
-    def reset(self):
-        self.buffer["lastkey"] = jnp.int32(-1)
-        self.reset_buffer(util.DEFAULT_OUTPUT_SLOT, slot_shape="shape")
-
-        reset_state = {}
-        reset_state["lastkey"] = self.buffer["lastkey"]
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        return reset_state
+    def compile_state(self, input_slots):
+        if "lastkey" in self.buffer_map:
+            self.buffer_map["lastkey"].shape = ()
+            self.buffer_map["lastkey"].dtype = jnp.int32
+        return super().compile_state(input_slots)

@@ -36,8 +36,7 @@ class Transform(Configurable):
     """
     def __init__(self, params):
         mandatory_params = ["M_func"]
-        self._name = "Transform"
-        super().__init__(params, mandatory_params)
+        super().__init__("Transform", params, mandatory_params)
 
         self.M_func = params["M_func"]
 

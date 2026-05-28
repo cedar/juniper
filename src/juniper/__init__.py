@@ -1,3 +1,7 @@
+# api
+from .configurables.Circuit import Circuit
+from .Engine import Engine
+
 # algebra
 from .algebra.AddConstant import AddConstant
 from .algebra.ComponentMultiply import ComponentMultiply
@@ -60,6 +64,8 @@ from .Architecture import delete_arch
 from .Architecture import get_arch
 
 __all__ =[
+    "Engine",
+    "Circuit",
     "AddConstant",
     "ComponentMultiply",
     "Convolution",

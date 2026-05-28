@@ -138,26 +138,12 @@ class BCMConnection(Step):
         self._params["scalar_shape"] = (1,)
         self._params["theta_eps"] = float(self._params.get("theta_eps", 1e-6))
         self._delta_t = float(util_jax.get_config()["delta_t"])
-        self.register_input("in1")  
-        self.register_input("in2")  
+        self.register_input_slot("in1")  
+        self.register_input_slot("in2")  
         self.register_buffer("wheights", "wheight_shape", permanent=True)
         self.register_buffer("theta", "target_shape", permanent=True)
-        self.cpu_buffer = {}
 
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
 
-        self.reset()
-
-    def reset(self):
-        self.buffer["wheights"] = util_jax.zeros(self._params["wheight_shape"])
-        init_theta = jnp.float32(self._params["fixed_theta"])
-        self.buffer["theta"] = util_jax.ones(self._params["target_shape"]) * init_theta
-        self.reset_buffer(util.DEFAULT_OUTPUT_SLOT, slot_shape="target_shape")
-        self.reset_buffer("out1", slot_shape="shape")
-        self.cpu_buffer["wheights"] = np.array(self.buffer["wheights"])
-        self.cpu_buffer["theta"] = np.array(self.buffer["theta"])
-        reset_state = {}
-        reset_state["wheights"] = self.buffer["wheights"]
-        reset_state["theta"] = self.buffer["theta"]
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        return reset_state
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["target_shape"])}

@@ -108,20 +108,15 @@ class ShuffleImage(Step):
         if "learn_total_s"  not in self._params.keys():
             self._params["learn_total_s"] = 0.325
 
-        self.register_input("learn_node")
+        self.register_input_slot("learn_node")
         
-        self.register_buffer("elapsed_learn_time")
-        self.register_buffer("learn_onset")
+        self.register_buffer("elapsed_learn_time", shape=())
+        self.register_buffer("learn_onset", shape=())
 
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
-        self.reset()
 
-    def reset(self): # Override default reset, to handle shapes of buffer explicitly.
-        self.buffer["elapsed_learn_time"] =  jnp.float32(0)
-        self.buffer["learn_onset"] = jnp.float32(0)
-        self.reset_buffer(util.DEFAULT_OUTPUT_SLOT, slot_shape="output_shape")
-        reset_state = {}
-        reset_state["elapsed_learn_time"] = self.buffer["elapsed_learn_time"]
-        reset_state["learn_onset"] = self.buffer["learn_onset"]
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        return reset_state
+    def compile_state(self, input_slots):
+        for buffer_id in ["elapsed_learn_time", "learn_onset"]:
+            if buffer_id in self.buffer_map:
+                self.buffer_map[buffer_id].shape = ()
+        return super().compile_state(input_slots)

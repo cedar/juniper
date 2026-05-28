@@ -54,4 +54,8 @@ class RangeImageToVectors(Step):
         super().__init__(name, params, mandatory_params)
         self.compute_kernel = compute_kernel_factory(self._params)
 
+    def infer_output_shapes(self, input_specs):
+        n_tilt, n_pan = self._params["image_shape"]
+        return {util.DEFAULT_OUTPUT_SLOT: (n_tilt * n_pan, 3)}
+
     

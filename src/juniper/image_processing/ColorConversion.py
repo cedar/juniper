@@ -84,3 +84,16 @@ class ColorConversion(Step):
         self.register_output("out1")
         self.register_output("out2")
         self.compute_kernel = compute_kernel_factory(self._params)
+
+    def infer_output_shapes(self, input_specs):
+        if util.DEFAULT_INPUT_SLOT not in input_specs:
+            return {}
+        input_shape = tuple(input_specs[util.DEFAULT_INPUT_SLOT][0])
+        if len(input_shape) == 0:
+            return {}
+        output_shape = input_shape[:-1]
+        return {
+            util.DEFAULT_OUTPUT_SLOT: output_shape,
+            "out1": output_shape,
+            "out2": output_shape,
+        }

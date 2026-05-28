@@ -52,13 +52,5 @@ class Resize(Step):
 
         self.compute_kernel = compute_kernel_factory(self._params)  
 
-    def reset(self):
-        output_shape = self._params["output_shape"]
-        self.buffer[util.DEFAULT_OUTPUT_SLOT] = jnp.zeros(output_shape)
-        reset_state = {}
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        return reset_state
-    
-    def reset_buffer(self, slot_name, slot_shape="shape"):
-        output_shape = self._params["output_shape"]
-        self.buffer[slot_name] = jnp.zeros(output_shape)
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["output_shape"])}

@@ -69,4 +69,7 @@ class PinHoleProjector(Step):
 
         self.compute_kernel = compute_kernel_factory(self._params, self.M_cam)
 
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["img_shape"])}
+
     

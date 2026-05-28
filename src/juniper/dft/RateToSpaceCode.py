@@ -72,14 +72,8 @@ class RateToSpaceCode(Step):
         
         self.compute_kernel = compute_kernel_factory(self._params, self._limits, self._gaussian, self._scaling_factor)
         
-        self.reset()
-        
-        
-    def reset(self):
-        self.buffer[util.DEFAULT_OUTPUT_SLOT] = jnp.zeros((len(self._params["shape"]),))
-        reset_state = {}
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        return reset_state
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["shape"])}
     
 
     

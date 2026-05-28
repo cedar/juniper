@@ -46,14 +46,11 @@ class DemoInput(Step):
 
         self.gaussian = Gaussian({"shape": params["shape"], "sigma": params["sigma"], "amplitude": params["amplitude"], "normalized": False, "center": params["center"], "factorized": False})
         self.register_buffer("output")
-        self.buffer["output"] = self.gaussian.get_kernel()
         self.compute_kernel = compute_kernel_factory(self._params)
     
     def reset(self):
-        reset_state = {}
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self._kernel
-        reset_state["output"] = self.gaussian.get_kernel()
-        return reset_state
+        output = self.gaussian.get_kernel()
+        return {util.DEFAULT_OUTPUT_SLOT: output, "output": output}
     
     def set_data(self, gaussian):
         self.gaussian = gaussian
