@@ -4,7 +4,6 @@ from multiprocessing import Process, shared_memory
 from ..configurables.Step import Step
 from ..configurables.TCPWorker import TCPWorker
 from ..util import util
-from .. util import util_jax
 
 def compute_kernel_factory():
     return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: buffer["output"], "output": buffer["output"]}
@@ -65,12 +64,8 @@ class TCPReader(Step):
     def open(self):
         if not self.comm_thread.is_alive():
             self.comm_thread.start()
-    
-    def reset(self):
-        output = util_jax.ones(self._params["shape"])
-        return {"output": output, util.DEFAULT_OUTPUT_SLOT: output}
 
-    def get_data (self):
+    def get_data(self):
         return_data = np.zeros(self.shared_data.shape, dtype=self.shared_data.dtype)
         return_data[:] = self.shared_data[:]
         return return_data

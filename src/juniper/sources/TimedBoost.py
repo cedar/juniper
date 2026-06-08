@@ -49,3 +49,6 @@ class TimedBoost(Step):
 
         self.compute_kernel = compute_kernel_factory(self._params, self._start, self._end, self._delta_t)
         self.register_buffer("local_time", (1,))
+
+    def get_data(self):
+        pass

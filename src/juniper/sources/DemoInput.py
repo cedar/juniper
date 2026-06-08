@@ -48,10 +48,6 @@ class DemoInput(Step):
         self.register_buffer("output")
         self.compute_kernel = compute_kernel_factory(self._params)
     
-    def reset(self):
-        output = self.gaussian.get_kernel()
-        return {util.DEFAULT_OUTPUT_SLOT: output, "output": output}
-    
     def set_data(self, gaussian):
         self.gaussian = gaussian
 

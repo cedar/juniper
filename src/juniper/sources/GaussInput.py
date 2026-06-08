@@ -50,9 +50,5 @@ class GaussInput(Step):
         self._kernel = kernel.get_kernel()
         self.compute_kernel = compute_kernel_factory(self._kernel)
 
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, buffer, **kwargs):
-        return self.compute_kernel(input_mats, buffer, **kwargs)
-
     def get_data(self):
         pass

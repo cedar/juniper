@@ -33,9 +33,6 @@ class CustomInput(Step):
     def compute(self, input_mats, buffer, **kwargs):
         return self.compute_kernel(input_mats, buffer, **kwargs)
     
-    def reset(self):
-        return {util.DEFAULT_OUTPUT_SLOT: self.output, "output": self.output}
-    
     def set_data(self, data):
         self.output = data
 
