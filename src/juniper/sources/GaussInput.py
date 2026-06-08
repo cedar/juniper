@@ -46,7 +46,7 @@ class GaussInput(Step):
         self._max_incoming_connections = {}
 
         # Compute kernel once and save it
-        kernel = Gaussian({"shape": params["shape"], "sigma": params["sigma"], "amplitude": params["amplitude"], "normalized": False, "center": params["center"], "factorized": False})
+        kernel = Gaussian({"shape": self._params["shape"], "sigma": self._params["sigma"], "amplitude": self._params["amplitude"], "normalized": False, "center": self._params["center"], "factorized": False})
         self._kernel = kernel.get_kernel()
         self.compute_kernel = compute_kernel_factory(self._kernel)
 

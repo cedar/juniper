@@ -35,9 +35,6 @@ class Element(Connectable):
         # register slot
         self.output_slot_map[slot_id] = slot
 
-    def register_output(self, slot_id : str):
-        self.register_output_slot(slot_id)
-
     def register_input_slot(self, slot_id : str, max_incoming_connections : int = 1):
         if slot_id in self.input_slot_map.keys():
             raise Exception(f"Input slot {slot_id} already registered in step {self.get_name()}")

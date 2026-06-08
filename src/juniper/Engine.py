@@ -80,19 +80,16 @@ class Engine:
             if element is not circuit:
                 if isinstance(element, Circuit):
                     sub_state = self._init_circuit_state(element)
-                    for slot_id, slot in element.output_slot_map.items():
-                            sub_state[slot_id] = self._zeros(slot.shape, slot.dtype)
-
                     state[element_name] = sub_state
                 else:
                     state[element_name] = self._init_step_state(element)
+        for slot_id, slot in circuit.output_slot_map.items():
+            state[slot_id] = self._zeros(slot.shape, slot.dtype)
         return state
 
     def _state_at_path(self, path):
         state = self.state
         for name in path:
-            if "inner_state" in state:
-                state = state["inner_state"]
             state = state[name]
         return state
 
@@ -103,11 +100,7 @@ class Engine:
 
         state = self.state
         for name in path[:-1]:
-            if "inner_state" in state:
-                state = state["inner_state"]
             state = state[name]
-        if "inner_state" in state:
-            state = state["inner_state"]
         state[path[-1]] = step_state
 
     def _default_output_slot(self, element, step_state):
@@ -150,7 +143,7 @@ class Engine:
     @partial(jax.jit, static_argnames=["self"])
     def tick(self, state, prng_keys):
         out = self.circuit.compute_kernel({}, state, **{"prng_keys": prng_keys, "kernel_map": self.kernel_map})
-        return out["inner_state"], out
+        return out
 
     def _push_sources(self):
         for entry in self.sources:
@@ -272,7 +265,7 @@ class Engine:
 
             # Execute tick function.
             t_tick = time.time()
-            self.state, _ = self.tick(self.state, prng_keys)
+            self.state = self.tick(self.state, prng_keys)
             tick_timings.append(time.time()-t_tick)
 
             # Pull sink and recorded data from GPU state.

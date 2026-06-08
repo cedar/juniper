@@ -1,5 +1,4 @@
 from ..util import util
-from ..util import util_jax
 from .Element import Element
 from .Buffer import Buffer
 
