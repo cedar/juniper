@@ -114,9 +114,3 @@ class ShuffleImage(Step):
         self.register_buffer("learn_onset", shape=())
 
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
-
-    def compile_state(self, input_slots):
-        for buffer_id in ["elapsed_learn_time", "learn_onset"]:
-            if buffer_id in self.buffer_map:
-                self.buffer_map[buffer_id].shape = ()
-        return super().compile_state(input_slots)

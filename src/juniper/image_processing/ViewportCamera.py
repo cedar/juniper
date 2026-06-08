@@ -329,12 +329,12 @@ class ViewportCamera(Step):
         self.register_output("kernel")
         self.register_output("CoS")
         
-        self.register_buffer("startSC")
-        self.register_buffer("endSC")
-        self.register_buffer("elapsed_time")
-        self.register_buffer("elapsed_learn_time")
-        self.register_buffer("lastX")
-        self.register_buffer("lastY")
+        self.register_buffer("startSC", shape=())
+        self.register_buffer("endSC", shape=())
+        self.register_buffer("elapsed_time", shape=())
+        self.register_buffer("elapsed_learn_time", shape=())
+        self.register_buffer("lastX", shape=())
+        self.register_buffer("lastY", shape=())
 
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
 
@@ -344,12 +344,3 @@ class ViewportCamera(Step):
             "kernel": tuple(self._params["kernel_shape"]),
             "CoS": tuple(self._params["CoS_shape"]),
         }
-
-    def compile_state(self, input_slots):
-        for buffer_id in ["startSC", "endSC", "elapsed_time", "elapsed_learn_time", "lastX", "lastY"]:
-            if buffer_id in self.buffer_map:
-                self.buffer_map[buffer_id].shape = ()
-        return super().compile_state(input_slots)
-
-    
-    

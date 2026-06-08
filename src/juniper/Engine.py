@@ -10,6 +10,7 @@ import os
 from functools import partial
 from .configurables.Circuit import Circuit
 from .dft.NeuralField import NeuralField
+from .Compiler import Compiler
 
 class Engine:
     def __init__(self, circuit):
@@ -22,8 +23,8 @@ class Engine:
 
     def compile(self, circuit : Circuit, input_slots=None, warmup=0, print_compile_info=False, load_buffer=False):
         self.check_not_compiled()
-        circuit.generate_kernel()
-        circuit.compile_state(input_slots or {})
+        compiler = Compiler(circuit)
+        compiler.compile(input_slots or {})
 
         if not circuit.is_compiled:
             print("Not compiled Elements: ")

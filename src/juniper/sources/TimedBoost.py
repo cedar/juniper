@@ -33,7 +33,6 @@ class TimedBoost(Step):
     """
     def __init__(self, name : str, params : dict):
         mandatory_params = ["amplitude", "duration"]
-        params["shape"] = (1,)
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.is_source = True
         self.input_slot_names = []
@@ -49,10 +48,4 @@ class TimedBoost(Step):
         self._end = params["duration"][1]
 
         self.compute_kernel = compute_kernel_factory(self._params, self._start, self._end, self._delta_t)
-
-    def compile_state(self, input_slots):
-        self.register_buffer("local_time", "shape") if "local_time" not in self.buffer_map else None
-        return super().compile_state(input_slots)
-
-    def get_data(self):
-        pass
+        self.register_buffer("local_time", (1,))

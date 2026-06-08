@@ -72,44 +72,6 @@ class Element(Connectable):
             raise Exception(f"Slot {slot_id} does not exist in step {self.get_name()}")
         return self.output_slot_map[slot_id]
     
-    def compile_state(self, input_slots : dict[str,Slot]) -> bool:
-        # Default state inference behavior. No buffer and same shape and dtype of default input slot for default output slot.
-        raise NotImplementedError(f"No compile inference behavior specified for element ({self.get_name()})")
-        return False
-    
-    def compile_input_slots(self, input_slots):
-        input_specs = {}
-        state_updated = False
-        for slot_id, slot in self.input_slot_map.items():
-            shape, dtype = self._merge_input_slot_compile_info(input_slots.get(slot.get_name(), []))
-            if shape is None:
-                continue
-            if slot.shape != shape or slot.dtype != dtype:
-                slot.shape = shape
-                slot.dtype = dtype
-                slot.check_compiled()
-                state_updated = True
-            input_specs[slot_id] = (shape, dtype)
-        return state_updated, input_specs
-    
-    def _merge_input_slot_compile_info(self, sources):
-        known_sources = [source for source in sources if source.check_compiled()]
-        if len(known_sources) == 0:
-            return None, None
-
-        shape = known_sources[0].shape
-        dtype = known_sources[0].dtype or self._default_dtype()
-        for source in known_sources[1:]:
-            source_shape = source.shape
-            if source_shape != shape:
-                if self._is_scalar_shape(shape):
-                    shape = source_shape
-                elif not self._is_scalar_shape(source_shape):
-                    raise ValueError(f"Step {self.get_name()} received incompatible input shapes {shape} and {source_shape}")
-            if source.dtype is not None:
-                dtype = source.dtype
-        return shape, dtype
-
     def _default_dtype(self):
         return util_jax.cfg["jdtype"]
     

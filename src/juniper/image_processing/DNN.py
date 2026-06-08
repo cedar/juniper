@@ -77,11 +77,6 @@ class DNN(Step):
         self._variables = self._model.init(jax.random.PRNGKey(0), jnp.zeros((1, 224, 224, 3), dtype=jnp.float16))
 
         self.register_buffer("lastkey", shape=()) 
+        self.buffer_map["lastkey"].dtype = jnp.int32
 
         self.compute_kernel = compute_kernel_factory(self._params, self._model, self._variables)
-
-    def compile_state(self, input_slots):
-        if "lastkey" in self.buffer_map:
-            self.buffer_map["lastkey"].shape = ()
-            self.buffer_map["lastkey"].dtype = jnp.int32
-        return super().compile_state(input_slots)

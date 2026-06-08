@@ -74,6 +74,3 @@ class NeuralField(Step):
                                                        self.sigmoid, self._lateral_kernel_convolve)
         
         self.register_buffer("activation", self._params["shape"])
-    
-    def compile_state(self, input_slots):
-        return super().compile_state(input_slots)
