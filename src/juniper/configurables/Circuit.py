@@ -68,7 +68,6 @@ class Circuit(Element):
         super().__init__(name=name, params=params, mandatory_params=mandatory_params)
         self.element_map : dict[str,Element] = {}
         self.connection_map_reversed : dict[str, list[Slot]] = {}
-        self.compile_info : dict = {}
 
     @classmethod
     def parent_circuit(cls : Circuit) -> Circuit | None:
@@ -83,7 +82,7 @@ class Circuit(Element):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.build_compute_kernel()
+        self.define_circuit_structure()
         if self.parent is not self:
             self.parent.add_element(self)
         Circuit._current = self._previous_circuit
@@ -162,7 +161,7 @@ class Circuit(Element):
     def generate_kernel(self):
         self.compute_kernel = compute_kernel_factory(self.element_map, self.output_slot_map, self.input_slot_map, self.connection_map_reversed)
 
-    def build_compute_kernel(self):
+    def define_circuit_structure(self):
         # --- circuit description ---
         self.generate_kernel()
         

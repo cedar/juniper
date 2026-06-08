@@ -2,6 +2,7 @@ import os
 import numpy as np
 import time
 import atexit
+import functools
 ROOT_FOLDER = ""
 DEFAULT_INPUT_SLOT = "in0"
 DEFAULT_OUTPUT_SLOT = "out0"
@@ -40,6 +41,15 @@ def tprint(label=None):
         print_string += f" {label} -"
     print(print_string)
     _last_time = current_time
+
+def timer(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.perf_counter()
+        func_return = func(*args, **kwargs)
+        end = time.perf_counter()
+        return end-start, func_return
+    return wrapper
 
 def _exit_handler():
     print(f"# {time.time() - _overall_start_time:>7.3f}s - Total runtime #")

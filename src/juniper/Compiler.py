@@ -4,17 +4,19 @@ from .configurables.Circuit import Circuit
 from .configurables.Element import Element
 from .configurables.Slot import Slot
 from .configurables.Step import Step
-from .util import util
 
 
 class Compiler:
-    def __init__(self, circuit : Circuit):
-        self.circuit = circuit
+    def __init__(self):
+        self.circuit = None
+        self.compile_info_map : dict[Circuit, dict] = {}
+        self.compiled_element_map : dict[Circuit, dict[tuple[str, ...], Element]] = {}
 
-    def compile(self, input_slots : dict[str, list[Slot]] | None = None):
-        self.circuit.generate_kernel()
-        self.compile_circuit(self.circuit, input_slots or {})
-        return self.circuit.compile_info
+    def compile(self, circuit : Circuit):
+        self.circuit = circuit
+        circuit.generate_kernel()
+        self.compile_circuit(circuit, {})
+        return self.compile_info_map[self.circuit]
 
     def compile_element(self, element : Element, input_slots : dict[str, list[Slot]]) -> bool:
         if isinstance(element, Circuit):
@@ -26,7 +28,7 @@ class Compiler:
     def compile_circuit(self, circuit : Circuit, input_slots : dict[str, list[Slot]]) -> bool:
         state_updated = False
         sub_state_updated = True
-        circuit.compile_info = self.empty_compile_info(circuit)
+        self.compiled_element_map[circuit] = {}
 
         while sub_state_updated:
             input_slots_updated, _ = self.compile_input_slots(circuit, input_slots=input_slots)
@@ -35,7 +37,7 @@ class Compiler:
 
             sub_state_updated = False
             for element_name, element in circuit.element_map.items():
-                if (element_name,) in circuit.compile_info["compiled_elements"]:
+                if (element_name,) in self.compiled_element_map[circuit]:
                     continue
 
                 element_input_slots = {
@@ -49,7 +51,7 @@ class Compiler:
                     sub_state_updated = True
 
                 if element.is_compiled:
-                    circuit.compile_info["compiled_elements"][(element_name,)] = element
+                    self.compiled_element_map[circuit][(element_name,)] = element
 
             output_slot_updated, _ = self.compile_circuit_output_slots(circuit)
             if output_slot_updated:
@@ -261,7 +263,7 @@ class Compiler:
             compile_info["state_info"][element_path] = self.element_state_info(element)
 
             if isinstance(element, Circuit):
-                child_info = element.compile_info
+                child_info = self.compile_info_map[element]
                 compile_info["children"][element_name] = child_info
                 compile_info["state_info"][element_path]["children"] = child_info["state_info"]
                 for child_path, child_element in child_info["compiled_elements"].items():
@@ -285,5 +287,5 @@ class Compiler:
         return compile_info
 
     def refresh_compile_info(self, circuit : Circuit):
-        circuit.compile_info = self.collect_compile_info(circuit)
-        return circuit.compile_info
+        self.compile_info_map[circuit] = self.collect_compile_info(circuit)
+        return self.compile_info_map[circuit]

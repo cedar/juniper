@@ -1,84 +1,115 @@
-
 from .util import util
+from .util.util import timer
 from .util import util_jax
+from .util.util_jax import zeros
+from .util.util_jax import constant
 import jax.numpy as jnp
 import jax
 import numpy as np
 import time
 import json
-import os
 from functools import partial
 from .configurables.Circuit import Circuit
 from .dft.NeuralField import NeuralField
 from .Compiler import Compiler
 
 class Engine:
-    def __init__(self, circuit):
-        self.compiled = False
-        self.circuit = circuit
-        self.compile_info = None
+    def __init__(self):
+        self.circuit = None
+        self.compile_info = {}
         self.kernel_map = {}
         self.init_state = {}
         self.state = {}
 
-    def compile(self, circuit : Circuit, input_slots=None, warmup=0, print_compile_info=False, load_buffer=False):
-        self.check_not_compiled()
-        compiler = Compiler(circuit)
-        compiler.compile(input_slots or {})
-
-        if not circuit.is_compiled:
-            print("Not compiled Elements: ")
-            for element in self.circuit.element_map.values():
-                if not element.is_compiled:
-                    print(element.get_name())
-            raise RuntimeError(f"Engine::compile(): Circuit {circuit.get_name()} did not compile successfully")
-
-        self.circuit = circuit
-        self.compile_info = circuit.compile_info
-        self.kernel_map = self.compile_info["kernel_map"]
+        # prng data
         self.prng_tree = None
         self.prng_slots = []
         self.static_prng_key = util_jax.next_random_key()
-        self._init_prng_tree()
+
+    def compile(self, circuit : Circuit, warmup : int = 0, print_compile_info : bool = False, load_buffer : bool = False):
+        self.circuit = circuit
+        if self.circuit.is_compiled:
+            raise Exception(f"Engine::compile(): Circuit is already compiled ({circuit.get_name()})")
+        self.compile_info = Compiler().compile(circuit)
+
+        self.kernel_map = self.compile_info["kernel_map"]
         self.init_state = self._init_circuit_state(circuit)
         self.state = self.init_state.copy()
-        self.sources = self.compile_info["sources"]
-        self.sinks = self.compile_info["sinks"]
-        self.sub_processes = self.compile_info["sub_processes"]
-        self.compiled = True
+        self._init_prng_tree()
 
-        data_file = util_jax.cfg["arch_file_path"] + circuit.get_name() + ".data"
-        if os.path.exists(data_file) and load_buffer:
-            if print_compile_info:
-                print("Loading saved buffers...")
-            self.load_buffers(data_file)
-
+        if load_buffer:
+            self.load_buffers()
         self.open_connections()
+
         if warmup > 0:
             self.run_simulation(num_steps=warmup, steps_to_record=[], print_timing=print_compile_info)
             self.reset_state()
 
+    def run_simulation(self, num_steps, steps_to_record : list[str] = [], print_timing : bool = True, save_buffer : bool = False):
+        """
+        Parameter
+        ---------
+        - steps_to_record : list(['step1', 'step1.out0', 'sub_circuit.step1.out0', ...])
+        - num_steps : int
+        - print_timing (optional) : bool
+            - Default = True
+        """
+
+        if not self.circuit.is_compiled:
+            raise Exception("Engine::run_simulation(): Circuit is not compiled")
+
+        history = []
+        key_timings = []
+        tick_timings = []
+        gpu_push_timings = []
+        gpu_pull_timings = []
+        
+        for _ in range(num_steps):
+            # Push source data to GPU state.
+            t_gpu_push, _ = timer(self._push_sources)()
+            gpu_push_timings.append(t_gpu_push)
+
+            # generate pnrg keys
+            t_key, prng_keys = timer(util_jax.update_prng_tree)(self.prng_tree, self.prng_slots)
+            key_timings.append(t_key)
+
+            # Execute tick function.
+            t_tick, self.state = timer(self.tick)(self.state, prng_keys)
+            tick_timings.append(t_tick)
+
+            # Pull sink and recorded data from GPU state.
+            t_sink_pull, _ = timer(self._pull_sinks)()
+            t_recording_pull, data = timer(self._pull_recordings)(steps_to_record)
+            history.append(data)
+            gpu_pull_timings.append(t_sink_pull+t_recording_pull)
+            
+
+        # Save permanent buffers.
+        t_buffer_write = 0
+        if save_buffer:
+            t_buffer_write, _ = timer(self._save_buffers)()
+
+        t_total = np.sum(gpu_push_timings) + np.sum(key_timings) + np.sum(tick_timings) + np.sum(gpu_pull_timings) + t_buffer_write
+
+        timing_info = {"total": t_total, "prng": key_timings, "gpu_push": gpu_push_timings, "gpu_pull": gpu_pull_timings, "tick": tick_timings, "buffer": t_buffer_write, "num_steps": num_steps}
+
+        if print_timing:
+            self.print_timing(timing_info)
+
+        return history, timing_info
+
     def reset_state(self):
         self.state = self.init_state.copy()
-
-    def _zeros(self, shape, dtype=None):
-        return jnp.zeros(shape, dtype=dtype or util_jax.cfg["jdtype"])
-    
-    def _ones(self, shape, dtype=None):
-        return jnp.ones(shape, dtype=dtype or util_jax.cfg["jdtype"])
-    
-    def _constant(self, shape, constant, dtype=None):
-        return self._ones(shape, dtype=dtype) * constant
 
     def _init_step_state(self, element):
         state = {}
         for slot_id, slot in element.output_slot_map.items():
-            state[slot_id] = self._zeros(slot.shape, slot.dtype)
+            state[slot_id] = zeros(slot.shape, slot.dtype)
         for buffer_id, buffer in getattr(element, "buffer_map", {}).items():
             if isinstance(element, NeuralField):
-                state[buffer_id] = self._constant(buffer.shape, element._params["resting_level"], buffer.dtype)
+                state[buffer_id] = constant(buffer.shape, buffer.dtype, element._params["resting_level"])
             else:
-                state[buffer_id] = self._zeros(buffer.shape, buffer.dtype)
+                state[buffer_id] = zeros(buffer.shape, buffer.dtype)
 
         return state
 
@@ -92,7 +123,7 @@ class Engine:
                 else:
                     state[element_name] = self._init_step_state(element)
         for slot_id, slot in circuit.output_slot_map.items():
-            state[slot_id] = self._zeros(slot.shape, slot.dtype)
+            state[slot_id] = zeros(slot.shape, slot.dtype)
         return state
 
     def _state_at_path(self, path):
@@ -126,27 +157,7 @@ class Engine:
             for entry in self.compile_info["dynamic"]
             if not isinstance(entry["element"], Circuit)
         }
-        self.prng_tree = self._build_prng_tree(self.kernel_map, dynamic_paths)
-
-    def _build_prng_tree(self, kernel_map, dynamic_paths, path=()):
-        tree = {}
-        for element_name, kernel_info in kernel_map.items():
-            element_path = path + (element_name,)
-            if kernel_info["sub_kernel"] is None:
-                tree[element_name] = self.static_prng_key
-                if element_path in dynamic_paths:
-                    self.prng_slots.append((tree, element_name))
-            else:
-                tree[element_name] = self._build_prng_tree(kernel_info["sub_kernel"], dynamic_paths, element_path)
-        return tree
-
-    def _next_prng_tree(self):
-        if len(self.prng_slots) == 0:
-            return self.prng_tree
-        keys = util_jax.next_random_keys(len(self.prng_slots))
-        for key, (tree, element_name) in zip(keys, self.prng_slots):
-            tree[element_name] = key
-        return self.prng_tree
+        self.prng_tree, self.prng_slots = util_jax.build_prng_tree(self.kernel_map, dynamic_paths, self.static_prng_key)
 
     @partial(jax.jit, static_argnames=["self"])
     def tick(self, state, prng_keys):
@@ -154,7 +165,7 @@ class Engine:
         return out
 
     def _push_sources(self):
-        for entry in self.sources:
+        for entry in self.compile_info["sources"]:
             element = entry["element"]
             if not hasattr(element, "get_data"):
                 continue
@@ -169,13 +180,20 @@ class Engine:
             self._set_state_at_path(entry["path"], step_state)
 
     def _pull_sinks(self):
-        for entry in self.sinks:
+        for entry in self.compile_info["sinks"]:
             element = entry["element"]
             if not hasattr(element, "set_data"):
                 continue
             step_state = self._state_at_path(entry["path"])
             slot_id = self._default_output_slot(element, step_state)
             element.set_data(np.array(step_state[slot_id]))
+
+    def _pull_recordings(self, steps_to_record):
+        data = []
+        for to_record in steps_to_record:
+            data.append(self._record_value(to_record))
+        return data
+
 
     def _record_value(self, to_record):
         path_str, slot_id = to_record.rsplit(".", 1) if "." in to_record else (to_record, util.DEFAULT_OUTPUT_SLOT)
@@ -199,10 +217,11 @@ class Engine:
             with open(f"{util_jax.cfg['arch_file_path']}.data", "w") as f:
                 f.write(json.dumps(tree, indent=4))
 
-    def load_buffers(self, data_file):
-        if self.compile_info is None:
+    def load_buffers(self):
+        if not self.circuit.is_compiled:
             raise RuntimeError("Engine::load_buffers(): Engine must be compiled before loading buffers")
 
+        data_file = util_jax.cfg["arch_file_path"] + self.circuit.get_name() + ".data"
         with open(data_file, "r") as f:
             tree = json.load(f)
 
@@ -239,143 +258,54 @@ class Engine:
 
         return loaded_buffer
                     
-    def run_simulation(self, steps_to_record=[], num_steps=None, print_timing=True, save_buffer=False):
-        """
-        Parameter
-        ---------
-        - steps_to_record : list(['step1', 'step1.out0', 'sub_circuit.step1.out0', ...])
-        - num_steps : int
-        - print_timing (optional) : bool
-            - Default = True
-        """
-        self.check_compiled()
-        if num_steps is None:
-            raise ValueError("Engine::run_simulation(): num_steps must be specified")
-
-        history = []
-        key_timings = []
-        tick_timings = []
-        gpu_push_timings = []
-        gpu_pull_timings = []
-        start_time = time.time()
-        for _ in range(num_steps):
-
-            # Push source data to GPU state.
-            t_gpu_push = time.time()
-            self._push_sources()
-            gpu_push_timings.append(time.time()-t_gpu_push)
-
-            # generate pnrg keys
-            t_key = time.time()
-            prng_keys = self._next_prng_tree()
-            key_timings.append(time.time()-t_key)
-
-
-            # Execute tick function.
-            t_tick = time.time()
-            self.state = self.tick(self.state, prng_keys)
-            tick_timings.append(time.time()-t_tick)
-
-            # Pull sink and recorded data from GPU state.
-            t_gpu_pull = time.time()
-            self._pull_sinks()
-            
-            if len(steps_to_record) > 0:
-                data = []
-                for to_record in steps_to_record:
-                    data.append(self._record_value(to_record))
-                history.append(data)
-            gpu_pull_timings.append(time.time()-t_gpu_pull)
-
-        t_total = time.time() - start_time
-
-        
-        t_buffer_write = time.time()
-        # Save permanent buffers.
-        if save_buffer:
-            self._save_buffers()
-        t_buffer_write = (time.time()-t_buffer_write)
-
-        if print_timing:
-            ms_per_tick = 1000 * (t_total) / num_steps
-            avg_gpu_push = np.mean(gpu_push_timings, axis=0)
-            avg_tick = np.mean(tick_timings, axis=0)
-            avg_gpu_pull = np.mean(gpu_pull_timings, axis=0)
-            avg_prng = np.mean(key_timings, axis=0)
-
-            print(f"{(t_total):6.2f} s total duration [{num_steps} steps]")
-            print(f"{ms_per_tick:6.2f} ms / time step")
-            print(f"{(1000 * avg_gpu_push):6.2f} ms average time for gpu write operation")
-            print(f"{(1000 * avg_prng):6.2f} ms average time for prng key generation")
-            print(f"{(1000 * avg_tick):6.2f} ms average time for tick computation")
-            print(f"{(1000 * avg_gpu_pull):6.2f} ms average time for gpu read operation")
-            if save_buffer: 
-                print(f"{(1000 * t_buffer_write):6.2f} ms time for buffer write operation")
-            print("\n")
-
-        return history, {"total": t_total, "prng": key_timings, "gpu_push": gpu_push_timings, "gpu_pull": gpu_pull_timings, "tick": tick_timings, "buffer": t_buffer_write}, t_total
-
     def close_connections(self):
-        for source_entry in self.sources:
+        for source_entry in self.compile_info["sources"]:
             source = source_entry["element"] if isinstance(source_entry, dict) else self.get_element(source_entry)
             if hasattr(source, "close"):
                 source.close()
-        for sink_entry in self.sinks:
+        for sink_entry in self.compile_info["sinks"]:
             sink = sink_entry["element"] if isinstance(sink_entry, dict) else self.get_element(sink_entry)
             if hasattr(sink, "close"):
                 sink.close()
-        for process_entry in getattr(self, "sub_processes", []):
+        for process_entry in self.compile_info["sub_processes"]:
             process = process_entry["element"] if isinstance(process_entry, dict) else process_entry
             if hasattr(process, "close"):
                 process.close()
 
     def open_connections(self):
-        for source_entry in self.sources:
+        for source_entry in self.compile_info["sources"]:
             source = source_entry["element"] if isinstance(source_entry, dict) else self.get_element(source_entry)
             if hasattr(source, "open"):
                 source.open()
-        for sink_entry in self.sinks:
+        for sink_entry in self.compile_info["sinks"]:
             sink = sink_entry["element"] if isinstance(sink_entry, dict) else self.get_element(sink_entry)
             if hasattr(sink, "open"):
                 sink.open()
-        for process_entry in getattr(self, "sub_processes", []):
+        for process_entry in self.compile_info["sub_processes"]:
             process = process_entry["element"] if isinstance(process_entry, dict) else process_entry
             if hasattr(process, "open"):
                 process.open()
 
-    def is_compiled(self):
-        return self.compiled
+    def print_timing(self, timing_info):
+        t_total = timing_info["total"]
+        key_timings = timing_info["prng"]
+        gpu_push_timings = timing_info["gpu_push"]
+        gpu_pull_timings = timing_info["gpu_pull"]
+        tick_timings = timing_info["tick"]
+        t_buffer_write = timing_info["buffer"]
+        num_steps = timing_info["num_steps"]
+        
+        ms_per_tick = 1000 * (t_total) / num_steps
+        avg_gpu_push = np.mean(gpu_push_timings, axis=0)
+        avg_tick = np.mean(tick_timings, axis=0)
+        avg_gpu_pull = np.mean(gpu_pull_timings, axis=0)
+        avg_prng = np.mean(key_timings, axis=0)
 
-    def check_compiled(self):
-        if not self.is_compiled():
-            raise util.ArchitectureNotCompiledException
-    
-    def check_not_compiled(self):
-        if self.is_compiled():
-            raise util.ArchitectureCompiledException
-
-"""    def construct_static_compilation_graph(self,):
-        self.check_not_compiled()
-        compiled_steps = []
-        compilation_graph_static = []
-        # iterate through all dynamic steps and create a subgraph of the tree of incoming static steps to this dynamic step.
-        for dynamic_step in self.dynamic_steps_c:
-            subgraph = []
-            incoming_steps = [step.split(".")[0] for step in self.get_incoming_steps(dynamic_step.get_name())]
-            if len(incoming_steps) == 0:
-                continue
-            bfs_queue = incoming_steps
-            # Do a backwards BFS to find the subtree
-            while len(bfs_queue) > 0:
-                current = bfs_queue.pop(0)
-                if current in compiled_steps or self.element_map[current].is_dynamic:
-                    continue
-                compiled_steps.append(current)
-                incoming_steps = [step.split(".")[0] for step in self.get_incoming_steps(current)]
-                subgraph.append([current, incoming_steps]) # TODO remove incoming_steps?
-                bfs_queue += incoming_steps
-            subgraph = subgraph[::-1]
-            compilation_graph_static += subgraph
-        self.compilation_graph_static_c = compilation_graph_static
-        #print("\nStatic step compilation graph:\n" + "\n".join([f"{elem[0]:<8} <-- {str(elem[1])}" for elem in compilation_graph_static]) + "\n")
-"""
+        print(f"{(t_total):6.2f} s total duration [{num_steps} steps]")
+        print(f"{ms_per_tick:6.2f} ms / time step")
+        print(f"{(1000 * avg_gpu_push):6.2f} ms average time for gpu write operation")
+        print(f"{(1000 * avg_prng):6.2f} ms average time for prng key generation")
+        print(f"{(1000 * avg_tick):6.2f} ms average time for tick computation")
+        print(f"{(1000 * avg_gpu_pull):6.2f} ms average time for gpu read operation")
+        print(f"{(1000 * t_buffer_write):6.2f} ms time for buffer write operation")
+        print("\n")
