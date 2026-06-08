@@ -326,8 +326,8 @@ class ViewportCamera(Step):
 
         self.register_input_slot("viewport_center")
         self.register_input_slot("learn_mode")
-        self.register_output("kernel")
-        self.register_output("CoS")
+        self.register_output_slot("kernel")
+        self.register_output_slot("CoS")
         
         self.register_buffer("startSC", shape=())
         self.register_buffer("endSC", shape=())

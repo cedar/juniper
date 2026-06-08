@@ -36,7 +36,7 @@ class VectorToScalars(Step):
         super().__init__(name, params, mandatory_params)
 
         for i in range(1, self._params["N_scalars"]):
-            self.register_output(f'out{i}')
+            self.register_output_slot(f'out{i}')
 
         self.compute_kernel = compute_kernel_factory(self._params)
 

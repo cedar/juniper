@@ -35,8 +35,8 @@ class RGB2HSV(Step):
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
 
-        self.register_output("out1")
-        self.register_output("out2")
+        self.register_output_slot("out1")
+        self.register_output_slot("out2")
         self.compute_kernel = compute_kernel_factory()
 
     def infer_output_shapes(self, input_specs):

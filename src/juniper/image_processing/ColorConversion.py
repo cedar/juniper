@@ -81,8 +81,8 @@ class ColorConversion(Step):
         if "channels" not in self._params.keys():
             self._params["channels"] = "rgb"
         
-        self.register_output("out1")
-        self.register_output("out2")
+        self.register_output_slot("out1")
+        self.register_output_slot("out2")
         self.compute_kernel = compute_kernel_factory(self._params)
 
     def infer_output_shapes(self, input_specs):
