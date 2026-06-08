@@ -17,6 +17,8 @@ class Engine:
         self.circuit = circuit
         self.compile_info = None
         self.kernel_map = {}
+        self.init_state = {}
+        self.state = {}
 
     def compile(self, circuit : Circuit, input_slots=None, warmup=0, print_compile_info=False, load_buffer=False):
         self.check_not_compiled()
@@ -37,7 +39,8 @@ class Engine:
         self.prng_slots = []
         self.static_prng_key = util_jax.next_random_key()
         self._init_prng_tree()
-        self.state = self._init_circuit_state(circuit)
+        self.init_state = self._init_circuit_state(circuit)
+        self.state = self.init_state.copy()
         self.sources = self.compile_info["sources"]
         self.sinks = self.compile_info["sinks"]
         self.sub_processes = self.compile_info["sub_processes"]
@@ -52,6 +55,10 @@ class Engine:
         self.open_connections()
         if warmup > 0:
             self.run_simulation(num_steps=warmup, steps_to_record=[], print_timing=print_compile_info)
+            self.reset_state()
+
+    def reset_state(self):
+        self.state = self.init_state.copy()
 
     def _zeros(self, shape, dtype=None):
         return jnp.zeros(shape, dtype=dtype or util_jax.cfg["jdtype"])
