@@ -14,7 +14,3 @@ class Slot(Connectable):
     def get_slot_id(self) -> str:
         return self.get_name().split(".")[1]
         
-    def check_compiled(self):
-        if self.shape is not None and self.dtype is not None:
-            self.is_compiled = True
-        return self.is_compiled

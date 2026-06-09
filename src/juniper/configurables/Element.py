@@ -72,8 +72,3 @@ class Element(Connectable):
             raise Exception(f"Slot {slot_id} does not exist in step {self.get_name()}")
         return self.output_slot_map[slot_id]
     
-    def _default_dtype(self):
-        return util_jax.cfg["jdtype"]
-    
-    def _is_scalar_shape(self, shape):
-        return shape == () or shape == (1,)

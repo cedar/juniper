@@ -54,4 +54,7 @@ def timer(func):
 def _exit_handler():
     print(f"# {time.time() - _overall_start_time:>7.3f}s - Total runtime #")
 
+def _is_scalar_shape(shape):
+    return shape == () or shape == (1,)
+
 atexit.register(_exit_handler)

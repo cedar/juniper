@@ -140,8 +140,8 @@ class BCMConnection(Step):
         self._delta_t = float(util_jax.get_config()["delta_t"])
         self.register_input_slot("in1")  
         self.register_input_slot("in2")  
-        self.register_buffer("wheights", "wheight_shape", permanent=True)
-        self.register_buffer("theta", "target_shape", permanent=True)
+        self.register_buffer("wheights", self._params["wheight_shape"], permanent=True)
+        self.register_buffer("theta", self._params["target_shape"], permanent=True)
 
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
 

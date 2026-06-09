@@ -18,7 +18,29 @@ TimingInfo = dict[str, Any]
 Recording = list[list[np.ndarray]]
 
 class Engine:
+    """Runtime driver for a compiled circuit.
+
+    Engine owns the simulation loop: it compiles a circuit, keeps runtime state,
+    pushes/pulls external IO, calls the jitted tick, and reports timings.
+
+    Pseudocode:
+        compile(circuit)
+            compile_info = Compiler().compile(circuit)
+            state = RuntimeState.from_compile_info(compile_info)
+            build PRNG tree
+            open runtime connections
+
+        run_simulation(n)
+            repeat n times:
+                push sources into state
+                update PRNG keys
+                state = jitted tick(state, keys)
+                pull sinks and recordings from state
+            optionally save persistent buffers
+    """
+
     def __init__(self) -> None:
+        """Create an uncompiled engine with fresh static PRNG data."""
         self.circuit = None
         self.compile_info: CompileInfo | None = None
         self.kernel_map = {}
@@ -32,6 +54,7 @@ class Engine:
 
     ########## compilation #################
     def compile(self, circuit : Circuit, warmup : int = 0, print_compile_info : bool = False, load_buffer : bool = False) -> None:
+        """Compile a circuit, allocate runtime state, and prepare IO/processes."""
         self.circuit = circuit
         if self.circuit.is_compiled:
             raise Exception(f"Engine::compile(): Circuit is already compiled ({circuit.get_name()})")
@@ -51,13 +74,15 @@ class Engine:
             self.reset_state()
 
     def _init_prng_tree(self) -> None:
+        """Build the PRNG tree matching the compiled kernel tree."""
         self.prng_tree, self.prng_slots = util_jax.build_prng_tree(
             self.kernel_map,
-            self.compile_info.dynamic_leaf_paths(),
+            self.compile_info.dynamic_step_paths(),
             self.static_prng_key,
         )
 
     def _load_buffers(self) -> dict[str, dict[str, Any]]:
+        """Load permanent buffers into the already allocated runtime state."""
         if not self.circuit.is_compiled:
             raise RuntimeError("Engine::load_buffers(): Engine must be compiled before loading buffers")
         return load_permanent_buffers(self.compile_info, self.state)
@@ -70,13 +95,10 @@ class Engine:
         print_timing: bool = True,
         save_buffer: bool = False,
     ) -> tuple[Recording, TimingInfo]:
-        """
-        Parameter
-        ---------
-        - steps_to_record : list(['step1', 'step1.out0', 'sub_circuit.step1.out0', ...])
-        - num_steps : int
-        - print_timing (optional) : bool
-            - Default = True
+        """Run the simulation loop for a fixed number of ticks.
+
+        Each tick pushes source data, updates PRNG keys, executes the jitted
+        circuit kernel, pulls sinks/recordings, and optionally saves buffers.
         """
 
         if not self.circuit.is_compiled:
@@ -98,8 +120,8 @@ class Engine:
             key_timings.append(t_key)
 
             # Execute tick function.
-            t_tick, state_tree = timer(self.tick)(self.state.tree, prng_keys)
-            self.state.tree = state_tree
+            t_tick, state_tree = timer(self.tick)(self.state.state_tree, prng_keys)
+            self.state.state_tree = state_tree
             tick_timings.append(t_tick)
 
             # Pull sink and recorded data from GPU state.
@@ -124,14 +146,17 @@ class Engine:
         return history, timing_info
 
     def reset_state(self) -> None:
+        """Reset the runtime state to the post-compilation initial state."""
         self.state = self.init_state.copy()
 
     @partial(jax.jit, static_argnames=["self"])
     def tick(self, state: StateTree, prng_keys: StateTree) -> StateTree:
+        """Execute one compiled circuit tick inside JAX."""
         out = self.circuit.compute_kernel({}, state, **{"prng_keys": prng_keys, "kernel_map": self.kernel_map})
         return out
 
     def _push_sources(self) -> None:
+        """Copy CPU-side source data into the runtime state before a tick."""
         for ref in self.compile_info.sources:
             element = ref.element
             data = element.get_data()
@@ -140,23 +165,28 @@ class Engine:
             self.state.write_source_output(ref, data)
 
     def _pull_sinks(self) -> None:
+        """Copy sink outputs from runtime state back to their Python objects."""
         for ref in self.compile_info.sinks:
             ref.element.set_data(self.state.read_slot(ref))
 
     def _pull_recordings(self, steps_to_record: list[str]) -> list[np.ndarray]:
+        """Read requested recording targets from runtime state."""
         data = []
         for to_record in steps_to_record:
             data.append(self.state.record(self.compile_info, to_record))
         return data
 
     def _save_buffers(self) -> None:
+        """Save buffers marked permanent to the circuit data file."""
         save_permanent_buffers(self.compile_info, self.state)
                     
     def _close_connections(self) -> None:
+        """Close all runtime IO endpoints and managed processes."""
         for ref in self.compile_info.runtime_connections():
             ref.element.close()
 
     def _open_connections(self) -> None:
+        """Open all runtime IO endpoints and managed processes."""
         for ref in self.compile_info.runtime_connections():
             ref.element.open()
     

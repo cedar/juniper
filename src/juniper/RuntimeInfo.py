@@ -17,55 +17,51 @@ from .util.util_jax import zeros
 
 StateTree = dict[str, Any]
 KernelMap = dict[str, dict[str, Any]]
+Path = tuple[str, ...]
 
 
 @dataclass(frozen=True)
 class ElementRef:
-    path: tuple[str, ...]
+    """Stable handle to an element inside the nested runtime state tree."""
+
+    path: Path
     element: Element
 
     @property
     def name(self) -> str:
+        """Return the element name."""
         return self.element.get_name()
-
-
-@dataclass(frozen=True)
-class StateSpec:
-    ref: ElementRef
-    kind: str
-    input_slots: dict[str, Any]
-    output_slots: dict[str, Any]
-    buffer_map: dict[str, Any]
-
-    @property
-    def element(self) -> Element:
-        return self.ref.element
-
-    @property
-    def path(self) -> tuple[str, ...]:
-        return self.ref.path
 
 
 @dataclass
 class CompileInfo:
+    """Runtime result of compilation.
+
+    This object is the contract between Compiler and Engine: graph traversal,
+    state locations, kernels, IO endpoints, and process ownership are gathered
+    here so Engine does not need to inspect the user-defined circuit object directly.
+
+    shape:
+        compiled_elements[("sub", "field")] -> ElementRef(path, field)
+        sources/sinks/dynamic/static -> lists of ElementRef
+        kernel_map -> nested tree that mirrors Circuit.compute_kernel
+    """
+
     circuit: Circuit
-    compiled_elements: dict[tuple[str, ...], ElementRef]
+    compiled_elements: dict[Path, ElementRef]
     dynamic: list[ElementRef]
     static: list[ElementRef]
     sources: list[ElementRef]
     sinks: list[ElementRef]
     sub_processes: list[ElementRef]
-    state_specs: dict[tuple[str, ...], StateSpec]
     kernel_map: KernelMap
-    children: dict[str, CompileInfo]
 
-    def ref_at(self, path: tuple[str, ...]) -> ElementRef:
+    def ref_at(self, path: Path) -> ElementRef:
+        """Look up the compiled element handle for a path."""
         return self.compiled_elements[path]
 
-    def spec_at(self, path: tuple[str, ...]) -> StateSpec:
-        return self.state_specs[path]
-
-    def dynamic_leaf_paths(self) -> set[tuple[str, ...]]:
+    def dynamic_step_paths(self) -> set[Path]:
+        """Return paths to dynamic steps that need fresh PRNG keys."""
         return {
             ref.path
             for ref in self.dynamic
@@ -73,6 +69,7 @@ class CompileInfo:
         }
 
     def runtime_connections(self) -> list[ElementRef]:
+        """Return handles for each source, sink, or managed process once. used for open/close connections."""
         refs = []
         seen = set()
         for group in (self.sources, self.sinks, self.sub_processes):
@@ -86,48 +83,74 @@ class CompileInfo:
 
 
 class RuntimeState:
-    def __init__(self, tree: StateTree):
-        self.tree = tree
+    """Small wrapper around the nested JAX state tree.
+
+    RuntimeState hides path traversal from Engine. Engine can work with
+    ElementRef objects while this class reads and writes the matching subtree.
+
+    shape:
+        ref.path = ("sub", "field")
+        get(ref) -> state_tree["sub"]["field"]
+        set(ref, x) -> state_tree["sub"]["field"] = x
+    """
+
+    def __init__(self, state_tree: StateTree):
+        """Store the nested state tree used by the jitted tick function."""
+        self.state_tree = state_tree
 
     @classmethod
     def from_compile_info(cls, compile_info: CompileInfo) -> RuntimeState:
+        """Allocate the initial runtime state from compiled slot/buffer specs."""
         return cls(_init_circuit_state(compile_info.circuit))
 
     def copy(self) -> RuntimeState:
-        return RuntimeState(self.tree.copy())
+        """Copy the top-level tree."""
+        return RuntimeState(self.state_tree.copy())
 
-    def get(self, ref: ElementRef) -> StateTree:
-        state = self.tree
-        for name in ref.path:
+    def trace_state_tree(self, path: Path) -> StateTree:
+        """Traces the specified path in the state tree and returns the sub_state."""
+        state = self.state_tree
+        for name in path:
             state = state[name]
         return state
 
+    def get(self, ref: ElementRef) -> StateTree:
+        """Return the state subtree owned by an element reference."""
+        return self.trace_state_tree(ref.path)
+    
+    def get_parent(self, ref: ElementRef) -> StateTree:
+        """Returns parents state tree of the element reference."""
+        return self.trace_state_tree(ref.path[:-1])
+
     def set(self, ref: ElementRef, step_state: StateTree) -> None:
+        """Replace the state subtree owned by an element reference."""
         if len(ref.path) == 1:
-            self.tree[ref.path[0]] = step_state
+            self.state_tree[ref.path[0]] = step_state
             return
 
-        state = self.tree
-        for name in ref.path[:-1]:
-            state = state[name]
+        state = self.get_parent(ref)
         state[ref.path[-1]] = step_state
 
     def read_slot(self, ref: ElementRef, slot_id: str = util.DEFAULT_OUTPUT_SLOT) -> np.ndarray:
+        """Copy a slot from device/runtime state back to a NumPy array."""
         return np.array(self.get(ref)[slot_id])
 
     def write_source_output(self, ref: ElementRef, data: Any) -> None:
+        """Write CPU-side source data into the source's default output slot."""
         step_state = dict(self.get(ref))
         output_slot = ref.element.output_slot_map[util.DEFAULT_OUTPUT_SLOT]
         step_state[util.DEFAULT_OUTPUT_SLOT] = jnp.array(data, dtype=output_slot.dtype)
         self.set(ref, step_state)
 
     def record(self, compile_info: CompileInfo, target: str) -> np.ndarray:
+        """Read a recording target such as 'field' or 'field.out0'."""
         path_str, slot_id = target.rsplit(".", 1) if "." in target else (target, util.DEFAULT_OUTPUT_SLOT)
         ref = compile_info.ref_at(tuple(path_str.split(".")))
         return self.read_slot(ref, slot_id)
 
 
 def _init_circuit_state(circuit: Circuit) -> StateTree:
+    """Recursively allocate output slots and buffers for a compiled circuit."""
     state = {}
     for element_name, element in circuit.element_map.items():
         if element is not circuit:
@@ -141,6 +164,7 @@ def _init_circuit_state(circuit: Circuit) -> StateTree:
 
 
 def _init_step_state(element: Element) -> StateTree:
+    """Allocate the slots and buffer for a compiled step."""
     state = {}
     for slot_id, slot in element.output_slot_map.items():
         state[slot_id] = zeros(slot.shape, slot.dtype)
@@ -153,42 +177,35 @@ def _init_step_state(element: Element) -> StateTree:
 
 
 def load_permanent_buffers(compile_info: CompileInfo, runtime_state: RuntimeState) -> dict[str, dict[str, Any]]:
+    """Load permanent buffers from the circuit's data file into runtime state."""
     data_file = util_jax.cfg["arch_file_path"] + compile_info.circuit.get_name() + ".data"
     with open(data_file, "r") as f:
         tree = json.load(f)
 
-    return _load_permanent_buffers_from_tree(compile_info, runtime_state, tree, data_file)
-
-
-def _load_permanent_buffers_from_tree(
-    compile_info: CompileInfo,
-    runtime_state: RuntimeState,
-    tree: dict[str, Any],
-    data_file: str,
-) -> dict[str, dict[str, Any]]:
     loaded_buffer = {}
     for path_str, step_tree in tree.items():
         path = tuple(path_str.split("."))
         try:
-            if path not in compile_info.state_specs:
+            if path not in compile_info.compiled_elements:
                 raise Exception(f"No compiled step at path {path_str}")
             if "BUFFER" not in step_tree:
                 raise Exception(f"Invalid buffer format. Expected BUFFER, got {step_tree.keys()}")
 
-            spec = compile_info.spec_at(path)
-            step_state = dict(runtime_state.get(spec.ref))
+            ref = compile_info.ref_at(path)
+            buffer_map = getattr(ref.element, "buffer_map", {})
+            step_state = dict(runtime_state.get(ref))
             loaded_step_buffer = {}
 
             for buffer_id, buffer_data in step_tree["BUFFER"].items():
-                if buffer_id not in spec.buffer_map:
+                if buffer_id not in buffer_map:
                     raise Exception(f"Step {path_str} has no buffer '{buffer_id}'")
 
-                buffer = spec.buffer_map[buffer_id]
+                buffer = buffer_map[buffer_id]
                 loaded_array = jnp.array(buffer_data, dtype=buffer.dtype or util_jax.cfg["jdtype"])
                 step_state[buffer_id] = loaded_array
                 loaded_step_buffer[buffer_id] = loaded_array
 
-            runtime_state.set(spec.ref, step_state)
+            runtime_state.set(ref, step_state)
             loaded_buffer[path_str] = loaded_step_buffer
         except Exception as e:
             print(f"-- Error during Engine::load_buffers('{data_file}') --")
@@ -197,17 +214,17 @@ def _load_permanent_buffers_from_tree(
 
     return loaded_buffer
 
-
 def save_permanent_buffers(compile_info: CompileInfo, runtime_state: RuntimeState) -> None:
+    """Save persistant buffer to disk."""
     tree = {}
-    for spec in compile_info.state_specs.values():
+    for ref in compile_info.compiled_elements.values():
         buffers = {}
-        step_state = runtime_state.get(spec.ref)
-        for buffer_id, buffer in spec.buffer_map.items():
-            if getattr(buffer, "permanent", False):
+        step_state = runtime_state.get(ref)
+        for buffer_id, buffer in getattr(ref.element, "buffer_map", {}).items():
+            if buffer.permanent:
                 buffers[buffer_id] = np.array(step_state[buffer_id]).tolist()
         if len(buffers) > 0:
-            tree[".".join(spec.path)] = {"BUFFER": buffers}
+            tree[".".join(ref.path)] = {"BUFFER": buffers}
 
     if len(tree) > 0:
         data_file = util_jax.cfg["arch_file_path"] + compile_info.circuit.get_name() + ".data"

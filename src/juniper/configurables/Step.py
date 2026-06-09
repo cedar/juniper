@@ -1,4 +1,5 @@
 from ..util import util
+from ..util import util_jax
 from .Element import Element
 from .Buffer import Buffer
 
@@ -32,7 +33,7 @@ class Step(Element):
         return {}
 
     def infer_output_dtypes(self, input_specs):
-        dtype = self._default_dtype()
+        dtype = util_jax.cfg["jdtype"]
         if util.DEFAULT_INPUT_SLOT in input_specs and input_specs[util.DEFAULT_INPUT_SLOT][1] is not None:
             dtype = input_specs[util.DEFAULT_INPUT_SLOT][1]
         return {slot_id: dtype for slot_id in self.output_slot_map.keys()}
