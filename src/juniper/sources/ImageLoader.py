@@ -1,4 +1,4 @@
-from ..configurables.Step import Step
+from ..configurables.Source import Source
 from ..util import util
 import numpy as np
 from PIL import Image
@@ -9,7 +9,7 @@ def compute_kernel_factory(params):
         return {util.DEFAULT_OUTPUT_SLOT: img}
     return compute_kernel
 
-class ImageLoader(Step):
+class ImageLoader(Source):
     """
     Description
     ---------
@@ -26,8 +26,6 @@ class ImageLoader(Step):
     def __init__(self, name : str, params : dict):
         mandatory_params = ["image_path"]
         super().__init__(name, params, mandatory_params)
-        
-        self.is_source = True
         
         # Remove default input slot
         self.input_slot_names = []

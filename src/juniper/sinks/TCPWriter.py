@@ -1,7 +1,7 @@
 import numpy as np
 from multiprocessing import Process, shared_memory
 
-from ..configurables.Step import Step
+from ..configurables.Sink import Sink
 from ..configurables.TCPWorker import TCPWorker
 from ..util import util
 
@@ -11,7 +11,7 @@ def compute_kernel_factory(_params):
         return {util.DEFAULT_OUTPUT_SLOT: input}
     return compute_kernel
 
-class TCPWriter(Step): 
+class TCPWriter(Sink): 
     """
     Description
     ---------
@@ -44,7 +44,6 @@ class TCPWriter(Step):
         mandatory_params = ['ip', 'port', 'shape']
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.needs_input_connections = False
-        self.is_sink = True
         self._params["mode"] = "write"
 
         self.compute_kernel = compute_kernel_factory(self._params)

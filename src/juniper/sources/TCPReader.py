@@ -1,14 +1,14 @@
 import numpy as np
 from multiprocessing import Process, shared_memory
 
-from ..configurables.Step import Step
+from ..configurables.Source import Source
 from ..configurables.TCPWorker import TCPWorker
 from ..util import util
 
 def compute_kernel_factory():
-    return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: buffer["output"], "output": buffer["output"]}
+    return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: buffer[util.DEFAULT_OUTPUT_SLOT]}
 
-class TCPReader(Step): 
+class TCPReader(Source): 
     """
     Description
     ---------
@@ -38,10 +38,7 @@ class TCPReader(Step):
         mandatory_params = ['ip', 'port', 'shape']
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.needs_input_connections = False
-        self.is_source = True
         self._params["mode"] = "read"
-
-        self.register_buffer("output", shape=self._params["shape"])
 
         self.compute_kernel = compute_kernel_factory()
 

@@ -1,14 +1,14 @@
-from ..configurables.Step import Step
+from ..configurables.Source import Source
 from ..configurables.Gaussian import Gaussian
 from ..util import util
 import warnings
 
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
-        return {util.DEFAULT_OUTPUT_SLOT: buffer["output"], "output":buffer["output"]}
+        return {util.DEFAULT_OUTPUT_SLOT: buffer[util.DEFAULT_OUTPUT_SLOT]}
     return compute_kernel
 
-class DemoInput(Step):
+class DemoInput(Source):
     """
     Description
     ---------
@@ -36,8 +36,6 @@ class DemoInput(Step):
             warnings.warn(f"DemoInput {name} does not have a center parameter. Defaulting to (0, 0).")
             params["center"] = (0,) * len(params["shape"])
         
-        self.is_source = True
-        
         # Remove default input slot
         self.input_slot_names = []
         self._max_incoming_connections = {}
@@ -45,7 +43,6 @@ class DemoInput(Step):
 
 
         self.gaussian = Gaussian({"shape": params["shape"], "sigma": params["sigma"], "amplitude": params["amplitude"], "normalized": False, "center": params["center"], "factorized": False})
-        self.register_buffer("output")
         self.compute_kernel = compute_kernel_factory(self._params)
     
     def set_data(self, gaussian):

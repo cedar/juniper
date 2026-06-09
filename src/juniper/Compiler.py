@@ -2,14 +2,20 @@ from __future__ import annotations
 
 from .configurables.Circuit import Circuit
 from .configurables.Element import Element
+from .configurables.ManagedProcess import ManagedProcess
+from .configurables.Sink import Sink
 from .configurables.Slot import Slot
+from .configurables.Source import Source
 from .configurables.Step import Step
+from .RuntimeInfo import CompileInfo
+from .RuntimeInfo import ElementRef
+from .RuntimeInfo import StateSpec
 
 
 class Compiler:
     def __init__(self):
         self.circuit = None
-        self.compile_info_map : dict[Circuit, dict] = {}
+        self.compile_info_map : dict[Circuit, CompileInfo] = {}
         self.compiled_element_map : dict[Circuit, dict[tuple[str, ...], Element]] = {}
 
     def compile(self, circuit : Circuit):
@@ -210,37 +216,34 @@ class Compiler:
             return None
         return tuple(shape)
 
-    def empty_compile_info(self, circuit : Circuit) -> dict:
-        return {
-            "circuit": circuit,
-            "compiled_elements": {},
-            "dynamic": [],
-            "static": [],
-            "sources": [],
-            "sinks": [],
-            "sub_processes": [],
-            "state_info": {},
-            "kernel_map": {},
-            "children": {},
-        }
+    def empty_compile_info(self, circuit : Circuit) -> CompileInfo:
+        return CompileInfo(
+            circuit=circuit,
+            compiled_elements={},
+            dynamic=[],
+            static=[],
+            sources=[],
+            sinks=[],
+            sub_processes=[],
+            state_specs={},
+            kernel_map={},
+            children={},
+        )
 
-    def compile_entry(self, path : tuple[str, ...], element : Element) -> dict:
-        return {"path": path, "element": element}
+    def compile_entry(self, path : tuple[str, ...], element : Element) -> ElementRef:
+        return ElementRef(path=path, element=element)
 
-    def element_state_info(self, element : Element) -> dict:
-        return {
-            "element": element,
-            "kind": "dynamic" if element.is_dynamic else "static",
-            "is_dynamic": element.is_dynamic,
-            "is_source": element.is_source,
-            "is_sink": element.is_sink,
-            "manages_sup_process": element.manages_sup_process,
-            "input_slots": element.input_slot_map,
-            "output_slots": element.output_slot_map,
-            "buffer_map": getattr(element, "buffer_map", {}),
-        }
+    def element_state_info(self, ref : ElementRef) -> StateSpec:
+        element = ref.element
+        return StateSpec(
+            ref=ref,
+            kind="dynamic" if element.is_dynamic else "static",
+            input_slots=element.input_slot_map,
+            output_slots=element.output_slot_map,
+            buffer_map=getattr(element, "buffer_map", {}),
+        )
 
-    def collect_compile_info(self, circuit : Circuit) -> dict:
+    def collect_compile_info(self, circuit : Circuit) -> CompileInfo:
         compile_info = self.empty_compile_info(circuit)
 
         for element_name, element in circuit.element_map.items():
@@ -248,38 +251,59 @@ class Compiler:
                 continue
 
             element_path = (element_name,)
-            compile_info["compiled_elements"][element_path] = element
+            element_ref = self.compile_entry(element_path, element)
+            compile_info.compiled_elements[element_path] = element_ref
             if element.is_dynamic:
-                compile_info["dynamic"].append(self.compile_entry(element_path, element))
+                compile_info.dynamic.append(element_ref)
             else:
-                compile_info["static"].append(self.compile_entry(element_path, element))
+                compile_info.static.append(element_ref)
             if element.is_source:
-                compile_info["sources"].append(self.compile_entry(element_path, element))
+                if not isinstance(element, Source):
+                    raise TypeError(f"Element {element.get_name()} is marked as source but does not inherit Source.")
+                compile_info.sources.append(element_ref)
             if element.is_sink:
-                compile_info["sinks"].append(self.compile_entry(element_path, element))
+                if not isinstance(element, Sink):
+                    raise TypeError(f"Element {element.get_name()} is marked as sink but does not inherit Sink.")
+                compile_info.sinks.append(element_ref)
             if element.manages_sup_process:
-                compile_info["sub_processes"].append(self.compile_entry(element_path, element))
+                if not isinstance(element, ManagedProcess):
+                    raise TypeError(f"Element {element.get_name()} manages a sub-process but does not inherit ManagedProcess.")
+                compile_info.sub_processes.append(element_ref)
 
-            compile_info["state_info"][element_path] = self.element_state_info(element)
+            compile_info.state_specs[element_path] = self.element_state_info(element_ref)
 
             if isinstance(element, Circuit):
                 child_info = self.compile_info_map[element]
-                compile_info["children"][element_name] = child_info
-                compile_info["state_info"][element_path]["children"] = child_info["state_info"]
-                for child_path, child_element in child_info["compiled_elements"].items():
-                    compile_info["compiled_elements"][(element_name,) + child_path] = child_element
-                for key in ["dynamic", "static", "sources", "sinks", "sub_processes"]:
-                    for entry in child_info[key]:
-                        compile_info[key].append({
-                            "path": (element_name,) + entry["path"],
-                            "element": entry["element"],
-                        })
-                compile_info["kernel_map"][element_name] = {
+                compile_info.children[element_name] = child_info
+                for child_path, child_ref in child_info.compiled_elements.items():
+                    path = (element_name,) + child_path
+                    compile_info.compiled_elements[path] = self.compile_entry(path, child_ref.element)
+                for child_path, child_spec in child_info.state_specs.items():
+                    path = (element_name,) + child_path
+                    ref = compile_info.compiled_elements[path]
+                    compile_info.state_specs[path] = StateSpec(
+                        ref=ref,
+                        kind=child_spec.kind,
+                        input_slots=child_spec.input_slots,
+                        output_slots=child_spec.output_slots,
+                        buffer_map=child_spec.buffer_map,
+                    )
+                for child_ref in child_info.dynamic:
+                    compile_info.dynamic.append(self.compile_entry((element_name,) + child_ref.path, child_ref.element))
+                for child_ref in child_info.static:
+                    compile_info.static.append(self.compile_entry((element_name,) + child_ref.path, child_ref.element))
+                for child_ref in child_info.sources:
+                    compile_info.sources.append(self.compile_entry((element_name,) + child_ref.path, child_ref.element))
+                for child_ref in child_info.sinks:
+                    compile_info.sinks.append(self.compile_entry((element_name,) + child_ref.path, child_ref.element))
+                for child_ref in child_info.sub_processes:
+                    compile_info.sub_processes.append(self.compile_entry((element_name,) + child_ref.path, child_ref.element))
+                compile_info.kernel_map[element_name] = {
                     "kernel": element.compute_kernel,
-                    "sub_kernel": child_info["kernel_map"],
+                    "sub_kernel": child_info.kernel_map,
                 }
             else:
-                compile_info["kernel_map"][element_name] = {
+                compile_info.kernel_map[element_name] = {
                     "kernel": element.compute_kernel,
                     "sub_kernel": None,
                 }

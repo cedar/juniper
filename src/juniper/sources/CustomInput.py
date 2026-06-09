@@ -1,11 +1,11 @@
-from ..configurables.Step import Step
+from ..configurables.Source import Source
 from ..util import util
 import jax.numpy as jnp
 
 def compute_kernel_factory():
-    return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: buffer["output"], "output": buffer["output"]}
+    return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: buffer[util.DEFAULT_OUTPUT_SLOT]}
 
-class CustomInput(Step):
+class CustomInput(Source):
     """
     Description
     ---------
@@ -22,12 +22,9 @@ class CustomInput(Step):
     def __init__(self, name : str, params : dict):
         mandatory_params = ["shape"]
         super().__init__(name, params, mandatory_params, is_dynamic=True)
-        
-        self.is_source = True
         self.read_from_cpu = True
 
         self.output = jnp.zeros(self._params["shape"])
-        self.register_buffer("output", self._params["shape"])
         self.compute_kernel = compute_kernel_factory()
         
     def compute(self, input_mats, buffer, **kwargs):

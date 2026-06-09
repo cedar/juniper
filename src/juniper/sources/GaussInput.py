@@ -1,4 +1,4 @@
-from ..configurables.Step import Step
+from ..configurables.Source import Source
 from ..configurables.Gaussian import Gaussian
 from ..util import util
 import jax
@@ -8,7 +8,7 @@ import warnings
 def compute_kernel_factory(kernel):
     return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: kernel}
 
-class GaussInput(Step):
+class GaussInput(Source):
     """
     Description
     ---------
@@ -38,8 +38,6 @@ class GaussInput(Step):
         if "center" not in params:
             warnings.warn(f"GaussInput {name} does not have a center parameter. Defaulting to (0, 0).")
             self._params["center"] = [x // 2 for x in self._params["shape"]]
-        
-        self.is_source = True
         
         # Remove default input slot
         self.input_slot_names = []

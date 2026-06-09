@@ -1,4 +1,4 @@
-from ..configurables.Step import Step
+from ..configurables.Source import Source
 from ..util import util
 from ..util import util_jax
 
@@ -16,7 +16,7 @@ def compute_kernel_factory(params, start, end, delta_t):
     return compute_kernel
 
 
-class TimedBoost(Step):
+class TimedBoost(Source):
     """
     Description
     ---------
@@ -34,7 +34,6 @@ class TimedBoost(Step):
     def __init__(self, name : str, params : dict):
         mandatory_params = ["amplitude", "duration"]
         super().__init__(name, params, mandatory_params, is_dynamic=True)
-        self.is_source = True
         self.input_slot_names = []
         self._max_incoming_connections = {}
 
