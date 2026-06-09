@@ -1,4 +1,4 @@
-from ..configurables.Step import Step
+from ..core.Step import Step
 from ..util import util, util_jax
 import jax
 import jax.numpy as jnp

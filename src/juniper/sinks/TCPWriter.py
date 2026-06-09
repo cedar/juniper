@@ -1,8 +1,8 @@
 import numpy as np
 from multiprocessing import Process, shared_memory
 
-from ..configurables.Sink import Sink
-from ..configurables.TCPWorker import TCPWorker
+from ..core.Sink import Sink
+from ..util.TCPWorker import TCPWorker
 from ..util import util
 
 def compute_kernel_factory(_params):

@@ -1,6 +1,6 @@
 import jax
 from functools import partial
-from ..configurables.Step import Step
+from ..core.Step import Step
 from ..util import util
 
 def compute_kernel_factory(params):
@@ -39,10 +39,6 @@ class VectorToScalars(Step):
             self.register_output_slot(f'out{i}')
 
         self.compute_kernel = compute_kernel_factory(self._params)
-
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, buffer, **kwargs):
-        return self.compute_kernel(input_mats, buffer, **kwargs)
 
     def infer_output_shapes(self, input_specs):
         return {f"out{i}": () for i in range(self._params["N_scalars"])}

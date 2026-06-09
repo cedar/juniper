@@ -1,4 +1,4 @@
-from ..configurables.Step import Step
+from ..core.Step import Step
 from ..util import util
 import jax.numpy as jnp
 import jax
@@ -32,9 +32,3 @@ class Sum(Step):
         self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = jnp.inf
 
         self.compute_kernel = compute_kernel_factory()
-
-
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, buffer, **kwargs):
-        return self.compute_kernel(input_mats, buffer, **kwargs)
-

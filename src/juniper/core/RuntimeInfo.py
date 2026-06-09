@@ -7,13 +7,13 @@ import json
 import jax.numpy as jnp
 import numpy as np
 
-from .configurables.Circuit import Circuit
-from .configurables.Element import Element
-from .dft.NeuralField import NeuralField
-from .util import util
-from .util import util_jax
-from .util.util_jax import constant
-from .util.util_jax import zeros
+from .Circuit import Circuit
+from .Element import Element
+from ..dft.NeuralField import NeuralField
+from ..util import util
+from ..util import util_jax
+from ..util.util_jax import constant
+from ..util.util_jax import zeros
 
 StateTree = dict[str, Any]
 KernelMap = dict[str, dict[str, Any]]

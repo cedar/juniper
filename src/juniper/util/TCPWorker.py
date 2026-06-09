@@ -1,5 +1,5 @@
-from .Configurable import Configurable
-from ..util.util_tcp import get_tcp_logger
+from ..core.Configurable import Configurable
+from .util_tcp import get_tcp_logger
 
 import numpy as np
 import re

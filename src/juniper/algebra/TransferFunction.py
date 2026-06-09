@@ -1,6 +1,6 @@
-from ..configurables.Step import Step
+from ..core.Step import Step
 from ..util import util
-from ..configurables.Sigmoid import Sigmoid
+from ..math.Sigmoid import Sigmoid
 
 def compute_kernel_factory(params, trans_func):
     def compute_kernel(input_mats, buffer, **kwargs):

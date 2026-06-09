@@ -1,4 +1,4 @@
-from ..configurables.Source import Source
+from ..core.Source import Source
 from ..util import util
 from ..util import util_jax
 

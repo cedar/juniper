@@ -1,4 +1,4 @@
-from ..configurables.Source import Source
+from ..core.Source import Source
 from ..util import util
 import jax.numpy as jnp
 
@@ -27,9 +27,6 @@ class CustomInput(Source):
         self.output = jnp.zeros(self._params["shape"])
         self.compute_kernel = compute_kernel_factory()
         
-    def compute(self, input_mats, buffer, **kwargs):
-        return self.compute_kernel(input_mats, buffer, **kwargs)
-    
     def set_data(self, data):
         self.output = data
 

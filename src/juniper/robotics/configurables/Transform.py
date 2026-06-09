@@ -1,4 +1,4 @@
-from ...configurables.Configurable import Configurable
+from ...core.Configurable import Configurable
 import jax.numpy as jnp
 
 def compute_kernel_factory(params, M_func):

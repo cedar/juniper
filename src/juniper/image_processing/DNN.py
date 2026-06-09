@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 import flaxmodels as fm
-from ..configurables.Step import Step
+from ..core.Step import Step
 from ..util import util
 
 def compute_kernel_factory(params, model, variables):

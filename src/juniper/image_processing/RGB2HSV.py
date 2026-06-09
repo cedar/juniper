@@ -1,4 +1,4 @@
-from ..configurables.Step import Step
+from ..core.Step import Step
 from ..util import util
 from .ColorConversion import rgb_to_hsv_jax
 

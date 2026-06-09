@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from .util.util import timer
-from .util import util_jax
+from ..util.util import timer
+from ..util import util_jax
 import jax
 import numpy as np
 from functools import partial
 from typing import Any
-from .configurables.Circuit import Circuit
+from .Circuit import Circuit
 from .Compiler import Compiler
 from .RuntimeInfo import CompileInfo
 from .RuntimeInfo import RuntimeState
@@ -20,7 +20,7 @@ Recording = list[list[np.ndarray]]
 class Engine:
     """Runtime driver for a compiled circuit.
 
-    Engine owns the simulation loop: it compiles a circuit, keeps runtime state,
+    Engine owns the simulation loop: inits and keeps runtime state,
     pushes/pulls external IO, calls the jitted tick, and reports timings.
 
     Pseudocode:

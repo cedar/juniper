@@ -1,4 +1,4 @@
-from ..configurables.Source import Source
+from ..core.Source import Source
 from ..util import util
 import numpy as np
 from PIL import Image

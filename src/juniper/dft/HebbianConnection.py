@@ -1,4 +1,4 @@
-from ..configurables.Step import Step
+from ..core.Step import Step
 from ..util import util
 from ..util import util_jax
 import jax.numpy as jnp
@@ -229,20 +229,6 @@ class HebbianConnection(Step):
         self.register_buffer("wheights", self._params["wheight_shape"], permanent=True) # dynamic wheight parameter
         self.register_buffer("reward_timer", self._params["scalar_shape"]) # time since reward onset
         self.register_buffer("reward_onset", self._params["scalar_shape"]) # reward onset
-
-    def compute(self, input_mats, **kwargs):
-        if "prng_key" not in kwargs:
-            raise Exception("prng_key is a mandatory kwarg to dynamic compute()")
-
-        prng_key = kwargs["prng_key"]
-        source_mat = input_mats[util.DEFAULT_INPUT_SLOT]
-        target_mat = input_mats["in1"]
-        reward_signal = input_mats["in2"]
-        
-        # Computation
-        raise RuntimeError("HebbianConnection.compute() requires engine state buffers; use compute_kernel through Engine")
-
-        # Return output and buffer update
 
     def infer_output_shapes(self, input_specs):
         return {

@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 from jax.scipy.ndimage import map_coordinates
 
-from ..configurables.Step import Step
+from ..core.Step import Step
 from ..util import util
 
 def compute_kernel_factory(params):

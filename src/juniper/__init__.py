@@ -1,6 +1,6 @@
 # api
-from .configurables.Circuit import Circuit
-from .Engine import Engine
+from .core.Circuit import Circuit
+from .core.Engine import Engine
 
 # algebra
 from .algebra.AddConstant import AddConstant
@@ -25,8 +25,8 @@ from .arrays.VectorToScalars import VectorToScalars
 from .arrays.ScalarsToVector import ScalarsToVector
 
 # configurables
-from .configurables.Gaussian import Gaussian
-from .configurables.LateralKernel import LateralKernel
+from .math.Gaussian import Gaussian
+from .math.LateralKernel import LateralKernel
 
 # dft
 from .dft.HebbianConnection import HebbianConnection
@@ -60,8 +60,8 @@ from .sources.TimedBoost import TimedBoost
 from . import robotics
 
 # architecture
-from .Architecture import delete_arch
-from .Architecture import get_arch
+from .core.Architecture import delete_arch
+from .core.Architecture import get_arch
 
 __all__ =[
     "Engine",

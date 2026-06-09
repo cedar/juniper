@@ -1,10 +1,10 @@
-from ..configurables.Step import Step
+from ..core.Step import Step
 from ..util import util
 from ..util import util_jax
 import jax.numpy as jnp
 import jax
 from functools import partial
-from ..configurables.Sigmoid import Sigmoid
+from ..math.Sigmoid import Sigmoid
 
 # This singleton construct is needed as we need to specify the static_argnames in the compiler directive depending on the user input
 # euler step computation

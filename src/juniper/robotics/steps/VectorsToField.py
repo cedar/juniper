@@ -1,4 +1,4 @@
-from ...configurables.Step import Step
+from ...core.Step import Step
 from functools import partial
 from ...util import util
 import jax.numpy as jnp
@@ -73,11 +73,6 @@ class VectorsToField(Step):
             self._params["field_units_per_meter"] = (100.0,100.0,100.0)
 
         self.compute_kernel = compute_kernel_factory(self._params)
-
-    
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, buffer, **kwargs):
-        return self.compute_kernel(input_mats, buffer, **kwargs)
 
     def infer_output_shapes(self, input_specs):
         return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["field_shape"])}

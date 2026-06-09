@@ -1,6 +1,6 @@
 import jax
 from functools import partial
-from ..configurables.Step import Step
+from ..core.Step import Step
 from ..util import util
 
 # construction of compute kernel
@@ -27,8 +27,3 @@ class StaticGain(Step):
         mandatory_params = ["factor"]
         super().__init__(name, params, mandatory_params)
         self.compute_kernel = compute_kernel_factory(self._params["factor"])
-
-
-    @partial(jax.jit, static_argnames=['self'])
-    def compute(self, input_mats, buffer, **kwargs):
-        return self.compute_kernel(input_mats, buffer, **kwargs)

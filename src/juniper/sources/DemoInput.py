@@ -1,5 +1,5 @@
-from ..configurables.Source import Source
-from ..configurables.Gaussian import Gaussian
+from ..core.Source import Source
+from ..math.Gaussian import Gaussian
 from ..util import util
 import warnings
 

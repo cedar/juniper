@@ -1,4 +1,4 @@
-from ..configurables.Step import Step
+from ..core.Step import Step
 from ..util import util
 import jax.numpy as jnp
 
@@ -30,15 +30,6 @@ class StaticDebug(Step):
         
         self.compute_kernel = compute_kernel_factory()
 
-    # required kwargs are: delta_t, prng_key
-    def compute(self, input_mats, buffer, **kwargs):
-        if "prng_key" not in kwargs:
-            raise Exception("prng_key is a mandatory kwarg to dynamic compute()")
-        #input_mat = input_mats[util.DEFAULT_INPUT_SLOT]
-        
-        # Return output
-        return {}
-    
     def update_input(self, arch, input_slot_shape="shape"):
         return {util.DEFAULT_INPUT_SLOT: jnp.zeros(self._params["shape"])}
     
