@@ -2,6 +2,10 @@
 from .core.Circuit import Circuit
 from .core.Engine import Engine
 
+# architecture
+from .core.Architecture import delete_arch
+from .core.Architecture import get_arch
+
 # algebra
 from .algebra.AddConstant import AddConstant
 from .algebra.ComponentMultiply import ComponentMultiply
@@ -24,7 +28,7 @@ from .arrays.Projection import Projection
 from .arrays.VectorToScalars import VectorToScalars
 from .arrays.ScalarsToVector import ScalarsToVector
 
-# configurables
+# configurable math classes
 from .math.Gaussian import Gaussian
 from .math.LateralKernel import LateralKernel
 
@@ -59,9 +63,6 @@ from .sources.TimedBoost import TimedBoost
 # robotics
 from . import robotics
 
-# architecture
-from .core.Architecture import delete_arch
-from .core.Architecture import get_arch
 
 __all__ =[
     "Engine",

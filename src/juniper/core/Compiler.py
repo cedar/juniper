@@ -42,6 +42,14 @@ class Compiler:
         self.circuit = circuit
         circuit.generate_kernel()
         self.compile_circuit(circuit, {})
+        try:
+            assert circuit.is_compiled
+        except:
+            failed_elements = self.gather_uncompiled_elements(circuit=circuit)
+            element_paths = [element_to_path_str(element) for element in failed_elements]
+            
+            raise Exception(f"The circuit '{circuit.get_name()}' could not be compiled. \nThese elements failed to compile: {element_paths}")
+
         self.compile_info = self.local_compile_info[self.circuit]
         return self.compile_info
 
@@ -83,7 +91,7 @@ class Compiler:
                 if element.is_compiled:
                     self.compiled_element_map[circuit][(element_name,)] = element
 
-            output_slot_updated, _ = self.compile_circuit_output_slots(circuit)
+            output_slot_updated = self.compile_circuit_output_slots(circuit)
             if output_slot_updated:
                 state_updated = True
 
@@ -150,7 +158,6 @@ class Compiler:
     def compile_circuit_output_slots(self, circuit : Circuit):
         """Infer a circuit's public output slots from its internal connections."""
         output_slot_updated = False
-        output_specs = {}
         for slot in circuit.output_slot_map.values():
             slot_name = slot.get_name()
             sources = circuit.connection_map_reversed[slot_name]
@@ -162,8 +169,7 @@ class Compiler:
                 slot.dtype = dtype
                 self.check_slot_compiled(slot)
                 output_slot_updated = True
-            output_specs[slot.get_slot_id()] = (shape, dtype)
-        return output_slot_updated, output_specs
+        return output_slot_updated
 
     def compile_buffers(self, step : Step):
         """Resolve a step's buffer specs after slot shapes are known."""
@@ -323,3 +329,22 @@ class Compiler:
         """Rebuild and cache CompileInfo for a circuit after inference changes."""
         self.local_compile_info[circuit] = self.collect_compile_info(circuit)
         return self.local_compile_info[circuit]
+
+    def gather_uncompiled_elements(self, circuit : Circuit) -> list[Element]:
+        uncompiled_elements = []
+        for element in circuit.element_map.values():
+            if not element.is_compiled:
+                uncompiled_elements.append(element)
+            if isinstance(element, Circuit):
+                uncompiled_elements += self.gather_uncompiled_elements(element)
+        return uncompiled_elements
+    
+
+def element_to_path_str(element : Element):
+    """converts the element object into a path string indicating its position in the architecture-"""
+    path = element.get_path()
+    path_str=""
+    for parent in path:
+        path_str += parent.get_name() + "."
+    path_str = path_str[:-1]
+    return path_str

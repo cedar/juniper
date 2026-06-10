@@ -88,6 +88,23 @@ class Circuit(Element):
         Circuit._current = self._previous_circuit
         CircuitContext.set_current(self._previous_circuit)
         return False
+    
+    def clean(self) -> None:
+        """Deletes all elements and slots in the circuit."""
+        self.element_map = {}
+        self.connection_map_reversed = {}
+        if self.get_name() in self.parent.element_map.keys():
+            self.parent.element_map.pop(self.get_name())
+        for slot in self.input_slot_map.values():
+            if slot.get_name() in self.parent.connection_map_reversed.keys():
+                self.parent.connection_map_reversed.pop(slot.get_name())
+        for slot in self.output_slot_map.values():
+            if slot.get_name() in self.parent.connection_map_reversed.keys():
+                self.parent.connection_map_reversed.pop(slot.get_name())
+
+        self.is_compiled = False
+        self.compute_kernel = None
+
 
     def add_element(self, element : Element):
         element_name = element.get_name()

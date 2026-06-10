@@ -46,3 +46,17 @@ class Connectable(Configurable):
                 return other_element.get_slot(util.DEFAULT_OUTPUT_SLOT) if dir == "out" else other_element.get_slot(util.DEFAULT_INPUT_SLOT)
             else:
                 return other_element.get_slot(other_slot)
+            
+    def get_path(self) -> list[Connectable]:
+        """returns the parents of the connectable in an ordered list from top-level to self."""
+        path = [self]
+        found_top = False
+
+        while not found_top:
+            parent = path[0].parent_circuit
+            path.insert(0, parent)
+            if parent is parent.parent_circuit or parent.parent_circuit is None:
+                found_top = True
+
+        return path
+

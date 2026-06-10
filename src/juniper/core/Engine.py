@@ -87,6 +87,11 @@ class Engine:
             raise RuntimeError("Engine::load_buffers(): Engine must be compiled before loading buffers")
         return load_permanent_buffers(self.compile_info, self.state)
 
+    def clean(self):
+        """Resets the Enging into __init__ state for reuse."""
+        self.__init__()
+
+
     ########## simulation #################
     def run_simulation(
         self,
