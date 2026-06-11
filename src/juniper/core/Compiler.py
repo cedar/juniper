@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 
 from .Circuit import Circuit
 from .Element import Element
@@ -75,8 +76,6 @@ class Compiler:
 
             sub_state_updated = False
             for element_name, element in circuit.element_map.items():
-                if (element_name,) in self.compiled_element_map[circuit]:
-                    continue
 
                 element_input_slots = {
                     slot.get_name(): circuit.connection_map_reversed[slot.get_name()]
@@ -88,7 +87,7 @@ class Compiler:
                     state_updated = True
                     sub_state_updated = True
 
-                if element.is_compiled:
+                if element.is_compiled and (element_name,) not in self.compiled_element_map[circuit]:
                     self.compiled_element_map[circuit][(element_name,)] = element
 
             output_slot_updated = self.compile_circuit_output_slots(circuit)
@@ -120,20 +119,15 @@ class Compiler:
 
     def compile_input_slots(self, element : Element, input_slots : dict[str, list[Slot]]):
         """Merge connected sources and write them into an element's inputs."""
-        input_specs = {}
         state_updated = False
+        input_specs = {}
         for slot_id, slot in element.input_slot_map.items():
-            if slot.is_compiled:
-                continue
             shape, dtype = self.merge_slot_compile_info(element, input_slots.get(slot.get_name(), []))
-            if shape is None:
-                continue
-            if slot.shape != shape or slot.dtype != dtype:
-                slot.shape = shape
-                slot.dtype = dtype
-                self.check_slot_compiled(slot)
-                state_updated = True
-            input_specs[slot_id] = (shape, dtype)
+            state_updated = _slot_changed(slot, shape, dtype)
+            self.check_slot_compiled(slot)
+            if slot.shape is not None:
+                input_specs[slot_id] = (slot.shape, slot.dtype)
+                
         return state_updated, input_specs
 
     def compile_step_output_slots(self, step : Step, input_specs : dict):
@@ -142,17 +136,10 @@ class Compiler:
         output_shapes = step.infer_output_shapes(input_specs)
         output_dtypes = step.infer_output_dtypes(input_specs)
         for slot_id, shape in output_shapes.items():
-            if slot_id not in step.output_slot_map or shape is None:
-                continue
             slot = step.output_slot_map[slot_id]
-            if slot.is_compiled:
-                continue
             dtype = output_dtypes.get(slot_id, util_jax.cfg["jdtype"])
-            if slot.shape != shape or slot.dtype != dtype:
-                slot.shape = shape
-                slot.dtype = dtype
-                self.check_slot_compiled(slot)
-                output_state_updated = True
+            output_state_updated = _slot_changed(slot, shape, dtype)
+            self.check_slot_compiled(slot)
         return output_state_updated
 
     def compile_circuit_output_slots(self, circuit : Circuit):
@@ -162,13 +149,8 @@ class Compiler:
             slot_name = slot.get_name()
             sources = circuit.connection_map_reversed[slot_name]
             shape, dtype = self.merge_slot_compile_info(circuit, sources)
-            if shape is None:
-                continue
-            if slot.shape != shape or slot.dtype != dtype:
-                slot.shape = shape
-                slot.dtype = dtype
-                self.check_slot_compiled(slot)
-                output_slot_updated = True
+            output_slot_updated = _slot_changed(slot, shape, dtype)
+            self.check_slot_compiled(slot)
         return output_slot_updated
 
     def compile_buffers(self, step : Step):
@@ -254,7 +236,7 @@ class Compiler:
                 if util._is_scalar_shape(shape):
                     shape = source_shape
                 elif not util._is_scalar_shape(source_shape):
-                    raise ValueError(f"Step {element.get_name()} received incompatible input shapes {shape} and {source_shape}")
+                    raise ValueError(f"Step {element.get_name()} received incompatible input shapes {[source.shape for source in known_sources]}")
             if source.dtype is not None:
                 dtype = source.dtype
         return shape, dtype
@@ -348,3 +330,13 @@ def element_to_path_str(element : Element):
         path_str += parent.get_name() + "."
     path_str = path_str[:-1]
     return path_str
+
+def _changed_and_not_none(old: Any, new: Any) -> bool:
+    return (old != new) and (new is not None)
+
+def _slot_changed(slot, new_shape, new_dtype):
+    if _changed_and_not_none(old=slot.shape, new=new_shape) or _changed_and_not_none(old=slot.dtype, new=new_dtype):
+        slot.shape = new_shape
+        slot.dtype = new_dtype
+        return True
+    return False

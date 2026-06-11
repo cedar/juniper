@@ -66,7 +66,7 @@ def serialize_cv_mat(mat: np.ndarray) -> bytes:
 def _parse_cv_header(header_bytes: bytes):
     header = header_bytes.decode("utf-8", errors="strict").strip()
     parts = header.split(",")
-    if len(parts) < 5 or parts[0] != "Mat":
+    if len(parts) < 4 or parts[0] != "Mat":
         raise ValueError("Invalid header format")
 
     cv_type = parts[1]

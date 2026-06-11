@@ -13,3 +13,5 @@ jax_cache/*
 *.data
 .codex
 .agents
+.flaxmodels
+*.log

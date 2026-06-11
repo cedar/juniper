@@ -1,6 +1,7 @@
 import jax
 import jax.numpy as jnp
 import flaxmodels as fm
+import os
 from ..core.Step import Step
 from ..util import util
 
@@ -65,7 +66,6 @@ class DNN(Step):
 
     def __init__(self, name, params):
         mandatory_params = ["layer"]
-        params["shape"] = (0,)
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self._layer = "relu" + self._params["layer"]
         self._params["layer_shapes"] = {"relu4_3":(28,28,512), "relu5_3": (7,7,512)}
@@ -73,6 +73,7 @@ class DNN(Step):
         if "model_dir" not in self._params.keys():
              self._params["model_dir"] = ".flaxmodels"
 
+        _check_vgg16_presents(self._params, self.get_name())
         self._model = fm.VGG16(output="activations", include_head=False, pretrained="imagenet", ckpt_dir=self._params["model_dir"])
         self._variables = self._model.init(jax.random.PRNGKey(0), jnp.zeros((1, 224, 224, 3), dtype=jnp.float16))
 
@@ -80,3 +81,17 @@ class DNN(Step):
         self.buffer_map["lastkey"].dtype = jnp.int32
 
         self.compute_kernel = compute_kernel_factory(self._params, self._model, self._variables)
+
+def _check_vgg16_presents(params, name):
+    if not os.path.exists(params["model_dir"]+"/flaxmodels/vgg16_weights.h5"):
+        download_request = 0
+        while not download_request == 2:
+            res = input(f"The DNN step '{name}' attempts to download vgg16 weights. Do you want to continue? (y/n)\n")
+            if res == "y" or res=="Y":
+                download_request = 2
+                pass
+            elif res=="n" or res=="N":
+                raise Exception(f"DNN step '{name}' unable to load vgg16 weights.")
+            else:
+                print("Invalid response.")
+                download_request += 1

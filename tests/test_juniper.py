@@ -6,6 +6,9 @@ import juniper as jp
 import numpy as np
 import pytest
 import time
+from contextlib import contextmanager
+import io
+import sys
 
 from juniper.util import util_jax
 
@@ -25,6 +28,15 @@ def function_test(func):
             arch.engine.clean()
     return wrapper
 
+@contextmanager
+def simulate_user_input(input : str):
+    """Overwrites stdin with synthetic user input. This is only used for pytest for automatic testing."""
+    orig = sys.stdin
+    sys.stdin = io.StringIO(input + "\n")
+    try:
+        yield
+    finally:
+        sys.stdin = orig
 
 class TestJuniper:
     """
@@ -268,6 +280,14 @@ class TestJuniper:
             assert abs(t2-t1) < abs(t2-t_comp)
 
     @function_test
+    def test_dnn_prompting(self):
+        """Tests DNN download prompting."""
+
+        with pytest.raises(Exception):
+            with simulate_user_input("n"):
+                dnn2 = jp.DNN("dnn2", {"layer":"4_3"})
+
+    @function_test
     def test_buffer_save_and_load(self):
         """Permanent buffers should be saved to disk and loaded into a fresh state."""
         self.arch.set_arch_name("test_buffer_arch")
@@ -310,6 +330,183 @@ class TestJuniper:
         finally:
             if os.path.exists(data_file):
                 os.remove(data_file)
+
+    @function_test
+    def test_tcp_connection(self):
+        """Tests if tcp sockets are handles correctly and establish working connections."""
+        tcp_params = {
+            "ip": "127.0.0.1",
+            "port": 50030,
+            "shape": (3,),
+            "dtype": np.uint8,
+            "send_on_change_only": False,
+            "time_step": 0.005,
+            "connect_retry_delay": 0.01,
+        }
+        tcp_reader = jp.TCPReader("tcp_reader", tcp_params)
+        tcp_writer = jp.TCPWriter("tcp_writer", tcp_params)
+
+        input = jp.CustomInput("input", {"shape":(3,)})
+        in_array = np.asanyarray([1,2,3], dtype=np.uint8)
+        input.set_data(in_array)
+        input >> tcp_writer
+
+        out_array = np.zeros_like(in_array)
+        try:
+            self.arch.compile(warmup=0, print_compile_info=False, load_buffer=False)
+            time.sleep(0.2)
+
+            for _ in range(40):
+                recording, _ = self.arch.run_simulation(
+                    num_steps=1,
+                    steps_to_record=["tcp_reader"],
+                    print_timing=False,
+                    save_buffer=False,
+                )
+                out_array = np.asanyarray(recording[-1][0])
+                if np.array_equal(out_array.astype(np.uint8), in_array):
+                    break
+                time.sleep(0.05)
+        finally:
+            self.arch.close_connections()
+
+        assert np.array_equal(out_array.astype(np.uint8), in_array)
+
+    @function_test
+    def test_invalid_shape_merge(self):
+        """Tests if the comiler catches invalid input shapes."""
+
+        # case 1
+        out = jp.Sum("out", {})
+        in1 = jp.CustomInput("in1", {"shape":(2,)})
+        in2 = jp.CustomInput("in2", {"shape":(2,2)})
+        in1 >> out
+        in2 >> out
+        with pytest.raises(Exception):
+            self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
+        self.arch.clean()
+
+        out = jp.NeuralField("out", {"shape":(50,50),
+                                     "sigmoid": "AbsSigmoid",
+                                     "beta": 100,
+                                     "theta":0,
+                                     "resting_level":-5,
+                                     "global_inhibition":0,
+                                     "input_noise_gain":0,
+                                     "tau":0.02})
+        in1 = jp.CustomInput("in1", {"shape":(50,50)})
+        in1 >> out
+        self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
+        assert self.arch.is_compiled
+        self.arch.clean()
+
+        # case 2
+        out = jp.NeuralField("out", {"shape":(50,50),
+                                     "sigmoid": "AbsSigmoid",
+                                     "beta": 100,
+                                     "theta":0,
+                                     "resting_level":-5,
+                                     "global_inhibition":0,
+                                     "input_noise_gain":0,
+                                     "tau":0.02})
+        in1 = jp.CustomInput("in1", {"shape":(50,50)})
+        in2 = jp.CustomInput("in2", {"shape":(1,)})
+        proj = jp.CompressAxes("proj", {"axis": (0,1), "compression_type":"Maximum"})
+        in1 >> out
+        in2 >> out
+        out >> proj >> out
+        self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
+        assert self.arch.is_compiled
+        self.arch.clean()
+
+        # case 3
+        out = jp.NeuralField("out", {"shape":(50,50),
+                                     "sigmoid": "AbsSigmoid",
+                                     "beta": 100,
+                                     "theta":0,
+                                     "resting_level":-5,
+                                     "global_inhibition":0,
+                                     "input_noise_gain":0,
+                                     "tau":0.02})
+        in1 = jp.CustomInput("in1", {"shape":(50,50)})
+        in2 = jp.CustomInput("in2", {"shape":(1,)})
+        proj = jp.CompressAxes("proj", {"axis": (0,), "compression_type":"Maximum"})
+        in1 >> out
+        in2 >> out
+        out >> proj >> out
+        with pytest.raises(Exception):
+            self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
+        self.arch.clean()
+
+        # case 4
+        out = jp.NeuralField("out", {"shape":(50,50),
+                                     "sigmoid": "AbsSigmoid",
+                                     "beta": 100,
+                                     "theta":0,
+                                     "resting_level":-5,
+                                     "global_inhibition":0,
+                                     "input_noise_gain":0,
+                                     "tau":0.02})
+        in1 = jp.CustomInput("in1", {"shape":(50,50)})
+        in2 = jp.CustomInput("in2", {"shape":(1,)})
+        proj = jp.CompressAxes("proj", {"axis": (0,1), "compression_type":"Maximum", "compress_all":True})
+        in1 >> out
+        in2 >> out
+        out >> proj >> out
+        self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
+        assert self.arch.is_compiled
+        self.arch.clean()
+
+        # case 5
+        out = jp.NeuralField("out", {"shape":(50,50),
+                                     "sigmoid": "AbsSigmoid",
+                                     "beta": 100,
+                                     "theta":0,
+                                     "resting_level":-5,
+                                     "global_inhibition":0,
+                                     "input_noise_gain":0,
+                                     "tau":0.02})
+        in1 = jp.CustomInput("in1", {"shape":(50,50)})
+        in2 = jp.CustomInput("in2", {"shape":()})
+        proj = jp.CompressAxes("proj", {"axis": (0,1), "compression_type":"Maximum", "compress_all":True})
+        in1 >> out
+        in2 >> out
+        out >> proj >> out
+        self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
+        assert self.arch.is_compiled
+        self.arch.clean()
+
+
+
+        
+    @function_test
+    def test_nested_state_update(self):
+        """Tests if steps in nested circuits update their state correctly and can be recorded."""
+        c = jp.Circuit("c", {})
+        with c as c:
+            s = jp.Sum("s", {})
+            c.set_input("in0", s)
+        
+        input = jp.CustomInput("input", {"shape":(3,)})
+        in_array = np.asanyarray([1,2,3], dtype=np.float32)
+        input.set_data(in_array)
+
+        input >> c
+
+        self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
+        assert self.arch.is_compiled
+        
+        recording, timing = self.arch.run_simulation(num_steps=1, steps_to_record=["c.s", "c.s.out0"], print_timing=False, save_buffer=False)
+
+        out_array = np.asanyarray(recording[-1][0])
+        explicit_out_array = np.asanyarray(recording[-1][1])
+
+        assert np.array_equal(in_array, out_array)
+        assert np.array_equal(in_array, explicit_out_array)
+        
+
+
+
 
 
 def build_bcm_buffer_circuit():

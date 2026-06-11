@@ -144,8 +144,13 @@ class RuntimeState:
 
     def record(self, compile_info: CompileInfo, target: str) -> np.ndarray:
         """Read a recording target such as 'field' or 'field.out0'."""
-        path_str, slot_id = target.rsplit(".", 1) if "." in target else (target, util.DEFAULT_OUTPUT_SLOT)
-        ref = compile_info.ref_at(tuple(path_str.split(".")))
+        path = tuple(target.split("."))
+        if path in compile_info.compiled_elements:
+            ref = compile_info.ref_at(path)
+            slot_id = util.DEFAULT_OUTPUT_SLOT
+        else:
+            path_str, slot_id = target.rsplit(".", 1) if "." in target else (target, util.DEFAULT_OUTPUT_SLOT)
+            ref = compile_info.ref_at(tuple(path_str.split(".")))
         return self.read_slot(ref, slot_id)
 
 
