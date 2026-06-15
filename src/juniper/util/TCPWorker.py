@@ -150,7 +150,7 @@ class TCPWorker(Configurable):
         self.port = self._params['port']
         self.timeout = self._params['timeout']
         self.BUFFER_SIZE = self._params['buffer_size']
-        self.logger = get_tcp_logger(f"writer.{self._name}.{self.port}") if self._params["mode"] == "write" else get_tcp_logger(f"reader.{self._name}.{self.port}")
+        self.logger = get_tcp_logger(f"writer.{self.get_local_circuit_id()}.{self.port}") if self._params["mode"] == "write" else get_tcp_logger(f"reader.{self.get_local_circuit_id()}.{self.port}")
         self._connection_announced = False
         self.time_step = self._params['time_step']
         self.connect_retry_delay = self._params['connect_retry_delay']

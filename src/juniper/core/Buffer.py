@@ -11,5 +11,5 @@ class Buffer(Configurable):
         self.is_compiled = False
 
     def get_buffer_id(self) -> str:
-        return self.get_name()
+        return self.get_local_circuit_id()
     

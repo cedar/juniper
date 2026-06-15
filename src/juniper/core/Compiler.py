@@ -42,19 +42,19 @@ class Compiler:
         """
         self.circuit = circuit
         circuit.generate_kernel()
-        self.compile_circuit(circuit, {})
+        self._compile_circuit(circuit, {})
         try:
             assert circuit.is_compiled
         except:
-            failed_elements = self.gather_uncompiled_elements(circuit=circuit)
-            element_paths = [element_to_path_str(element) for element in failed_elements]
+            failed_elements = self._gather_uncompiled_elements(circuit=circuit)
+            element_paths = [ElementRef(element).path_str for element in failed_elements]
             
-            raise Exception(f"The circuit '{circuit.get_name()}' could not be compiled. \nThese elements failed to compile: {element_paths}")
+            raise Exception(f"The circuit '{circuit.get_local_circuit_id()}' could not be compiled. \nThese elements failed to compile: {element_paths}")
 
         self.compile_info = self.local_compile_info[self.circuit]
         return self.compile_info
 
-    def compile_circuit(self, circuit : Circuit, input_slots : dict[str, list[Slot]]) -> bool:
+    def _compile_circuit(self, circuit : Circuit, input_slots : dict[str, list[Slot]]) -> bool:
         """Infer a circuit by repeatedly compiling elements whose inputs are known.
 
         Pseudocode:
@@ -70,7 +70,7 @@ class Compiler:
         self.compiled_element_map[circuit] = {}
 
         while sub_state_updated:
-            input_slots_updated, _ = self.compile_input_slots(circuit, input_slots=input_slots)
+            input_slots_updated, _ = self._compile_input_slots(circuit, input_slots=input_slots)
             if input_slots_updated:
                 state_updated = True
 
@@ -78,10 +78,10 @@ class Compiler:
             for element_name, element in circuit.element_map.items():
 
                 element_input_slots = {
-                    slot.get_name(): circuit.connection_map_reversed[slot.get_name()]
+                    slot.get_local_circuit_id(): circuit.connection_map_reversed[slot.get_local_circuit_id()]
                     for slot in element.input_slot_map.values()
                 }
-                element_state_updated = self.compile_element(element, element_input_slots)
+                element_state_updated = self._compile_element(element, element_input_slots)
 
                 if element_state_updated:
                     state_updated = True
@@ -91,47 +91,46 @@ class Compiler:
                 if element.is_compiled and element_ref.path not in self.compiled_element_map[circuit]:
                     self.compiled_element_map[circuit][element_ref.path] = element
 
-            output_slot_updated = self.compile_circuit_output_slots(circuit)
+            output_slot_updated = self._compile_circuit_output_slots(circuit)
             if output_slot_updated:
                 state_updated = True
 
-        self.check_circuit_compiled(circuit)
-        self.refresh_compile_info(circuit)
+        self._check_circuit_compiled(circuit)
+        self._refresh_compile_info(circuit)
         return state_updated
 
-    def compile_element(self, element : Element, input_slots : dict[str, list[Slot]]) -> bool:
+    def _compile_element(self, element : Element, input_slots : dict[str, list[Slot]]) -> bool:
         """Compile element as either a nested circuit or a step."""
         if isinstance(element, Circuit):
-            return self.compile_circuit(element, input_slots)
+            return self._compile_circuit(element, input_slots)
         if isinstance(element, Step):
-            return self.compile_step(element, input_slots)
-        raise NotImplementedError(f"No compile behavior specified for element ({element.get_name()})")
+            return self._compile_step(element, input_slots)
+        raise NotImplementedError(f"No compile behavior specified for element ({element.get_local_circuit_id()})")
 
-
-    def compile_step(self, step : Step, input_slots : dict[str, list[Slot]]) -> bool:
+    def _compile_step(self, step : Step, input_slots : dict[str, list[Slot]]) -> bool:
         """Infer step's input slots, output slots, and buffers."""
-        input_compile_info_updated, input_specs = self.compile_input_slots(step, input_slots=input_slots)
-        output_compile_info_updated = self.compile_step_output_slots(step, input_specs=input_specs)
-        buffer_compile_info_updated = self.compile_buffers(step)
+        input_compile_info_updated, input_specs = self._compile_input_slots(step, input_slots=input_slots)
+        output_compile_info_updated = self._compile_step_output_slots(step, input_specs=input_specs)
+        buffer_compile_info_updated = self._compile_buffers(step)
 
         state_updated = input_compile_info_updated | output_compile_info_updated | buffer_compile_info_updated
-        self.check_step_compiled(step)
+        self._check_step_compiled(step)
         return state_updated
 
-    def compile_input_slots(self, element : Element, input_slots : dict[str, list[Slot]]):
+    def _compile_input_slots(self, element : Element, input_slots : dict[str, list[Slot]]):
         """Merge connected sources and write them into an element's inputs."""
         state_updated = False
         input_specs = {}
         for slot_id, slot in element.input_slot_map.items():
-            shape, dtype = self.merge_slot_compile_info(element, input_slots.get(slot.get_name(), []))
+            shape, dtype = self._merge_slot_compile_info(element, input_slots.get(slot.get_local_circuit_id(), []))
             state_updated = _slot_changed(slot, shape, dtype)
-            self.check_slot_compiled(slot)
+            self._check_slot_compiled(slot)
             if slot.shape is not None:
                 input_specs[slot_id] = (slot.shape, slot.dtype)
                 
         return state_updated, input_specs
 
-    def compile_step_output_slots(self, step : Step, input_specs : dict):
+    def _compile_step_output_slots(self, step : Step, input_specs : dict):
         """Ask a step to infer output specs from already known input specs."""
         output_state_updated = False
         output_shapes = step.infer_output_shapes(input_specs)
@@ -140,21 +139,21 @@ class Compiler:
             slot = step.output_slot_map[slot_id]
             dtype = output_dtypes.get(slot_id, util_jax.cfg["jdtype"])
             output_state_updated = _slot_changed(slot, shape, dtype)
-            self.check_slot_compiled(slot)
+            self._check_slot_compiled(slot)
         return output_state_updated
 
-    def compile_circuit_output_slots(self, circuit : Circuit):
+    def _compile_circuit_output_slots(self, circuit : Circuit):
         """Infer a circuit's public output slots from its internal connections."""
         output_slot_updated = False
         for slot in circuit.output_slot_map.values():
-            slot_name = slot.get_name()
+            slot_name = slot.get_local_circuit_id()
             sources = circuit.connection_map_reversed[slot_name]
-            shape, dtype = self.merge_slot_compile_info(circuit, sources)
+            shape, dtype = self._merge_slot_compile_info(circuit, sources)
             output_slot_updated = _slot_changed(slot, shape, dtype)
-            self.check_slot_compiled(slot)
+            self._check_slot_compiled(slot)
         return output_slot_updated
 
-    def compile_buffers(self, step : Step):
+    def _compile_buffers(self, step : Step):
         """Resolve a step's buffer specs after slot shapes are known."""
         buffer_updated = False
         for buffer_id, buffer in step.buffer_map.items():
@@ -166,36 +165,36 @@ class Compiler:
                 buffer.shape = shape
                 buffer.dtype = dtype
                 buffer.permanent = permanent
-                self.check_buffer_compiled(buffer)
+                self._check_buffer_compiled(buffer)
                 buffer_updated = True
         return buffer_updated
 
-    def check_buffer_compiled(self, buffer : Buffer):
+    def _check_buffer_compiled(self, buffer : Buffer):
         """Check if a buffers shape, type and permanency are known and is therefore compiled."""
         if buffer.shape is not None and buffer.dtype is not None and buffer.permanent is not None:
             buffer.is_compiled = True
         return buffer.is_compiled
 
-    def check_slot_compiled(self, slot : Slot):
+    def _check_slot_compiled(self, slot : Slot):
         """Check if a Slot is compiled."""
         if slot.shape is not None and slot.dtype is not None:
             slot.is_compiled = True
         return slot.is_compiled
 
-    def check_step_compiled(self, step : Step):
+    def _check_step_compiled(self, step : Step):
         """Mark a step compiled only when all required slots and buffers are known."""
         for buffer in step.buffer_map.values():
-            self.check_buffer_compiled(buffer)
+            self._check_buffer_compiled(buffer)
             if not buffer.is_compiled:
                 step.is_compiled = False
                 return False
         for slot in step.input_slot_map.values():
-            self.check_slot_compiled(slot)
+            self._check_slot_compiled(slot)
             if not slot.is_compiled and step.needs_input_connections and not step.is_source:
                 step.is_compiled = False
                 return False
         for slot in step.output_slot_map.values():
-            self.check_slot_compiled(slot)
+            self._check_slot_compiled(slot)
             if not slot.is_compiled:
                 step.is_compiled = False
                 return False
@@ -203,19 +202,19 @@ class Compiler:
         step.is_compiled = True
         return True
 
-    def check_circuit_compiled(self, circuit : Circuit):
+    def _check_circuit_compiled(self, circuit : Circuit):
         """Mark a circuit compiled only when elements and public slots are known."""
         for element in circuit.element_map.values():
             if element is not circuit and not element.is_compiled:
                 circuit.is_compiled = False
                 return False
         for slot in circuit.input_slot_map.values():
-            self.check_slot_compiled(slot)
+            self._check_slot_compiled(slot)
             if not slot.is_compiled:
                 circuit.is_compiled = False
                 return False
         for slot in circuit.output_slot_map.values():
-            self.check_slot_compiled(slot)
+            self._check_slot_compiled(slot)
             if not slot.is_compiled:
                 circuit.is_compiled = False
                 return False
@@ -223,7 +222,7 @@ class Compiler:
         circuit.is_compiled = True
         return True
 
-    def merge_slot_compile_info(self, element : Element, sources : list[Slot]):
+    def _merge_slot_compile_info(self, element : Element, sources : list[Slot]):
         """Combine incoming source slot specs into one input shape/dtype."""
         known_sources = [source for source in sources if source.is_compiled]
         if len(known_sources) == 0:
@@ -237,12 +236,12 @@ class Compiler:
                 if util._is_scalar_shape(shape):
                     shape = source_shape
                 elif not util._is_scalar_shape(source_shape):
-                    raise ValueError(f"Step {element.get_name()} received incompatible input shapes {[source.shape for source in known_sources]}")
+                    raise ValueError(f"Step {element.get_local_circuit_id()} received incompatible input shapes {[source.shape for source in known_sources]}")
             if source.dtype is not None:
                 dtype = source.dtype
         return shape, dtype
 
-    def empty_compile_info(self, circuit : Circuit) -> CompileInfo:
+    def _empty_compile_info(self, circuit : Circuit) -> CompileInfo:
         """Create an empty CompileInfo container for one circuit."""
         return CompileInfo(
             circuit=circuit,
@@ -255,9 +254,9 @@ class Compiler:
             kernel_map={},
         )
 
-    def collect_compile_info(self, circuit : Circuit) -> CompileInfo:
+    def _collect_compile_info(self, circuit : Circuit) -> CompileInfo:
         """Gather compiled elements, endpoints, and kernels."""
-        compile_info = self.empty_compile_info(circuit)
+        compile_info = self._empty_compile_info(circuit)
 
         for element_name, element in circuit.element_map.items():
             if not element.is_compiled:
@@ -300,24 +299,19 @@ class Compiler:
 
         return compile_info
 
-    def refresh_compile_info(self, circuit : Circuit):
+    def _refresh_compile_info(self, circuit : Circuit):
         """Rebuild and cache CompileInfo for a circuit after inference changes."""
-        self.local_compile_info[circuit] = self.collect_compile_info(circuit)
+        self.local_compile_info[circuit] = self._collect_compile_info(circuit)
         return self.local_compile_info[circuit]
 
-    def gather_uncompiled_elements(self, circuit : Circuit) -> list[Element]:
+    def _gather_uncompiled_elements(self, circuit : Circuit) -> list[Element]:
         uncompiled_elements = []
         for element in circuit.element_map.values():
             if not element.is_compiled:
                 uncompiled_elements.append(element)
             if isinstance(element, Circuit):
-                uncompiled_elements += self.gather_uncompiled_elements(element)
+                uncompiled_elements += self._gather_uncompiled_elements(element)
         return uncompiled_elements
-    
-
-def element_to_path_str(element : Element):
-    """converts the element object into a path string indicating its position in the architecture-"""
-    return ElementRef(element=element).path_str
 
 def _changed_and_not_none(old: Any, new: Any) -> bool:
     return (old != new) and (new is not None)

@@ -52,47 +52,7 @@ class Engine:
         self.prng_slots = []
         self.static_prng_key = util_jax.next_random_key()
 
-    ########## compilation #################
-    def compile(self, circuit : Circuit, warmup : int = 0, print_compile_info : bool = False, load_buffer : bool = False) -> None:
-        """Compile a circuit, allocate runtime state, and prepare IO/processes."""
-        self.circuit = circuit
-        if self.circuit.is_compiled:
-            raise Exception(f"Engine::compile(): Circuit is already compiled ({circuit.get_name()})")
-        self.compile_info = Compiler().compile(circuit)
 
-        self.kernel_map = self.compile_info.kernel_map
-        self.init_state = RuntimeState.from_compile_info(self.compile_info)
-        self.state = self.init_state.copy()
-        self._init_prng_tree()
-
-        if load_buffer:
-            self._load_buffers()
-        self._open_connections()
-
-        if warmup > 0:
-            self.run_simulation(num_steps=warmup, steps_to_record=[], print_timing=print_compile_info)
-            self.reset_state()
-
-    def _init_prng_tree(self) -> None:
-        """Build the PRNG tree matching the compiled kernel tree."""
-        self.prng_tree, self.prng_slots = util_jax.build_prng_tree(
-            self.kernel_map,
-            self.compile_info.dynamic_step_paths(),
-            self.static_prng_key,
-        )
-
-    def _load_buffers(self) -> dict[str, dict[str, Any]]:
-        """Load permanent buffers into the already allocated runtime state."""
-        if not self.circuit.is_compiled:
-            raise RuntimeError("Engine::load_buffers(): Engine must be compiled before loading buffers")
-        return load_permanent_buffers(self.compile_info, self.state)
-
-    def clean(self):
-        """Resets the Enging into __init__ state for reuse."""
-        self.__init__()
-
-
-    ########## simulation #################
     def run_simulation(
         self,
         num_steps: int,
@@ -125,7 +85,7 @@ class Engine:
             key_timings.append(t_key)
 
             # Execute tick function.
-            t_tick, state_tree = timer(self.tick)(self.state.state_tree, prng_keys)
+            t_tick, state_tree = timer(self._tick)(self.state.state_tree, prng_keys)
             self.state.state_tree = state_tree
             tick_timings.append(t_tick)
 
@@ -150,12 +110,37 @@ class Engine:
 
         return history, timing_info
 
+    def compile(self, circuit : Circuit, warmup : int = 0, print_compile_info : bool = False, load_buffer : bool = False) -> None:
+        """Compile a circuit, allocate runtime state, and prepare IO/processes."""
+        self.circuit = circuit
+        if self.circuit.is_compiled:
+            raise Exception(f"Engine::compile(): Circuit is already compiled ({circuit.get_local_circuit_id()})")
+        self.compile_info = Compiler().compile(circuit)
+
+        self.kernel_map = self.compile_info.kernel_map
+        self.init_state = RuntimeState.from_compile_info(self.compile_info)
+        self.state = self.init_state.copy()
+        self._init_prng_tree()
+
+        if load_buffer:
+            self._load_buffers()
+        self._open_connections()
+
+        if warmup > 0:
+            self.run_simulation(num_steps=warmup, steps_to_record=[], print_timing=print_compile_info)
+            self.reset_state()
+
     def reset_state(self) -> None:
         """Reset the runtime state to the post-compilation initial state."""
         self.state = self.init_state.copy()
 
+    def clean(self):
+        """Resets the Enging into __init__ state for reuse."""
+        self.__init__()
+
+
     @partial(jax.jit, static_argnames=["self"])
-    def tick(self, state: StateTree, prng_keys: StateTree) -> StateTree:
+    def _tick(self, state: StateTree, prng_keys: StateTree) -> StateTree:
         """Execute one compiled tick inside JAX."""
         new_state = state.copy()
 
@@ -177,12 +162,12 @@ class Engine:
 
         input = {}
         for slot_id, input_slot in element.input_slot_map.items():
-            sources = element.parent.connection_map_reversed[input_slot.get_name()]
+            sources = element.parent.connection_map_reversed[input_slot.get_local_circuit_id()]
             input[slot_id] = self._aggregate_slot_values(state, sources, element.input_aggregation)
 
         if isinstance(element, Circuit):
             for out_slot in element.output_slot_map.values():
-                source_slots = element.connection_map_reversed[out_slot.get_name()]
+                source_slots = element.connection_map_reversed[out_slot.get_local_circuit_id()]
                 input[out_slot.get_slot_id()] = self._aggregate_slot_values(state, source_slots, element.input_aggregation)
         
         return input
@@ -207,11 +192,32 @@ class Engine:
         slot_id = slot.get_slot_id()
 
         if isinstance(source, Circuit) and slot_id in source.input_slot_map:
-            sources = source.parent.connection_map_reversed[slot.get_name()]
+            sources = source.parent.connection_map_reversed[slot.get_local_circuit_id()]
             return self._aggregate_slot_values(state, sources, source.input_aggregation)
 
         return state[source.get_path()][slot_id]
     
+
+    def _init_prng_tree(self) -> None:
+        """Build the PRNG tree matching the compiled kernel tree."""
+        self.prng_tree, self.prng_slots = util_jax.build_prng_tree(
+            self.kernel_map,
+            self.compile_info.dynamic_step_paths(),
+            self.static_prng_key,
+        )
+
+
+    def _load_buffers(self) -> dict[str, dict[str, Any]]:
+        """Load permanent buffers into the already allocated runtime state."""
+        if not self.circuit.is_compiled:
+            raise RuntimeError("Engine::load_buffers(): Engine must be compiled before loading buffers")
+        return load_permanent_buffers(self.compile_info, self.state)
+    
+    def _save_buffers(self) -> None:
+        """Save buffers marked permanent to the circuit data file."""
+        save_permanent_buffers(self.compile_info, self.state)
+          
+
     def _push_sources(self) -> None:
         """Copy CPU-side source data into the runtime state before a tick."""
         for ref in self.compile_info.sources:
@@ -233,10 +239,7 @@ class Engine:
             data.append(self.state.record(self.compile_info, to_record))
         return data
 
-    def _save_buffers(self) -> None:
-        """Save buffers marked permanent to the circuit data file."""
-        save_permanent_buffers(self.compile_info, self.state)
-                    
+          
     def _close_connections(self) -> None:
         """Close all runtime IO endpoints and managed processes."""
         for ref in self.compile_info.runtime_connections():

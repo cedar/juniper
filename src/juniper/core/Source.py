@@ -11,7 +11,7 @@ class Source(Step):
         self.is_source = True
         self.needs_input_connections = False
         for slot in self.input_slot_map.values():
-            self.parent.connection_map_reversed.pop(slot.get_name(), None)
+            self.parent.connection_map_reversed.pop(slot.get_local_circuit_id(), None)
         self.input_slot_map.clear()
         self._max_incoming_connections.clear()
 

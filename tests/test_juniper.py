@@ -190,7 +190,7 @@ class TestJuniper:
         compile_info = self.arch.engine.compile_info
         assert ("circ",) in compile_info.compiled_elements
         assert ("circ", "summed_inputs") in compile_info.compiled_elements
-        assert compile_info.compiled_elements[("circ", "summed_inputs")].element.get_name() == "summed_inputs"
+        assert compile_info.compiled_elements[("circ", "summed_inputs")].element.get_local_circuit_id() == "summed_inputs"
         assert ("circ",) in compile_info.kernel_map
         assert ("circ", "summed_inputs") in compile_info.kernel_map
 
@@ -245,7 +245,7 @@ class TestJuniper:
         compile_recording, _ = self.arch.run_simulation(num_steps=1, steps_to_record=["nf1"], print_timing=False, save_buffer=False)
         t_comp = time.time() - t_comp
         compile_recording, _ = self.arch.run_simulation(num_steps=5, steps_to_record=["nf1"], print_timing=False, save_buffer=False)
-        cache_size = getattr(self.arch.engine.tick, "_cache_size", None)
+        cache_size = getattr(self.arch.engine._tick, "_cache_size", None)
         cache_after_compile = cache_size() if cache_size is not None else None
 
         self.arch.reset_state()
@@ -291,7 +291,7 @@ class TestJuniper:
     def test_buffer_save_and_load(self):
         """Permanent buffers should be saved to disk and loaded into a fresh state."""
         self.arch.set_arch_name("test_buffer_arch")
-        data_file = util_jax.cfg["arch_file_path"] + self.arch.get_name() + ".data"
+        data_file = util_jax.cfg["arch_file_path"] + self.arch.get_local_circuit_id() + ".data"
         if os.path.exists(data_file):
             os.remove(data_file)
 

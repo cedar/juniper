@@ -52,29 +52,29 @@ class Circuit(Element):
         """Deletes all elements and slots in the circuit."""
         self.element_map = {}
         self.connection_map_reversed = {}
-        if self.get_name() in self.parent.element_map.keys():
-            self.parent.element_map.pop(self.get_name())
+        if self.get_local_circuit_id() in self.parent.element_map.keys():
+            self.parent.element_map.pop(self.get_local_circuit_id())
         for slot in self.input_slot_map.values():
-            if slot.get_name() in self.parent.connection_map_reversed.keys():
-                self.parent.connection_map_reversed.pop(slot.get_name())
+            if slot.get_local_circuit_id() in self.parent.connection_map_reversed.keys():
+                self.parent.connection_map_reversed.pop(slot.get_local_circuit_id())
         for slot in self.output_slot_map.values():
-            if slot.get_name() in self.parent.connection_map_reversed.keys():
-                self.parent.connection_map_reversed.pop(slot.get_name())
+            if slot.get_local_circuit_id() in self.parent.connection_map_reversed.keys():
+                self.parent.connection_map_reversed.pop(slot.get_local_circuit_id())
 
         self.is_compiled = False
         self.compute_kernel = None
 
 
     def add_element(self, element : Element):
-        element_name = element.get_name()
+        element_name = element.get_local_circuit_id()
         if element_name in self.element_map.keys():
-            raise Exception(f"Circuit::add_element(): Element {element_name} already exists in Circuit ({self.get_name()})")
+            raise Exception(f"Circuit::add_element(): Element {element_name} already exists in Circuit ({self.get_local_circuit_id()})")
         if self is element:
-            raise Exception(f"Circuit::add_element(): A Circuit can't be added as a sub-element to itself ({self.get_name()}).")
+            raise Exception(f"Circuit::add_element(): A Circuit can't be added as a sub-element to itself ({self.get_local_circuit_id()}).")
         self.element_map[element_name] = element
         for slot in element.input_slot_map.values():
-            #print(slot.get_name())
-            self.connection_map_reversed[slot.get_name()] = []
+            #print(slot.get_local_circuit_id())
+            self.connection_map_reversed[slot.get_local_circuit_id()] = []
     
     def get_elements(self) -> dict[str,Element]:
         return self.element_map
@@ -87,31 +87,31 @@ class Circuit(Element):
     def get_incoming_elements(self, dest : Element) -> list[Slot]:
         incoming_steps = []
         if isinstance(dest, Slot):
-            incoming_steps = self.connection_map_reversed[dest.get_name()]
+            incoming_steps = self.connection_map_reversed[dest.get_local_circuit_id()]
         else:
             for slot in dest.input_slot_map.values():
-                incoming_steps += self.connection_map_reversed[slot.get_name()]
+                incoming_steps += self.connection_map_reversed[slot.get_local_circuit_id()]
         return incoming_steps
     
     def connect_to(self, source : Slot, dest : Slot):
         if not isinstance(source, Slot) or not isinstance(dest, Slot):
             source = self.get_slot_from_connectable(source)
             dest = self.get_slot_from_connectable(dest)
-        source_name = source.get_name()
-        dest_name = dest.get_name()
+        source_name = source.get_local_circuit_id()
+        dest_name = dest.get_local_circuit_id()
         
         for parent in [source.parent, dest.parent]:
-            if parent.get_name() not in self.element_map.keys():
-                raise Exception(f"Circuit::connect_to(): Element {parent.get_name()} not found in Circuit (source:{source.parent.get_name()},dest:{dest.parent.get_name()}).")
+            if parent.get_local_circuit_id() not in self.element_map.keys():
+                raise Exception(f"Circuit::connect_to(): Element {parent.get_local_circuit_id()} not found in Circuit (source:{source.parent.get_local_circuit_id()},dest:{dest.parent.get_local_circuit_id()}).")
             
         self.connection_map_reversed.setdefault(dest_name, [])
 
         if source in self.connection_map_reversed[dest_name]:
-            raise Exception(f"Circuit::connect_to(): Connection from {source_name} to {dest_name} already exists ({self.get_name()})")
+            raise Exception(f"Circuit::connect_to(): Connection from {source_name} to {dest_name} already exists ({self.get_local_circuit_id()})")
         
         max_incoming_connections = getattr(dest.parent, "_max_incoming_connections", {}).get(dest.get_slot_id(), dest.max_incoming_connections)
         if len(self.connection_map_reversed[dest_name]) >= max_incoming_connections:
-            raise Exception(f"Circuit::connect_to(): Slot {dest_name} already has {max_incoming_connections} incoming connection(s) ({self.get_name()})")
+            raise Exception(f"Circuit::connect_to(): Slot {dest_name} already has {max_incoming_connections} incoming connection(s) ({self.get_local_circuit_id()})")
 
         self.connection_map_reversed[dest_name].append(source)
     
@@ -120,7 +120,7 @@ class Circuit(Element):
         self.register_input_slot(slot_id=input_slot_id, max_incoming_connections=max_incoming_connections)
         # Register internal slot connection
 
-        self.connection_map_reversed[dest_slot.get_name()].append(self.get_input_slot(input_slot_id))
+        self.connection_map_reversed[dest_slot.get_local_circuit_id()].append(self.get_input_slot(input_slot_id))
 
     def set_output(self, output_slot_id : str, source_slot):
         source_slot = self.get_slot_from_connectable(source_slot, dir="out")
@@ -128,7 +128,7 @@ class Circuit(Element):
             self.register_output_slot(slot_id=output_slot_id)
         # Register internal slot connection
 
-        out_slot_name  = self.get_output_slot(output_slot_id).get_name()
+        out_slot_name  = self.get_output_slot(output_slot_id).get_local_circuit_id()
         if out_slot_name not in self.connection_map_reversed.keys():
             self.connection_map_reversed[out_slot_name] = [source_slot] 
         else:

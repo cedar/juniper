@@ -54,7 +54,7 @@ class TCPWriter(Sink):
         self.shared_memory = shared_memory.SharedMemory(create=True, size=initial_data.nbytes)
         self.shared_data = np.ndarray(initial_data.shape, dtype=initial_data.dtype, buffer=self.shared_memory.buf)
         self.shared_data[:] = initial_data[:]
-        self.comm_thread = Process(target=TCPWorker, args=(self._name, self._params, self.shared_memory.name))
+        self.comm_thread = Process(target=TCPWorker, args=(self.get_local_circuit_id(), self._params, self.shared_memory.name))
 
     def close(self):
         if self.comm_thread.is_alive():

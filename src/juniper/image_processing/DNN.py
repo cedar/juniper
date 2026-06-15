@@ -73,7 +73,7 @@ class DNN(Step):
         if "model_dir" not in self._params.keys():
              self._params["model_dir"] = ".flaxmodels"
 
-        _check_vgg16_presents(self._params, self.get_name())
+        _check_vgg16_presents(self._params, self.get_local_circuit_id())
         self._model = fm.VGG16(output="activations", include_head=False, pretrained="imagenet", ckpt_dir=self._params["model_dir"])
         self._variables = self._model.init(jax.random.PRNGKey(0), jnp.zeros((1, 224, 224, 3), dtype=jnp.float16))
 

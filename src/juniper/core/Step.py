@@ -20,7 +20,7 @@ class Step(Element):
 
     def register_buffer(self, buf_id : str, shape : tuple, permanent : bool  = False):
         if buf_id in self.buffer_map.keys():
-            raise ValueError(f"Buffer {buf_id} already registered in step {self.get_name()}")
+            raise ValueError(f"Buffer {buf_id} already registered in step {self.get_local_circuit_id()}")
         self.buffer_map[buf_id] = Buffer(self, buf_id, shape, permanent)
 
     def infer_output_shapes(self, input_specs):

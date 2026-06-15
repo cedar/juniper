@@ -2,7 +2,7 @@ from .Connectable import Connectable
 
 class Slot(Connectable):
     def __init__(self, element, slot_id : str, max_incoming_connections : int = 1):
-        slot_name = element.get_name() + "." + slot_id
+        slot_name = element.get_local_circuit_id() + "." + slot_id
         super().__init__(name=slot_name)
         self.parent = element
         self.slot_id = slot_id

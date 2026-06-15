@@ -11,7 +11,7 @@ class Sink(Step):
         self.is_sink = True
 
     def set_data(self, data: Any) -> None:
-        raise NotImplementedError(f"Sink {self.get_name()} must implement set_data().")
+        raise NotImplementedError(f"Sink {self.get_local_circuit_id()} must implement set_data().")
 
     def open(self) -> None:
         pass

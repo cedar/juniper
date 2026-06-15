@@ -48,7 +48,7 @@ class Connectable(Configurable):
                 return other_element.get_slot(other_slot)
             
     def get_path(self) -> tuple[str,...]:
-        """returns the path to the connectable as a tuple of strings. ('circ0', 'field0')"""
+        """returns the global path to the connectable as a tuple of strings. ('circ0', 'field0')"""
         obj_path = []
         current = self
 
@@ -59,4 +59,4 @@ class Connectable(Configurable):
             obj_path.insert(0, current)
             current = parent
 
-        return tuple(obj.get_name() for obj in obj_path)
+        return tuple(obj.get_local_circuit_id() for obj in obj_path)

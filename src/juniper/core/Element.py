@@ -28,7 +28,7 @@ class Element(Connectable):
 
     def register_output_slot(self, slot_id : str):
         if slot_id in self.output_slot_map.keys():
-            raise Exception(f"Output slot {slot_id} already registered in step {self.get_name()}")
+            raise Exception(f"Output slot {slot_id} already registered in step {self.get_local_circuit_id()}")
         slot = Slot(self, slot_id)
         # Register output slot shortcut
         setattr(self, f"{slot_id}", slot)
@@ -37,15 +37,15 @@ class Element(Connectable):
 
     def register_input_slot(self, slot_id : str, max_incoming_connections : int = 1):
         if slot_id in self.input_slot_map.keys():
-            raise Exception(f"Input slot {slot_id} already registered in step {self.get_name()}")
+            raise Exception(f"Input slot {slot_id} already registered in step {self.get_local_circuit_id()}")
         slot = Slot(self, slot_id, max_incoming_connections)
         # Register input slot shortcut
         setattr(self, f"{slot_id}", slot)
         # register slot
         self.input_slot_map[slot_id] = slot
         # register input slot with parent circuit if not already done so
-        if slot.get_name() not in self.parent_circuit.connection_map_reversed.keys():
-            self.parent_circuit.connection_map_reversed[slot.get_name()] = []
+        if slot.get_local_circuit_id() not in self.parent_circuit.connection_map_reversed.keys():
+            self.parent_circuit.connection_map_reversed[slot.get_local_circuit_id()] = []
 
     def get_max_incoming_connections(self, slot_id : str) -> int:
         slot = self.get_slot(slot_id=slot_id)
@@ -60,15 +60,15 @@ class Element(Connectable):
                 slot = self.get_output_slot(slot_id)
                 return slot
             except Exception:
-                raise Exception(f"Slot {slot_id} does not exist in step {self.get_name()}")
+                raise Exception(f"Slot {slot_id} does not exist in step {self.get_local_circuit_id()}")
     
     def get_input_slot(self, slot_id : str) -> Slot:
         if slot_id not in self.input_slot_map.keys():
-            raise Exception(f"Slot {slot_id} does not exist in step {self.get_name()}")
+            raise Exception(f"Slot {slot_id} does not exist in step {self.get_local_circuit_id()}")
         return self.input_slot_map[slot_id]
     
     def get_output_slot(self, slot_id : str) -> Slot:
         if slot_id not in self.output_slot_map.keys():
-            raise Exception(f"Slot {slot_id} does not exist in step {self.get_name()}")
+            raise Exception(f"Slot {slot_id} does not exist in step {self.get_local_circuit_id()}")
         return self.output_slot_map[slot_id]
     

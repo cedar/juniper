@@ -29,7 +29,7 @@ class ElementRef:
     @property
     def name(self) -> str:
         """Return the connectable name."""
-        return self.element.get_name()
+        return self.element.get_local_circuit_id()
     
     @property
     def path_str(self) -> str:
@@ -203,7 +203,7 @@ def _init_step_state(element: Element) -> StateTree:
 
 def load_permanent_buffers(compile_info: CompileInfo, runtime_state: RuntimeState) -> dict[str, dict[str, Any]]:
     """Load permanent buffers from the circuit's data file into runtime state."""
-    data_file = util_jax.cfg["arch_file_path"] + compile_info.circuit.get_name() + ".data"
+    data_file = util_jax.cfg["arch_file_path"] + compile_info.circuit.get_local_circuit_id() + ".data"
     with open(data_file, "r") as f:
         tree = json.load(f)
 
@@ -252,6 +252,6 @@ def save_permanent_buffers(compile_info: CompileInfo, runtime_state: RuntimeStat
             tree[".".join(ref.path)] = {"BUFFER": buffers}
 
     if len(tree) > 0:
-        data_file = util_jax.cfg["arch_file_path"] + compile_info.circuit.get_name() + ".data"
+        data_file = util_jax.cfg["arch_file_path"] + compile_info.circuit.get_local_circuit_id() + ".data"
         with open(data_file, "w") as f:
             f.write(json.dumps(tree, indent=4))
