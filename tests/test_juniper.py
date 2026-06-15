@@ -285,7 +285,7 @@ class TestJuniper:
 
         with pytest.raises(Exception):
             with simulate_user_input("n"):
-                dnn2 = jp.DNN("dnn2", {"layer":"4_3"})
+                jp.DNN("dnn2", {"layer":"4_3"})
 
     @function_test
     def test_buffer_save_and_load(self):
@@ -343,7 +343,7 @@ class TestJuniper:
             "time_step": 0.005,
             "connect_retry_delay": 0.01,
         }
-        tcp_reader = jp.TCPReader("tcp_reader", tcp_params)
+        jp.TCPReader("tcp_reader", tcp_params)
         tcp_writer = jp.TCPWriter("tcp_writer", tcp_params)
 
         input = jp.CustomInput("input", {"shape":(3,)})

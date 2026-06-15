@@ -3,7 +3,6 @@ from ..util import util, util_jax
 import jax
 import jax.numpy as jnp
 from functools import partial
-import numpy as np
 
 def make_euler_bcm_func(params, static):
     static_argnames = []

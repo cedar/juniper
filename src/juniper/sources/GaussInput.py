@@ -1,8 +1,6 @@
 from ..core.Source import Source
 from ..math.Gaussian import Gaussian
 from ..util import util
-import jax
-from functools import partial
 import warnings
 
 def compute_kernel_factory(kernel):

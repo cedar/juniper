@@ -1,6 +1,5 @@
 from .Connectable import Connectable
 from .Slot import Slot
-from ..util import util_jax
 from typing import Callable
 from typing import Optional
 

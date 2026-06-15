@@ -45,11 +45,11 @@ class Compiler:
         self._compile_circuit(circuit, {})
         try:
             assert circuit.is_compiled
-        except:
+        except Exception as e:
             failed_elements = self._gather_uncompiled_elements(circuit=circuit)
             element_paths = [ElementRef(element).path_str for element in failed_elements]
             
-            raise Exception(f"The circuit '{circuit.get_local_circuit_id()}' could not be compiled. \nThese elements failed to compile: {element_paths}")
+            raise Exception(f"{e}: The circuit '{circuit.get_local_circuit_id()}' could not be compiled. \nThese elements failed to compile: {element_paths}")
 
         self.compile_info = self.local_compile_info[self.circuit]
         return self.compile_info

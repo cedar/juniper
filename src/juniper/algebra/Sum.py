@@ -1,8 +1,6 @@
 from ..core.Step import Step
 from ..util import util
 import jax.numpy as jnp
-import jax
-from functools import partial
 
 def compute_kernel_factory():
     def compute_kernel(input_mats, buffer, **kwargs):

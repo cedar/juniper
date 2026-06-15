@@ -4,7 +4,6 @@ from ..util import util_jax
 import jax.numpy as jnp
 import jax
 from functools import partial
-import numpy as np
 
 def no_reward_gating(passedTime, reward_signal, reward_onset, reward_timer, reward_duration):
     return util_jax.ones((1,)), util_jax.ones((1,)), util_jax.zeros((1,))
@@ -223,7 +222,8 @@ class HebbianConnection(Step):
         #self.register_input_slot(util.DEFAULT_INPUT_SLOT) # source activation
         self.register_input_slot("in1") # target activaiton
         self.register_input_slot("in2") # reward signal
-        if self._params["wheight_reset_slot"]: self.register_input_slot("in3") # weight reset signal: should be a binary scalar signal. Gets multiplied with weights each step.
+        if self._params["wheight_reset_slot"]: 
+            self.register_input_slot("in3") # weight reset signal: should be a binary scalar signal. Gets multiplied with weights each step.
         self.register_output_slot("out1") # rev_output
 
         self.register_buffer("wheights", self._params["wheight_shape"], permanent=True) # dynamic wheight parameter

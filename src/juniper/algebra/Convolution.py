@@ -1,6 +1,5 @@
 from ..core.Step import Step
 from ..util import util
-import jax.numpy as jnp
 import jax.scipy as jsp
 
 def compute_kernel_factory(params, kernel, use_dynamic):
