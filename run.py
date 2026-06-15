@@ -6,7 +6,7 @@ import os
 from juniper.util.plotting import plot_history
 from juniper.util.util import tprint
 from juniper import util
-from juniper.configurables.Architecture import get_arch
+from juniper.core.Architecture import get_arch
 
 if __name__ == "__main__":
 
