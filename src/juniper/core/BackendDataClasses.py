@@ -10,7 +10,8 @@ import numpy as np
 
 
 """
-Central place to define dataclasses and types. Here we have a central place where we can look up types and document them properly.
+Central place to define dataclasses and types that are used by the backend Engine, Compiler and RuntimState. 
+Here we have a central place where we can look up types and document them properly.
 """
 
 

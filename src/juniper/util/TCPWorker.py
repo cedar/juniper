@@ -1,11 +1,38 @@
 from ..core.Configurable import Configurable
-from .util_tcp import get_tcp_logger
 
 import numpy as np
 import re
 import time
 import socket
 from multiprocessing import shared_memory
+import logging
+import os
+from pathlib import Path
+
+_LOGGER_CACHE = {}
+
+def get_tcp_logger(name: str) -> logging.Logger:
+    logger = _LOGGER_CACHE.get(name)
+    if logger is not None:
+        return logger
+
+    log_path = Path(os.getcwd()) / "juniper_tcp.log"
+    logger = logging.getLogger(f"juniper.tcp.{name}")
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+
+    if not logger.handlers:
+        handler = logging.FileHandler(log_path, encoding="utf-8")
+        formatter = logging.Formatter(
+            "%(asctime)s %(levelname)s [%(name)s] %(message)s"
+        )
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+
+    _LOGGER_CACHE[name] = logger
+    return logger
+
+
 
 def cpp_crc32(data: bytes) -> int:
     # C++ style CRC32 computation

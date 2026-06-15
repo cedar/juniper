@@ -54,10 +54,13 @@ class TestJuniper:
         self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
         assert self.arch.is_compiled
 
-        recording, timing = self.arch.run_simulation(num_steps=42, steps_to_record=["in1"], print_timing=False, save_buffer=False)
+        recording, timing = self.arch.run_simulation(num_steps=42, steps_to_record=["in1", in1, in1.out0], print_timing=False, save_buffer=False)
         assert len(recording) == 42
         assert np.isclose(recording[0][0], 1)
-        assert np.isclose(np.sum(recording), 42)
+        assert np.isclose(recording[0][1], 1)
+        assert np.isclose(recording[0][2], 1)
+        assert np.array_equal(np.shape(recording), (42,3,1))
+        assert np.isclose(np.sum(recording), 126)
 
     @function_test
     def test_custom_input_updates_after_compile(self):
@@ -161,7 +164,7 @@ class TestJuniper:
         assert self.arch.is_compiled
 
         self.arch.reset_state()
-        recording, timing = self.arch.run_simulation(num_steps=1, steps_to_record=["circ", "circ2"], print_timing=False, save_buffer=False)
+        recording, timing = self.arch.run_simulation(num_steps=1, steps_to_record=[circ, "circ2"], print_timing=False, save_buffer=False)
 
         last_out = recording[-1][0]
         last_out2 = recording[-1][1]
@@ -528,11 +531,6 @@ class TestJuniper:
         recording, _ = self.arch.run_simulation(num_steps=1, steps_to_record=["c"], print_timing=False, save_buffer=False)
 
         assert np.isclose(np.sum(recording[-1][0]), 3)
-        
-
-
-
-
 
 def build_bcm_buffer_circuit():
     source = jp.CustomInput("source", {"shape":(1, 1, 1)})

@@ -20,6 +20,8 @@ def delete_arch():
 
 class Architecture(Circuit):
     def __init__(self, name : str = "architecture"):
+        """A singleton instance for the top-level circuit. Cannot have input or output slots.\n
+        The architecture class also includes useful functions for comilation and simulation without manually having to call engine and compiler."""
         if Circuit._current is not None:
             raise Exception("Parent circuit already exists. Use this class only to initialize the top-level architecture.")
         else:
@@ -48,3 +50,10 @@ class Architecture(Circuit):
 
     def close_connections(self):
         self.engine._close_connections()
+
+    def set_input(self, input_slot_id, dest_slot, max_incoming_connections = 1):
+        raise Exception("The top-level architecture singleton should not have danglin input slots. Use Sinks and Sources for external communication.")
+    
+    def set_output(self, output_slot_id, source_slot):
+        raise Exception("The top-level architecture singleton should not have danglin output slots. Use Sinks and Sources for external communication.")
+    

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any
-from .DataClasses import CompileInfo
-from .DataClasses import ElementRef
+from .BackendDataClasses import CompileInfo
+from .BackendDataClasses import ElementRef
 
 from .Circuit import Circuit
 from .Element import Element

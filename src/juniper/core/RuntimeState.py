@@ -1,10 +1,10 @@
 from __future__ import annotations
 from typing import Any
 
-from .DataClasses import ElementRef
-from .DataClasses import CompileInfo
-from .DataClasses import Path
-from .DataClasses import StateTree
+from .BackendDataClasses import ElementRef
+from .BackendDataClasses import CompileInfo
+from .BackendDataClasses import Path
+from .BackendDataClasses import StateTree
 
 import json
 import jax.numpy as jnp
@@ -12,6 +12,7 @@ import numpy as np
 
 from .Circuit import Circuit
 from .Element import Element
+from .Connectable import Connectable
 from ..dft.NeuralField import NeuralField
 from ..util import util
 from ..util import util_jax
@@ -71,15 +72,21 @@ class RuntimeState:
         step_state[util.DEFAULT_OUTPUT_SLOT] = jnp.array(data, dtype=output_slot.dtype)
         self.set(ref, step_state)
 
-    def record(self, compile_info: CompileInfo, target: str) -> np.ndarray:
+    def record(self, compile_info: CompileInfo, target: Connectable | str) -> np.ndarray:
         """Read a recording target such as 'field' or 'field.out0'."""
-        path = tuple(target.split("."))
-        if path in compile_info.compiled_elements:
-            ref = compile_info.ref_at(path)
-            slot_id = util.DEFAULT_OUTPUT_SLOT
-        else:
-            path_str, slot_id = target.rsplit(".", 1) if "." in target else (target, util.DEFAULT_OUTPUT_SLOT)
-            ref = compile_info.ref_at(tuple(path_str.split(".")))
+        if isinstance(target, str):
+            path = tuple(target.split("."))
+            if path in compile_info.compiled_elements:
+                ref = compile_info.ref_at(path)
+                slot_id = util.DEFAULT_OUTPUT_SLOT
+            else:
+                path_str, slot_id = target.rsplit(".", 1) if "." in target else (target, util.DEFAULT_OUTPUT_SLOT)
+                ref = compile_info.ref_at(tuple(path_str.split(".")))
+        elif isinstance(target, Connectable):
+            slot = target.get_slot_from_connectable(target)
+            ref = ElementRef(slot.parent)
+            slot_id = slot.get_slot_id()
+
         return self.read_slot(ref, slot_id)
 
 
