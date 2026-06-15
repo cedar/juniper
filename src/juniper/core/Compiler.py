@@ -1,13 +1,13 @@
 from __future__ import annotations
 from typing import Any
+from .DataClasses import CompileInfo
+from .DataClasses import ElementRef
 
 from .Circuit import Circuit
 from .Element import Element
 from .Slot import Slot
 from .Buffer import Buffer
 from .Step import Step
-from .RuntimeInfo import CompileInfo
-from .RuntimeInfo import ElementRef
 from ..util import util_jax
 from ..util import util
 

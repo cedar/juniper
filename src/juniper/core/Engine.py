@@ -1,4 +1,8 @@
 from __future__ import annotations
+from .DataClasses import CompileInfo
+from .DataClasses import StateTree
+from .DataClasses import TimingInfo
+from .DataClasses import Recording
 
 from ..util.util import timer
 from ..util import util_jax
@@ -8,14 +12,10 @@ from functools import partial
 from typing import Any
 from .Circuit import Circuit
 from .Compiler import Compiler
-from .RuntimeInfo import CompileInfo
-from .RuntimeInfo import RuntimeState
-from .RuntimeInfo import StateTree
-from .RuntimeInfo import load_permanent_buffers
-from .RuntimeInfo import save_permanent_buffers
+from .RuntimeState import RuntimeState
+from .RuntimeState import load_permanent_buffers
+from .RuntimeState import save_permanent_buffers
 
-TimingInfo = dict[str, Any]
-Recording = list[list[np.ndarray]]
 
 class Engine:
     """Runtime driver for a compiled circuit.
