@@ -241,13 +241,13 @@ class Engine:
 
           
     def _close_connections(self) -> None:
-        """Close all runtime IO endpoints and managed processes."""
-        for ref in self.compile_info.runtime_connections():
+        """Close all runtime IO endpoints."""
+        for ref in self.compile_info.gather_connections():
             ref.element.close()
 
     def _open_connections(self) -> None:
-        """Open all runtime IO endpoints and managed processes."""
-        for ref in self.compile_info.runtime_connections():
+        """Open all runtime IO endpoints."""
+        for ref in self.compile_info.gather_connections():
             ref.element.open()
     
     ########## utility #################

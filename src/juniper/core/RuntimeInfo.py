@@ -22,7 +22,7 @@ Path = tuple[str, ...]
 
 @dataclass(frozen=True)
 class ElementRef:
-    """Stable handle to an element inside the nested runtime state tree."""
+    """Reference to an element inside the runtime state. Include nice to have path representations."""
 
     element: Element
 
@@ -58,8 +58,8 @@ class ElementRef:
 class CompileInfo:
     """Runtime result of compilation.
 
-    This object is the contract between Compiler and Engine: graph traversal,
-    state locations, kernels, IO endpoints, and process ownership are gathered
+    This object holds the compiled information of a circuit and is used by Engine. For graph traversal,
+    state location, kernels, IO endpoints, and process ownership are gathered
     here so Engine does not need to inspect the user-defined circuit object directly.
 
     shape:
@@ -74,11 +74,10 @@ class CompileInfo:
     static: list[ElementRef]
     sources: list[ElementRef]
     sinks: list[ElementRef]
-    sub_processes: list[ElementRef]
     kernel_map: KernelMap
 
     def ref_at(self, path: Path) -> ElementRef:
-        """Look up the compiled element handle for a path."""
+        """Look up the compiled element ref for a path."""
         return self.compiled_elements[path]
 
     def dynamic_step_paths(self) -> set[Path]:
@@ -89,11 +88,11 @@ class CompileInfo:
             if not isinstance(ref.element, Circuit)
         }
 
-    def runtime_connections(self) -> list[ElementRef]:
-        """Return handles for each source, sink, or managed process once. used for open/close connections."""
+    def gather_connections(self) -> list[ElementRef]:
+        """Return refs for source and sink. used for open/close connections."""
         refs = []
         seen = set()
-        for group in (self.sources, self.sinks, self.sub_processes):
+        for group in (self.sources, self.sinks):
             for ref in group:
                 element_id = id(ref.element)
                 if element_id in seen:
@@ -107,7 +106,7 @@ class RuntimeState:
     """Small wrapper around the flat JAX state tree.
 
     RuntimeState hides path-key handling from Engine. Engine can work with
-    ElementRef objects while this class reads and writes the matching flat
+    ElementRef objects while this class reads and writes the matching
     state entry.
 
     shape:

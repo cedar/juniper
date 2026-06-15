@@ -19,7 +19,6 @@ class Element(Connectable):
         self.is_dynamic = False
         self.is_sink = False
         self.is_source = False
-        self.manages_sup_process = False
         self.needs_input_connections = True
         self.input_aggregation = "sum"
 

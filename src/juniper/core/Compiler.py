@@ -241,22 +241,17 @@ class Compiler:
                 dtype = source.dtype
         return shape, dtype
 
-    def _empty_compile_info(self, circuit : Circuit) -> CompileInfo:
-        """Create an empty CompileInfo container for one circuit."""
-        return CompileInfo(
+    def _collect_compile_info(self, circuit : Circuit) -> CompileInfo:
+        """Gather compiled elements, endpoints, and kernels."""
+        compile_info = CompileInfo(
             circuit=circuit,
             compiled_elements={},
             dynamic=[],
             static=[],
             sources=[],
             sinks=[],
-            sub_processes=[],
             kernel_map={},
         )
-
-    def _collect_compile_info(self, circuit : Circuit) -> CompileInfo:
-        """Gather compiled elements, endpoints, and kernels."""
-        compile_info = self._empty_compile_info(circuit)
 
         for element_name, element in circuit.element_map.items():
             if not element.is_compiled:
@@ -281,8 +276,6 @@ class Compiler:
                 compile_info.sources.append(element_ref)
             if element.is_sink:
                 compile_info.sinks.append(element_ref)
-            if element.manages_sup_process:
-               compile_info.sub_processes.append(element_ref)
 
             if isinstance(element, Circuit):
                 child_info = self.local_compile_info[element]
@@ -294,8 +287,6 @@ class Compiler:
                     compile_info.sources.append(child_ref)
                 for child_ref in child_info.sinks:
                     compile_info.sinks.append(child_ref)
-                for child_ref in child_info.sub_processes:
-                    compile_info.sub_processes.append(child_ref)
 
         return compile_info
 
