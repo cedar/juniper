@@ -44,27 +44,21 @@ def next_random_keys(num):
     jax_prng_key = keys[0]
     return keys[1:]
 
-def build_prng_tree(kernel_map, dynamic_paths, static_key, path=()):
+def build_prng_tree(kernel_map, dynamic_paths, static_key):
     tree = {}
     slots = []
-    for element_name, kernel_info in kernel_map.items():
-        element_path = path + (element_name,)
-        if kernel_info["sub_kernel"] is None:
-            tree[element_name] = static_key
-            if element_path in dynamic_paths:
-                slots.append((tree, element_name))
-        else:
-            subtree, subslots = build_prng_tree(kernel_info["sub_kernel"], dynamic_paths, static_key, element_path)
-            tree[element_name] = subtree
-            slots.extend(subslots)
+    for element_path in kernel_map.keys():
+        tree[element_path] = static_key
+        if element_path in dynamic_paths:
+            slots.append((tree, element_path))
     return tree, slots
 
 def update_prng_tree(prng_tree, prng_slots):
     if len(prng_slots) == 0:
         return prng_tree
     keys = next_random_keys(len(prng_slots))
-    for key, (tree, element_name) in zip(keys, prng_slots):
-        tree[element_name] = key
+    for key, (tree, element_path) in zip(keys, prng_slots):
+        tree[element_path] = key
     return prng_tree
 
 def zeros(shape, dtype=None):

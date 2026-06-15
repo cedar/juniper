@@ -191,8 +191,8 @@ class TestJuniper:
         assert ("circ",) in compile_info.compiled_elements
         assert ("circ", "summed_inputs") in compile_info.compiled_elements
         assert compile_info.compiled_elements[("circ", "summed_inputs")].element.get_name() == "summed_inputs"
-        assert "circ" in compile_info.kernel_map
-        assert "summed_inputs" in compile_info.kernel_map["circ"]["sub_kernel"]
+        assert ("circ",) in compile_info.kernel_map
+        assert ("circ", "summed_inputs") in compile_info.kernel_map
 
     @function_test
     def test_component_multiply_product_aggregation(self):
@@ -503,6 +503,31 @@ class TestJuniper:
 
         assert np.array_equal(in_array, out_array)
         assert np.array_equal(in_array, explicit_out_array)
+
+    @function_test
+    def test_circuit_output_multiple_sources(self):
+        """Circuit output slots should sum all registered internal source slots."""
+        c = jp.Circuit("c", {})
+        with c as c:
+            in0 = jp.Sum("in0", {})
+            in1 = jp.Sum("in1", {})
+            c.set_input("in0", in0)
+            c.set_input("in1", in1)
+            c.set_output("out0", in0)
+            c.set_output("out0", in1)
+
+        input0 = jp.CustomInput("input0", {"shape":(1,)})
+        input1 = jp.CustomInput("input1", {"shape":(1,)})
+        input0.set_data(np.ones((1,), dtype=np.float32))
+        input1.set_data(np.ones((1,), dtype=np.float32) * 2)
+
+        input0 >> c.in0
+        input1 >> c.in1
+
+        self.arch.compile(warmup=1, print_compile_info=False, load_buffer=False)
+        recording, _ = self.arch.run_simulation(num_steps=1, steps_to_record=["c"], print_timing=False, save_buffer=False)
+
+        assert np.isclose(np.sum(recording[-1][0]), 3)
         
 
 

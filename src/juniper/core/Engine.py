@@ -156,10 +156,62 @@ class Engine:
 
     @partial(jax.jit, static_argnames=["self"])
     def tick(self, state: StateTree, prng_keys: StateTree) -> StateTree:
-        """Execute one compiled circuit tick inside JAX."""
-        out = self.circuit.compute_kernel({}, state, **{"prng_keys": prng_keys, "kernel_map": self.kernel_map})
-        return out
+        """Execute one compiled tick inside JAX."""
+        new_state = state.copy()
 
+        for element_path, kernel in self.kernel_map.items():
+            ref = self.compile_info.compiled_elements[element_path]
+            element = ref.element
+            
+            input = self._gather_element_input(new_state, element)
+            new_state[element_path] = kernel(
+                input,
+                state[element_path],
+                **{"prng_key": prng_keys[element_path], "prng_keys": prng_keys[element_path]},
+            )
+
+        return new_state
+
+    def _gather_element_input(self, state: StateTree, element: Circuit) -> dict[str, Any]:
+        """Build a state input dict for one element."""
+
+        input = {}
+        for slot_id, input_slot in element.input_slot_map.items():
+            sources = element.parent.connection_map_reversed[input_slot.get_name()]
+            input[slot_id] = self._aggregate_slot_values(state, sources, element.input_aggregation)
+
+        if isinstance(element, Circuit):
+            for out_slot in element.output_slot_map.values():
+                source_slots = element.connection_map_reversed[out_slot.get_name()]
+                input[out_slot.get_slot_id()] = self._aggregate_slot_values(state, source_slots, element.input_aggregation)
+        
+        return input
+
+    def _aggregate_slot_values(self, state: StateTree, slots: list[Any], aggregation: str) -> Any:
+        """Resolve source slots in flat state and combine them for one input."""
+        if len(slots) == 0:
+            return 0
+
+        value = self._read_source_slot(state, slots[0])
+        for slot in slots[1:]:
+            slot_value = self._read_source_slot(state, slot)
+            if aggregation == "product":
+                value = value * slot_value
+            else:
+                value = value + slot_value
+        return value
+
+    def _read_source_slot(self, state: StateTree, slot: Any) -> Any:
+        """Read a source slot from flat state, following circuit input bridges."""
+        source = slot.parent
+        slot_id = slot.get_slot_id()
+
+        if isinstance(source, Circuit) and slot_id in source.input_slot_map:
+            sources = source.parent.connection_map_reversed[slot.get_name()]
+            return self._aggregate_slot_values(state, sources, source.input_aggregation)
+
+        return state[source.get_path()][slot_id]
+    
     def _push_sources(self) -> None:
         """Copy CPU-side source data into the runtime state before a tick."""
         for ref in self.compile_info.sources:

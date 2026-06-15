@@ -5,6 +5,7 @@ class Slot(Connectable):
         slot_name = element.get_name() + "." + slot_id
         super().__init__(name=slot_name)
         self.parent = element
+        self.slot_id = slot_id
         self.shape = None
         self.dtype = None
         self.max_incoming_connections = max_incoming_connections
@@ -12,5 +13,5 @@ class Slot(Connectable):
 
 
     def get_slot_id(self) -> str:
-        return self.get_name().split(".")[1]
+        return self.slot_id
         

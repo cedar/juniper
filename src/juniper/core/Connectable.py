@@ -47,16 +47,16 @@ class Connectable(Configurable):
             else:
                 return other_element.get_slot(other_slot)
             
-    def get_path(self) -> list[Connectable]:
-        """returns the parents of the connectable in an ordered list from top-level to self."""
-        path = [self]
-        found_top = False
+    def get_path(self) -> tuple[str,...]:
+        """returns the path to the connectable as a tuple of strings. ('circ0', 'field0')"""
+        obj_path = []
+        current = self
 
-        while not found_top:
-            parent = path[0].parent_circuit
-            path.insert(0, parent)
-            if parent is parent.parent_circuit or parent.parent_circuit is None:
-                found_top = True
+        while True:
+            parent = current.parent_circuit
+            if parent is None or parent is current:
+                break
+            obj_path.insert(0, current)
+            current = parent
 
-        return path
-
+        return tuple(obj.get_name() for obj in obj_path)

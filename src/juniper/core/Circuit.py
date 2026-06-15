@@ -6,58 +6,17 @@ from .Slot import Slot
 from .Element import Element
 from . import CircuitContext
 
-def compute_kernel_factory(element_map : dict[str,Element], output_slot_map : dict[str,Slot], input_slot_map : dict[str,Slot], connection_map_reversed: dict[str,list[Slot]]) -> Callable[[dict, dict, Optional[dict]], dict]:
+def compute_kernel_factory(output_slot_map : dict[str,Slot]) -> Callable[[dict, dict, Optional[dict]], dict]:
     def compute_kernel(input : dict, state : dict, **kwargs : Optional[dict]) -> dict:
         """
-            - input: {"in0":jax_array, "in1":jax_array, ...}
-            - state: {"element1": {"buffer":jax_array, "out0":jax_array,...}, "sub_circuit":{sub_state}, "out0":jax_array, "out1":...}
-            - prng_keys: {"element1": key1, "sub_circtuit": {"sub_keys}, ...}
-            - kernel_map: {"element1": {"kernel":kernel1, "sub_kernel":None}, "sub_circuit": {"kernel":kernel2, "sub_kernel": {sub_kernels}}}
-        """
+            - input: {"out0":jax_array, "ou1":jax_array, ...}
+            - state: {"out0":jax_array, "ou1":jax_array, ...}
+"""
 
-        new_state = state.copy()
-
-        for element_name, element in element_map.items():
-            sub_inputs = {}
-            for input_slot_id, input_slot in element.input_slot_map.items():
-                sub_inputs[input_slot_id] = 0
-                input_values = []
-                for source_slot in connection_map_reversed[input_slot.get_name()]:
-                    source_name, source_slot_id = source_slot.get_name().split(".")
-                    if source_slot.parent in element_map.values():
-                        input_values.append(new_state[source_name][source_slot_id])
-                    else:
-                        input_values.append(input[source_slot_id])
-
-                if len(input_values) == 0:
-                    continue
-
-                input_reduction = input_values[0]
-                for value in input_values[1:]:
-                    if element.input_aggregation == "product":
-                        input_reduction = input_reduction * value
-                    elif element.input_aggregation == "sum":
-                        input_reduction = input_reduction + value
-                sub_inputs[input_slot_id] = input_reduction
-
-            kernel = kwargs["kernel_map"][element_name]["kernel"]
-            sub_kernel = kwargs["kernel_map"][element_name]["sub_kernel"]
-            prng_keys = kwargs["prng_keys"][element_name]
-            element_out = kernel(sub_inputs, state[element_name], **{"prng_key": prng_keys, "prng_keys": prng_keys, "kernel_map":sub_kernel})
-            new_state[element_name] = element_out
-
-        # set output
-        for slot_id, out_slot in output_slot_map.items():
-            source_slots = connection_map_reversed[out_slot.get_name()]
-            new_state[slot_id] = new_state[slot_id] * 0
-            for source_slot in source_slots:
-                source = source_slot.parent
-                if source in element_map.values():
-                    new_state[slot_id] = new_state[slot_id] + new_state[source.get_name()][source_slot.get_slot_id()]
-                else:
-                    new_state[slot_id] = new_state[slot_id] + input[source_slot.get_slot_id()]
-
-        return new_state
+        out = state.copy()
+        for slot_id in output_slot_map.keys():
+            out[slot_id] = input[slot_id]
+        return out
 
     return compute_kernel
 
@@ -165,7 +124,8 @@ class Circuit(Element):
 
     def set_output(self, output_slot_id : str, source_slot):
         source_slot = self.get_slot_from_connectable(source_slot, dir="out")
-        self.register_output_slot(slot_id=output_slot_id)
+        if output_slot_id not in self.output_slot_map:
+            self.register_output_slot(slot_id=output_slot_id)
         # Register internal slot connection
 
         out_slot_name  = self.get_output_slot(output_slot_id).get_name()
@@ -176,7 +136,7 @@ class Circuit(Element):
         
 
     def generate_kernel(self):
-        self.compute_kernel = compute_kernel_factory(self.element_map, self.output_slot_map, self.input_slot_map, self.connection_map_reversed)
+        self.compute_kernel = compute_kernel_factory(self.output_slot_map)
 
     def define_circuit_structure(self):
         # --- circuit description ---

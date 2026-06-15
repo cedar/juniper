@@ -24,13 +24,34 @@ Path = tuple[str, ...]
 class ElementRef:
     """Stable handle to an element inside the nested runtime state tree."""
 
-    path: Path
     element: Element
 
     @property
     def name(self) -> str:
-        """Return the element name."""
+        """Return the connectable name."""
         return self.element.get_name()
+    
+    @property
+    def path_str(self) -> str:
+        """Return the path of the element in string format. (i.e. 'circ0.field1')"""
+        path_str = ""
+        for sub_str in self.path:
+            path_str += sub_str + "."
+        return path_str[:-1]
+
+    @property     
+    def path_objs(self) -> tuple[Element, ...]:
+        """Return the elemnt objects in the elements path. Including the Ref element: (circ0, sub_circ, field0)"""
+        path_objs = (self.element,)
+        for sub_str in reversed(self.path[:-1]):
+            path_objs = (self.element.parent, ) + path_objs
+        return path_objs 
+    
+    @property
+    def path(self) -> Path:
+        """Return the path to the element."""
+        return self.element.get_path()
+
 
 
 @dataclass
@@ -83,53 +104,46 @@ class CompileInfo:
 
 
 class RuntimeState:
-    """Small wrapper around the nested JAX state tree.
+    """Small wrapper around the flat JAX state tree.
 
-    RuntimeState hides path traversal from Engine. Engine can work with
-    ElementRef objects while this class reads and writes the matching subtree.
+    RuntimeState hides path-key handling from Engine. Engine can work with
+    ElementRef objects while this class reads and writes the matching flat
+    state entry.
 
     shape:
         ref.path = ("sub", "field")
-        get(ref) -> state_tree["sub"]["field"]
-        set(ref, x) -> state_tree["sub"]["field"] = x
+        get(ref) -> state_tree[("sub", "field")]
+        set(ref, x) -> state_tree[("sub", "field")] = x
     """
 
     def __init__(self, state_tree: StateTree):
-        """Store the nested state tree used by the jitted tick function."""
+        """Store the flat state tree used by the jitted tick function."""
         self.state_tree = state_tree
 
     @classmethod
     def from_compile_info(cls, compile_info: CompileInfo) -> RuntimeState:
         """Allocate the initial runtime state from compiled slot/buffer specs."""
-        return cls(_init_circuit_state(compile_info.circuit))
+        return cls(_init_state(compile_info))
 
     def copy(self) -> RuntimeState:
         """Copy the top-level tree."""
         return RuntimeState(self.state_tree.copy())
 
     def trace_state_tree(self, path: Path) -> StateTree:
-        """Traces the specified path in the state tree and returns the sub_state."""
-        state = self.state_tree
-        for name in path:
-            state = state[name]
-        return state
+        """Return the flat state entry for a path."""
+        return self.state_tree[path]
 
     def get(self, ref: ElementRef) -> StateTree:
-        """Return the state subtree owned by an element reference."""
+        """Return the state entry owned by an element reference."""
         return self.trace_state_tree(ref.path)
     
     def get_parent(self, ref: ElementRef) -> StateTree:
-        """Returns parents state tree of the element reference."""
-        return self.trace_state_tree(ref.path[:-1])
+        """Flat state has no parent subtree; return the top-level tree."""
+        return self.state_tree
 
     def set(self, ref: ElementRef, step_state: StateTree) -> None:
-        """Replace the state subtree owned by an element reference."""
-        if len(ref.path) == 1:
-            self.state_tree[ref.path[0]] = step_state
-            return
-
-        state = self.get_parent(ref)
-        state[ref.path[-1]] = step_state
+        """Replace the state entry owned by an element reference."""
+        self.state_tree[ref.path] = step_state
 
     def read_slot(self, ref: ElementRef, slot_id: str = util.DEFAULT_OUTPUT_SLOT) -> np.ndarray:
         """Copy a slot from device/runtime state back to a NumPy array."""
@@ -154,15 +168,21 @@ class RuntimeState:
         return self.read_slot(ref, slot_id)
 
 
-def _init_circuit_state(circuit: Circuit) -> StateTree:
-    """Recursively allocate output slots and buffers for a compiled circuit."""
+def _init_state(compile_info: CompileInfo) -> StateTree:
+    """Allocate one state for each compiled element."""
     state = {}
-    for element_name, element in circuit.element_map.items():
-        if element is not circuit:
-            if isinstance(element, Circuit):
-                state[element_name] = _init_circuit_state(element)
-            else:
-                state[element_name] = _init_step_state(element)
+    for ref in compile_info.compiled_elements.values():
+        element = ref.element
+        if isinstance(element, Circuit):
+            state[ref.path] = _init_circuit_state(ref.element)
+        else:
+            state[ref.path] = _init_step_state(ref.element)
+    return state
+
+
+def _init_circuit_state(circuit: Circuit) -> StateTree:
+    """Allocate output slots for a compiled circuit element."""
+    state = {}
     for slot_id, slot in circuit.output_slot_map.items():
         state[slot_id] = zeros(slot.shape, slot.dtype)
     return state

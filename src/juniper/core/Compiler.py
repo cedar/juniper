@@ -87,8 +87,9 @@ class Compiler:
                     state_updated = True
                     sub_state_updated = True
 
-                if element.is_compiled and (element_name,) not in self.compiled_element_map[circuit]:
-                    self.compiled_element_map[circuit][(element_name,)] = element
+                element_ref = ElementRef(element)
+                if element.is_compiled and element_ref.path not in self.compiled_element_map[circuit]:
+                    self.compiled_element_map[circuit][element_ref.path] = element
 
             output_slot_updated = self.compile_circuit_output_slots(circuit)
             if output_slot_updated:
@@ -254,10 +255,6 @@ class Compiler:
             kernel_map={},
         )
 
-    def compile_entry(self, path : tuple[str, ...], element : Element) -> ElementRef:
-        """Create the stable runtime reference for an element."""
-        return ElementRef(path=path, element=element)
-
     def collect_compile_info(self, circuit : Circuit) -> CompileInfo:
         """Gather compiled elements, endpoints, and kernels."""
         compile_info = self.empty_compile_info(circuit)
@@ -266,9 +263,17 @@ class Compiler:
             if not element.is_compiled:
                 continue
 
-            element_path = (element_name,)
-            element_ref = self.compile_entry(element_path, element)
-            compile_info.compiled_elements[element_path] = element_ref
+            element_ref = ElementRef(element)
+            path = element_ref.path
+            if isinstance(element, Circuit):
+                child_info = self.local_compile_info[element]
+                for child_ref in child_info.compiled_elements.values():
+                    compile_info.compiled_elements[child_ref.path] = child_ref
+                for child_path, child_kernel in child_info.kernel_map.items():
+                    compile_info.kernel_map[child_path] = child_kernel
+
+            compile_info.compiled_elements[path] = element_ref
+            compile_info.kernel_map[path] = element.compute_kernel
             if element.is_dynamic:
                 compile_info.dynamic.append(element_ref)
             else:
@@ -282,28 +287,16 @@ class Compiler:
 
             if isinstance(element, Circuit):
                 child_info = self.local_compile_info[element]
-                for child_path, child_ref in child_info.compiled_elements.items():
-                    path = (element_name,) + child_path
-                    compile_info.compiled_elements[path] = self.compile_entry(path, child_ref.element)
                 for child_ref in child_info.dynamic:
-                    compile_info.dynamic.append(self.compile_entry((element_name,) + child_ref.path, child_ref.element))
+                    compile_info.dynamic.append(child_ref)
                 for child_ref in child_info.static:
-                    compile_info.static.append(self.compile_entry((element_name,) + child_ref.path, child_ref.element))
+                    compile_info.static.append(child_ref)
                 for child_ref in child_info.sources:
-                    compile_info.sources.append(self.compile_entry((element_name,) + child_ref.path, child_ref.element))
+                    compile_info.sources.append(child_ref)
                 for child_ref in child_info.sinks:
-                    compile_info.sinks.append(self.compile_entry((element_name,) + child_ref.path, child_ref.element))
+                    compile_info.sinks.append(child_ref)
                 for child_ref in child_info.sub_processes:
-                    compile_info.sub_processes.append(self.compile_entry((element_name,) + child_ref.path, child_ref.element))
-                compile_info.kernel_map[element_name] = {
-                    "kernel": element.compute_kernel,
-                    "sub_kernel": child_info.kernel_map,
-                }
-            else:
-                compile_info.kernel_map[element_name] = {
-                    "kernel": element.compute_kernel,
-                    "sub_kernel": None,
-                }
+                    compile_info.sub_processes.append(child_ref)
 
         return compile_info
 
@@ -324,12 +317,7 @@ class Compiler:
 
 def element_to_path_str(element : Element):
     """converts the element object into a path string indicating its position in the architecture-"""
-    path = element.get_path()
-    path_str=""
-    for parent in path:
-        path_str += parent.get_name() + "."
-    path_str = path_str[:-1]
-    return path_str
+    return ElementRef(element=element).path_str
 
 def _changed_and_not_none(old: Any, new: Any) -> bool:
     return (old != new) and (new is not None)
