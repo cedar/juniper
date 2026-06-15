@@ -40,7 +40,7 @@ class ComponentMultiply(Step):
         input_prods = {}
         for input_slot in self.input_slot_map:
             input_prod = None
-            incoming_steps = arch.get_incoming_steps(self.get_name() + "." + input_slot)
+            incoming_steps = arch.get_incoming_steps(self.get_local_circuit_id() + "." + input_slot)
             if len(incoming_steps) == 0:
                 input_prod = util_jax.zeros(self._params[input_slot_shape])
             else:
@@ -50,6 +50,6 @@ class ComponentMultiply(Step):
                     step_output = arch.get_element(step).get_buffer(slot)
                     input_prod = input_prod * step_output if input_prod is not None else step_output
             if input_prod is None:
-                raise ValueError(f"Step {self.get_name()} has no valid input sum at slot {input_slot}. This should never happen")
+                raise ValueError(f"Step {self.get_local_circuit_id()} has no valid input sum at slot {input_slot}. This should never happen")
             input_prods[input_slot] = input_prod
         return input_prods
