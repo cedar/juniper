@@ -122,9 +122,9 @@ class Circuit(Element):
         self.generate_kernel()
 
     def register_output_slot(self, slot_id : str, max_incoming_connections : int = 42) -> Slot:
+        """Register output slot. For a circuit output slots receive input from internal state which are passed along as output."""
         slot = super().register_output_slot(slot_id)
         slot.max_incoming_connections = max_incoming_connections
-        if (slot.get_local_circuit_id() not in self.connection_map_reversed.keys()):
-            self.connection_map_reversed[slot.get_local_circuit_id()] = []
+        self.connection_map_reversed.setdefault(slot.get_local_circuit_id(), [])
         return slot
         

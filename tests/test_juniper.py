@@ -486,9 +486,6 @@ class TestJuniper:
         assert self.arch.is_compiled
         self.arch.clean()
 
-
-
-        
     @function_test
     def test_nested_state_update(self):
         """Tests if steps in nested circuits update their state correctly and can be recorded."""
@@ -540,6 +537,40 @@ class TestJuniper:
         recording, _ = self.arch.run_simulation(num_steps=1, steps_to_record=["c"], print_timing=False, save_buffer=False)
 
         assert np.isclose(np.sum(recording[-1][0]), 3)
+
+    @function_test
+    def test_deeply_nested_circuits(self):
+        """Tests if nesting of multiple circuits works. Checking state update, recording and connections."""
+        sc = jp.Circuit("sc")
+        with sc as sc:
+            ssc = jp.Circuit("ssc")
+            with ssc as ssc:
+                sssc = jp.Circuit("sssc")
+                with sssc as sssc:
+                    inner_state = jp.Sum("inner_state", {})
+                    sssc.register_input_slot("in0")
+                    sssc.register_output_slot("out0")
+                    sssc >> inner_state >> sssc
+                ssc.register_input_slot("in0")
+                ssc.register_output_slot("out0")
+                ssc >> sssc >> ssc.out0
+            sc.register_input_slot("in0")
+            sc.register_output_slot("out0")
+            sc.in0 >> ssc >> sc
+        external_input = jp.CustomInput("external_input", {"shape":(3,)})
+        external_input >> sc
+
+        in_array = np.array([1,2,3])
+        external_input.set_data(in_array)
+
+        self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
+        recording, _ = self.arch.run_simulation(num_steps=10, steps_to_record=[sc, ssc, sssc, inner_state], print_timing=False, save_buffer=False)
+
+        last_step = recording[-1]
+
+        for out_state in last_step:
+            out_array = np.asanyarray(out_state)
+            assert np.array_equal(in_array, out_array)
 
 def build_bcm_buffer_circuit():
     source = jp.CustomInput("source", {"shape":(1, 1, 1)})

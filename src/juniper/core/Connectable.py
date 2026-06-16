@@ -15,21 +15,28 @@ class Connectable(Configurable):
 
     def __rshift__(self, other : Connectable | str) -> Connectable:
         if hasattr(other, "get_slot_id") or hasattr(other, "get_slot") or isinstance(other, str):
-            other_slot = self.get_slot_from_connectable(other, dir="in")
-            self_slot = self.get_slot_from_connectable(self, dir="out")
-            self.parent_circuit.connect_to(self_slot, other_slot)
+            other_slot = self.get_slot_from_connectable(other, dir="in" if other is not CircuitContext.get_current() else "out")
+            self_slot = self.get_slot_from_connectable(self, dir="out" if self is not CircuitContext.get_current() else "in")
+            self._connection_circuit(self_slot, other_slot).connect_to(self_slot, other_slot)
             return other
         else:
             raise Exception(f"Cannot connect to unknown type ({type(other)})")
 
     def __lshift__(self, other : Connectable | str) -> Connectable:
         if hasattr(other, "get_slot_id") or hasattr(other, "get_slot") or isinstance(other, str):
-            other_slot = self.get_slot_from_connectable(other, dir="out")
-            self_slot = self.get_slot_from_connectable(self, dir="in")
-            self.parent_circuit.connect_to(other_slot, self_slot)
+            other_slot = self.get_slot_from_connectable(other, dir="out" if other is not CircuitContext.get_current() else "in")
+            self_slot = self.get_slot_from_connectable(self, dir="in" if self is not CircuitContext.get_current() else "out")
+            self._connection_circuit(other_slot, self_slot).connect_to(other_slot, self_slot)
             return self
         else:
             raise Exception(f"Cannot connect to unknown type ({type(other)})")
+
+    def _connection_circuit(self, source: Slot, dest: Slot) -> Circuit:
+        """Return the circuit that owns a connection between two slots."""
+        current = CircuitContext.get_current()
+        if source.parent is current or dest.parent is current:
+            return current
+        return self.parent_circuit
         
     def get_slot_from_connectable(self, connectable : Connectable | str, dir : str = "out") -> Slot:
         if hasattr(connectable, "get_slot_id"):
