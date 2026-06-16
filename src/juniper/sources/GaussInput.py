@@ -36,10 +36,6 @@ class GaussInput(Source):
         if "center" not in params:
             warnings.warn(f"GaussInput {name} does not have a center parameter. Defaulting to (0, 0).")
             self._params["center"] = [x // 2 for x in self._params["shape"]]
-        
-        # Remove default input slot
-        self.input_slot_names = []
-        self._max_incoming_connections = {}
 
         # Compute kernel once and save it
         kernel = Gaussian({"shape": self._params["shape"], "sigma": self._params["sigma"], "amplitude": self._params["amplitude"], "normalized": False, "center": self._params["center"], "factorized": False})

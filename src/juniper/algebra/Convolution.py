@@ -50,7 +50,6 @@ class Convolution(Step):
     def __init__(self, name : str, params : dict):
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
-        self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = 1
         self._use_dynamic = "kernel" not in self._params.keys()
         self._kernel = 0 if self._use_dynamic else self._params["kernel"].get_kernel()
         if "mode" not in self._params.keys():

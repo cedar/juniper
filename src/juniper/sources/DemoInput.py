@@ -38,7 +38,6 @@ class DemoInput(Source):
         
         # Remove default input slot
         self.input_slot_names = []
-        self._max_incoming_connections = {}
 
 
 

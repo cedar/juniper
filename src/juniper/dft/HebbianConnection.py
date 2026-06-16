@@ -215,7 +215,7 @@ class HebbianConnection(Step):
         self._params["reward_duration"] = tuple(self._params["reward_duration"]) 
 
         self.needs_input_connections = True
-        self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = 3
+        self.set_max_incoming_connections(util.DEFAULT_INPUT_SLOT, 3)
         self._delta_t = util_jax.get_config()["delta_t"]
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
 

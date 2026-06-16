@@ -1,6 +1,6 @@
 from ..core.Step import Step
 from ..util import util
-import jax.numpy as jnp
+import numpy as np
 
 def compute_kernel_factory():
     def compute_kernel(input_mats, buffer, **kwargs):
@@ -27,6 +27,6 @@ class Sum(Step):
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
         self.needs_input_connections = True
-        self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = jnp.inf
+        self.set_max_incoming_connections(util.DEFAULT_INPUT_SLOT, np.inf)
 
         self.compute_kernel = compute_kernel_factory()

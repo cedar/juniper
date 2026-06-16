@@ -137,19 +137,25 @@ class TestJuniper:
         circ = jp.Circuit("circ", {})
         with circ as c:
             summed_inputs = jp.Sum("summed_inputs", {})
-            c.set_input("in0", summed_inputs)
-            c.set_input("in1", summed_inputs)
-            c.set_input("in2", summed_inputs)
-            c.set_input("in3", summed_inputs)
-            c.set_output("out0", summed_inputs)
+            c.register_input_slot("in0")
+            c.register_input_slot("in1")
+            c.register_input_slot("in2")
+            c.register_input_slot("in3")
+            c.register_output_slot("out0")
+            
+            c.in0 >> summed_inputs
+            c.in1 >> summed_inputs
+            c.in2 >> summed_inputs
+            c.in3 >> summed_inputs >> c.out0
+            
 
         circ2 = jp.Circuit("circ2", {})
         with circ2 as c:
             summed_inputs = jp.Sum("summed_inputs", {})
-            c.set_input("in0", summed_inputs)
-            c.set_output("out0", summed_inputs)
+            c.register_input_slot("in0")
+            c.register_output_slot("out0")
+            c.in0 >> summed_inputs >> c.out0
 
-        
         external_input = jp.CustomInput("external_input", {"shape":(1,)})
         external_input.set_data(np.ones((1,)))
 
@@ -181,8 +187,9 @@ class TestJuniper:
         circ = jp.Circuit("circ", {})
         with circ as c:
             summed_inputs = jp.Sum("summed_inputs", {})
-            c.set_input("in0", summed_inputs)
-            c.set_output("out0", summed_inputs)
+            c.register_input_slot("in0")
+            c.register_output_slot("out0")
+            c.in0 >> summed_inputs >> c.out0
 
         external_input = jp.CustomInput("external_input", {"shape":(1,)})
         external_input.set_data(np.ones((1,)))
@@ -488,7 +495,8 @@ class TestJuniper:
         c = jp.Circuit("c", {})
         with c as c:
             s = jp.Sum("s", {})
-            c.set_input("in0", s)
+            c.register_input_slot("in0")
+            c.in0 >> s
         
         input = jp.CustomInput("input", {"shape":(3,)})
         in_array = np.asanyarray([1,2,3], dtype=np.float32)
@@ -514,10 +522,11 @@ class TestJuniper:
         with c as c:
             in0 = jp.Sum("in0", {})
             in1 = jp.Sum("in1", {})
-            c.set_input("in0", in0)
-            c.set_input("in1", in1)
-            c.set_output("out0", in0)
-            c.set_output("out0", in1)
+            c.register_input_slot("in0")
+            c.register_input_slot("in1")
+            c.register_output_slot("out0")
+            c.in0 >> in0 >> c.out0
+            c.in1 >> in1 >> c.out0
 
         input0 = jp.CustomInput("input0", {"shape":(1,)})
         input1 = jp.CustomInput("input1", {"shape":(1,)})

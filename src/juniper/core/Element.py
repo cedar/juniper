@@ -24,7 +24,7 @@ class Element(Connectable):
         # compiler flag to signal that the internal state has been successfully inferred
         self.is_compiled = False
 
-    def register_output_slot(self, slot_id : str):
+    def register_output_slot(self, slot_id : str) -> Slot:
         if slot_id in self.output_slot_map.keys():
             raise Exception(f"Output slot {slot_id} already registered in step {self.get_local_circuit_id()}")
         slot = Slot(self, slot_id)
@@ -32,8 +32,9 @@ class Element(Connectable):
         setattr(self, f"{slot_id}", slot)
         # register slot
         self.output_slot_map[slot_id] = slot
+        return slot
 
-    def register_input_slot(self, slot_id : str, max_incoming_connections : int = 1):
+    def register_input_slot(self, slot_id : str, max_incoming_connections : int = 1) -> Slot:
         if slot_id in self.input_slot_map.keys():
             raise Exception(f"Input slot {slot_id} already registered in step {self.get_local_circuit_id()}")
         slot = Slot(self, slot_id, max_incoming_connections)
@@ -44,10 +45,15 @@ class Element(Connectable):
         # register input slot with parent circuit if not already done so
         if slot.get_local_circuit_id() not in self.parent_circuit.connection_map_reversed.keys():
             self.parent_circuit.connection_map_reversed[slot.get_local_circuit_id()] = []
+        return slot
 
     def get_max_incoming_connections(self, slot_id : str) -> int:
         slot = self.get_slot(slot_id=slot_id)
         return slot.max_incoming_connections
+    
+    def set_max_incoming_connections(self, slot_id : str, max_incoming_connections : int):
+        slot = self.get_slot(slot_id=slot_id)
+        slot.max_incoming_connections = max_incoming_connections
     
     def get_slot(self, slot_id : str) -> Slot:
         try:

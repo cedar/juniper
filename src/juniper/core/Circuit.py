@@ -94,46 +94,25 @@ class Circuit(Element):
         return incoming_steps
     
     def connect_to(self, source : Slot, dest : Slot):
+        """Connect 2 slots."""
         if not isinstance(source, Slot) or not isinstance(dest, Slot):
             source = self.get_slot_from_connectable(source)
             dest = self.get_slot_from_connectable(dest)
         source_name = source.get_local_circuit_id()
         dest_name = dest.get_local_circuit_id()
-        
-        for parent in [source.parent, dest.parent]:
-            if parent.get_local_circuit_id() not in self.element_map.keys():
-                raise Exception(f"Circuit::connect_to(): Element {parent.get_local_circuit_id()} not found in Circuit (source:{source.parent.get_local_circuit_id()},dest:{dest.parent.get_local_circuit_id()}).")
-            
-        self.connection_map_reversed.setdefault(dest_name, [])
 
         if source in self.connection_map_reversed[dest_name]:
             raise Exception(f"Circuit::connect_to(): Connection from {source_name} to {dest_name} already exists ({self.get_local_circuit_id()})")
         
-        max_incoming_connections = getattr(dest.parent, "_max_incoming_connections", {}).get(dest.get_slot_id(), dest.max_incoming_connections)
-        if len(self.connection_map_reversed[dest_name]) >= max_incoming_connections:
-            raise Exception(f"Circuit::connect_to(): Slot {dest_name} already has {max_incoming_connections} incoming connection(s) ({self.get_local_circuit_id()})")
+        if len(self.connection_map_reversed[dest_name]) >= dest.max_incoming_connections:
+            raise Exception(f"Circuit::connect_to(): Slot {dest_name} already has {dest.max_incoming_connections} incoming connection(s) ({self.get_local_circuit_id()})")
 
+        for parent in [source.parent, dest.parent]:
+            if (parent is not self) and (parent.get_local_circuit_id() not in self.element_map.keys()):
+                raise Exception(f"Circuit::connect_to(): Element {parent.get_local_circuit_id()} not found in Circuit (source:{source.parent.get_local_circuit_id()},dest:{dest.parent.get_local_circuit_id()}).")
+            
+        self.connection_map_reversed.setdefault(dest_name, [])
         self.connection_map_reversed[dest_name].append(source)
-    
-    def set_input(self, input_slot_id : str, dest_slot, max_incoming_connections : int = 1):
-        dest_slot = self.get_slot_from_connectable(dest_slot, dir="in")
-        self.register_input_slot(slot_id=input_slot_id, max_incoming_connections=max_incoming_connections)
-        # Register internal slot connection
-
-        self.connection_map_reversed[dest_slot.get_local_circuit_id()].append(self.get_input_slot(input_slot_id))
-
-    def set_output(self, output_slot_id : str, source_slot):
-        source_slot = self.get_slot_from_connectable(source_slot, dir="out")
-        if output_slot_id not in self.output_slot_map:
-            self.register_output_slot(slot_id=output_slot_id)
-        # Register internal slot connection
-
-        out_slot_name  = self.get_output_slot(output_slot_id).get_local_circuit_id()
-        if out_slot_name not in self.connection_map_reversed.keys():
-            self.connection_map_reversed[out_slot_name] = [source_slot] 
-        else:
-            self.connection_map_reversed[out_slot_name].append(source_slot)
-        
 
     def generate_kernel(self):
         self.compute_kernel = compute_kernel_factory(self.output_slot_map)
@@ -141,4 +120,11 @@ class Circuit(Element):
     def define_circuit_structure(self):
         # --- circuit description ---
         self.generate_kernel()
+
+    def register_output_slot(self, slot_id : str, max_incoming_connections : int = 42) -> Slot:
+        slot = super().register_output_slot(slot_id)
+        slot.max_incoming_connections = max_incoming_connections
+        if (slot.get_local_circuit_id() not in self.connection_map_reversed.keys()):
+            self.connection_map_reversed[slot.get_local_circuit_id()] = []
+        return slot
         

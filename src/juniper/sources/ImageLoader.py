@@ -28,8 +28,6 @@ class ImageLoader(Source):
         super().__init__(name, params, mandatory_params)
         
         # Remove default input slot
-        self.input_slot_names = []
-        self._max_incoming_connections = {}
         self.compute_kernel = compute_kernel_factory(self._params)
 
     def get_data(self):

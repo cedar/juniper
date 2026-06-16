@@ -51,9 +51,9 @@ class Architecture(Circuit):
     def close_connections(self):
         self.engine._close_connections()
 
-    def set_input(self, input_slot_id, dest_slot, max_incoming_connections = 1):
+    def register_input_slot(self, input_slot_id, max_incoming_connections = 1):
         raise Exception("The top-level architecture singleton should not have danglin input slots. Use Sinks and Sources for external communication.")
     
-    def set_output(self, output_slot_id, source_slot):
+    def register_output_slot(self, output_slot_id):
         raise Exception("The top-level architecture singleton should not have danglin output slots. Use Sinks and Sources for external communication.")
     

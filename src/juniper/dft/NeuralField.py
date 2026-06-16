@@ -2,6 +2,7 @@ from ..core.Step import Step
 from ..util import util
 from ..util import util_jax
 import jax.numpy as jnp
+import numpy as np
 import jax
 from functools import partial
 from ..math.Sigmoid import Sigmoid
@@ -59,7 +60,7 @@ class NeuralField(Step):
         mandatory_params = ["shape", "sigmoid", "beta", "theta", "resting_level", "global_inhibition", "input_noise_gain", "tau"]
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.needs_input_connections = False
-        self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = jnp.inf
+        self.set_max_incoming_connections(util.DEFAULT_INPUT_SLOT, np.inf)
         self._delta_t = util_jax.get_config()["delta_t"]
 
         if "LateralKernel" not in self._params:

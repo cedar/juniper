@@ -7,16 +7,11 @@ class Step(Element):
     def __init__(self, name : str, params : dict, mandatory_params : list, is_dynamic : bool = False):
         super().__init__(name=name, params=params, mandatory_params=mandatory_params)
         self.buffer_map : dict[str, Buffer] = {}
-        self._max_incoming_connections = {}
         self.is_dynamic = is_dynamic
         self.register_input_slot(util.DEFAULT_INPUT_SLOT)
         self.register_output_slot(util.DEFAULT_OUTPUT_SLOT)
 
         self.parent.add_element(self)
-        
-    def register_input_slot(self, slot_id : str, max_incoming_connections : int = 1):
-        super().register_input_slot(slot_id, max_incoming_connections)
-        self._max_incoming_connections[slot_id] = max_incoming_connections
 
     def register_buffer(self, buf_id : str, shape : tuple, permanent : bool  = False):
         if buf_id in self.buffer_map.keys():

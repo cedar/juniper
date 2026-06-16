@@ -13,7 +13,6 @@ class Source(Step):
         for slot in self.input_slot_map.values():
             self.parent.connection_map_reversed.pop(slot.get_local_circuit_id(), None)
         self.input_slot_map.clear()
-        self._max_incoming_connections.clear()
 
     def get_data(self) -> Any:
         return None
