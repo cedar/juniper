@@ -3,7 +3,7 @@ from typing import Any
 
 from .BackendDataClasses import ElementRef
 from .BackendDataClasses import CompileInfo
-from .BackendDataClasses import Path
+from .BackendDataClasses import ElementPath
 from .BackendDataClasses import StateTree
 
 import json
@@ -45,7 +45,7 @@ class RuntimeState:
         """Copy the top-level tree."""
         return RuntimeState(self.state_tree.copy())
 
-    def trace_state_tree(self, path: Path) -> StateTree:
+    def trace_state_tree(self, path: ElementPath) -> StateTree:
         """Return the flat state entry for a path."""
         return self.state_tree[path]
 

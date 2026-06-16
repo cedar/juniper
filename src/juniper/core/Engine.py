@@ -3,6 +3,7 @@ from .BackendDataClasses import CompileInfo
 from .BackendDataClasses import StateTree
 from .BackendDataClasses import TimingInfo
 from .BackendDataClasses import Recording
+from .BackendDataClasses import RecKey
 
 from ..util.util import timer
 from ..util import util_jax
@@ -56,7 +57,7 @@ class Engine:
     def run_simulation(
         self,
         num_steps: int,
-        steps_to_record: list[str] = [],
+        steps_to_record: list[RecKey] = [],
         print_timing: bool = True,
         save_buffer: bool = False,
     ) -> tuple[Recording, TimingInfo]:
@@ -108,7 +109,7 @@ class Engine:
         if print_timing:
             self._print_timing(timing_info)
 
-        return history, timing_info
+        return Recording(history, steps_to_record), timing_info
 
     def compile(self, circuit : Circuit, warmup : int = 0, print_compile_info : bool = False, load_buffer : bool = False) -> None:
         """Compile a circuit, allocate runtime state, and prepare IO/processes."""

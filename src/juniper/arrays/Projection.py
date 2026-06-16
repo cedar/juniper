@@ -75,7 +75,7 @@ class Projection(Step):
         in_dim = len(self._params["input_shape"])
         out_dim = len(self._params["output_shape"])
 
-        self.compute_kernel = compute_kernel_factory(self._params, in_dim, out_dim, self._name)
+        self.compute_kernel = compute_kernel_factory(self._params, in_dim, out_dim, self.get_local_circuit_id())
 
     def infer_output_shapes(self, input_specs):
         return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["output_shape"])}

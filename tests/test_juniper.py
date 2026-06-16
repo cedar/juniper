@@ -1,6 +1,8 @@
 import functools
 import json
 import os
+import shutil
+import tempfile
 import traceback
 import juniper as jp
 import numpy as np
@@ -10,6 +12,7 @@ from contextlib import contextmanager
 import io
 import sys
 
+from juniper.core.BackendDataClasses import Recording
 from juniper.util import util_jax
 
 
@@ -38,6 +41,14 @@ def simulate_user_input(input : str):
     finally:
         sys.stdin = orig
 
+def recorded_array(recording, key, step_idx=-1):
+    """Return one recorded array via the Recording accessors."""
+    return recording.get_at_element(key).get_at_step(step_idx).recording[0][0]
+
+def recorded_step(recording, step_idx=-1):
+    """Return all recorded arrays for one simulation step via the Recording accessor."""
+    return recording.get_at_step(step_idx).recording[0]
+
 class TestJuniper:
     """
     A simple test class for pytesting. The class owns the architecture singleton, 
@@ -55,12 +66,68 @@ class TestJuniper:
         assert self.arch.is_compiled
 
         recording, timing = self.arch.run_simulation(num_steps=42, steps_to_record=["in1", in1, in1.out0], print_timing=False, save_buffer=False)
-        assert len(recording) == 42
-        assert np.isclose(recording[0][0], 1)
-        assert np.isclose(recording[0][1], 1)
-        assert np.isclose(recording[0][2], 1)
-        assert np.array_equal(np.shape(recording), (42,3,1))
-        assert np.isclose(np.sum(recording), 126)
+        full_recording = recording.slice(["in1", in1, in1.out0], (0, 42))
+        assert len(full_recording.recording) == 42
+        assert np.isclose(recorded_array(recording, "in1", 0), 1)
+        assert np.isclose(recorded_array(recording, in1, 0), 1)
+        assert np.isclose(recorded_array(recording, in1.out0, 0), 1)
+        assert np.array_equal(np.shape(full_recording.recording), (42,3,1))
+        assert np.isclose(np.sum(full_recording.recording), 126)
+
+    @function_test
+    def test_recording_save_and_load(self):
+        """Test saving and loading of recording."""
+        recording = Recording(
+            recording=[
+                [np.array([1.0], dtype=np.float32), np.array([[1, 2], [3, 4]], dtype=np.float32)],
+                [np.array([2.0], dtype=np.float32), np.array([[5, 6], [7, 8]], dtype=np.float32)],
+            ],
+            keys=["scalar", "matrix"],
+        )
+        temp_dir = tempfile.mkdtemp(prefix="juniper_recording_test_")
+
+        try:
+            run_dir = recording.save_to_file(temp_dir)
+            loaded = Recording.load_from_file(run_dir)
+
+            assert loaded.key_strings == recording.key_strings
+            assert len(loaded.recording) == len(recording.recording)
+            for step_idx in range(len(recording.recording)):
+                for key in recording.key_strings:
+                    assert np.array_equal(
+                        recorded_array(loaded, key, step_idx),
+                        recorded_array(recording, key, step_idx),
+                    )
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+    @function_test
+    def test_recording_plot(self):
+        """Test plotting of a recording."""
+        import matplotlib
+
+        matplotlib.use("Agg", force=True)
+        import matplotlib.pyplot as plt
+
+        recording = Recording(
+            recording=[
+                [np.array([0.0], dtype=np.float32), np.arange(4, dtype=np.float32).reshape(2, 2)],
+                [np.array([1.0], dtype=np.float32), np.ones((2, 2), dtype=np.float32)],
+            ],
+            keys=["scalar", "matrix"],
+        )
+
+        fig = recording.plot(
+            keys=["scalar", "matrix"],
+            idx_interval=(0, 2),
+            snapshot_indices=[1],
+            figsize=(3, 2),
+        )
+        try:
+            assert fig is not None
+            assert len(fig.axes) >= 2
+        finally:
+            plt.close(fig)
 
     @function_test
     def test_custom_input_updates_after_compile(self):
@@ -74,8 +141,8 @@ class TestJuniper:
         in1.set_data(np.array([3, 4], dtype=np.float32))
         recording2, _ = self.arch.run_simulation(num_steps=1, steps_to_record=["in1"], print_timing=False)
 
-        assert np.allclose(recording1[-1][0], np.array([1, 2], dtype=np.float32))
-        assert np.allclose(recording2[-1][0], np.array([3, 4], dtype=np.float32))
+        assert np.allclose(recorded_array(recording1, "in1"), np.array([1, 2], dtype=np.float32))
+        assert np.allclose(recorded_array(recording2, "in1"), np.array([3, 4], dtype=np.float32))
 
 
     @function_test
@@ -94,7 +161,7 @@ class TestJuniper:
 
         recording, timing = self.arch.run_simulation(num_steps=3, steps_to_record=["out"], print_timing=False, save_buffer=False)
 
-        last_out = recording[-1]
+        last_out = recorded_array(recording, "out")
         res = np.sum(last_out)
 
         assert np.isclose(res, 4)
@@ -122,8 +189,8 @@ class TestJuniper:
 
         recording, timing = self.arch.run_simulation(num_steps=5, steps_to_record=["out", "out2"], print_timing=False, save_buffer=False)
 
-        last_out = recording[-1][0]
-        last_out2 = recording[-1][1]
+        last_out = recorded_array(recording, "out")
+        last_out2 = recorded_array(recording, "out2")
 
         res = np.sum(last_out)
         res2 = np.sum(last_out2)
@@ -172,8 +239,8 @@ class TestJuniper:
         self.arch.reset_state()
         recording, timing = self.arch.run_simulation(num_steps=1, steps_to_record=[circ, "circ2"], print_timing=False, save_buffer=False)
 
-        last_out = recording[-1][0]
-        last_out2 = recording[-1][1]
+        last_out = recorded_array(recording, circ)
+        last_out2 = recorded_array(recording, "circ2")
 
         res = np.sum(last_out)
         res2 = np.sum(last_out2)
@@ -222,7 +289,7 @@ class TestJuniper:
         self.arch.compile(warmup=1, print_compile_info=False, load_buffer=False)
         recording, _ = self.arch.run_simulation(num_steps=1, steps_to_record=["mult"], print_timing=False)
 
-        assert np.isclose(np.sum(recording[-1][0]), 24)
+        assert np.isclose(np.sum(recorded_array(recording, "mult")), 24)
 
     @function_test
     def test_duplicate_element_name_fails(self):
@@ -273,14 +340,17 @@ class TestJuniper:
         t2 = time.time() - t2
         cache_after_second_reset = cache_size() if cache_size is not None else None
 
-        res_nf_1 = np.sum(recording1[-1][0])
-        res_nf_2 = np.sum(recording2[-1][0])
-        res_nf_3 = np.sum(recording3[-1][0])
+        nf_1 = recorded_array(recording1, "nf1")
+        nf_2 = recorded_array(recording2, "nf1")
+        nf_3 = recorded_array(recording3, "nf1")
+        res_nf_1 = np.sum(nf_1)
+        res_nf_2 = np.sum(nf_2)
+        res_nf_3 = np.sum(nf_3)
 
-        assert recording1[-1][0].shape == (50, 50)
-        assert recording3[-1][0].shape == (50, 50)
-        assert recording1[-1][0].dtype == util_jax.cfg["dtype"]
-        assert recording3[-1][0].dtype == util_jax.cfg["dtype"]
+        assert nf_1.shape == (50, 50)
+        assert nf_3.shape == (50, 50)
+        assert nf_1.dtype == util_jax.cfg["dtype"]
+        assert nf_3.dtype == util_jax.cfg["dtype"]
         assert np.isclose(res_nf_1, res_nf_3)
         assert not np.isclose(res_nf_1, res_nf_2)
         if cache_size is not None:
@@ -373,7 +443,7 @@ class TestJuniper:
                     print_timing=False,
                     save_buffer=False,
                 )
-                out_array = np.asanyarray(recording[-1][0])
+                out_array = np.asanyarray(recorded_array(recording, "tcp_reader"))
                 if np.array_equal(out_array.astype(np.uint8), in_array):
                     break
                 time.sleep(0.05)
@@ -506,8 +576,8 @@ class TestJuniper:
         
         recording, timing = self.arch.run_simulation(num_steps=1, steps_to_record=["c.s", "c.s.out0"], print_timing=False, save_buffer=False)
 
-        out_array = np.asanyarray(recording[-1][0])
-        explicit_out_array = np.asanyarray(recording[-1][1])
+        out_array = np.asanyarray(recorded_array(recording, "c.s"))
+        explicit_out_array = np.asanyarray(recorded_array(recording, "c.s.out0"))
 
         assert np.array_equal(in_array, out_array)
         assert np.array_equal(in_array, explicit_out_array)
@@ -536,7 +606,7 @@ class TestJuniper:
         self.arch.compile(warmup=1, print_compile_info=False, load_buffer=False)
         recording, _ = self.arch.run_simulation(num_steps=1, steps_to_record=["c"], print_timing=False, save_buffer=False)
 
-        assert np.isclose(np.sum(recording[-1][0]), 3)
+        assert np.isclose(np.sum(recorded_array(recording, "c")), 3)
 
     @function_test
     def test_deeply_nested_circuits(self):
@@ -566,7 +636,7 @@ class TestJuniper:
         self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
         recording, _ = self.arch.run_simulation(num_steps=10, steps_to_record=[sc, ssc, sssc, inner_state], print_timing=False, save_buffer=False)
 
-        last_step = recording[-1]
+        last_step = recorded_step(recording)
 
         for out_state in last_step:
             out_array = np.asanyarray(out_state)
