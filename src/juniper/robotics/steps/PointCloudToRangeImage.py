@@ -38,11 +38,11 @@ def compute_kernel_factory(params):
     return compute_kernel
         
 
-class VectorsToRangeImage(Step):
+class PointCloudToRangeImage(Step):
     """
     Description
     ---------
-    Converts a set of Vectors into a range image.
+    Converts a point cloud into a range image.
 
     Parameters
     -----------

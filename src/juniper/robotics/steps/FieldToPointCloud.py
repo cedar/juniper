@@ -4,11 +4,11 @@ import jax.numpy as jnp
 import numpy as np
 
 
-class FieldToVectors(Step):
+class FieldToPointCloud(Step):
     """
     Description
     ---------
-    Converts a 3D field into a set of 3D vectors.
+    Converts a 3D field into a Point Cloud.
     
     Parameters
     ----------
@@ -21,8 +21,8 @@ class FieldToVectors(Step):
     - threshold (optional) : float
         - Only field units pircing the threshold are converted to vectors, all other are mapped to 0. 
         - Default = 0.9
-    - N_vec (optional) : int
-        - The number of vectors returned. 0-vectors are returned if less field points pierce the threshold.
+    - N_pt (optional) : int
+        - The number of points in the cloud. 0-vectors are returned if less field points pierce the threshold.
         - Default = FieldSize
 
     Step Input/Output slots
@@ -43,8 +43,8 @@ class FieldToVectors(Step):
         if "threshold" not in self._params.keys():
             self._params["threshold"] = 0.9
 
-        if "N_vec" not in self._params.keys():
-            self._params["N_vec"] = jnp.inf
+        if "N_pt" not in self._params.keys():
+            self._params["N_pt"] = jnp.inf
 
         self.compute_kernel = compute_kernel_factory(self._params)
 
@@ -52,10 +52,10 @@ class FieldToVectors(Step):
         if util.DEFAULT_INPUT_SLOT not in input_specs:
             return {}
         shape = input_specs[util.DEFAULT_INPUT_SLOT][0]
-        n_vec = self._params["N_vec"]
-        if n_vec == jnp.inf:
-            n_vec = int(np.prod(shape)) if "np" in globals() else shape[0] * shape[1] * shape[2]
-        return {util.DEFAULT_OUTPUT_SLOT: (int(n_vec), 3)}
+        n_pt = self._params["N_pt"]
+        if n_pt == jnp.inf:
+            n_pt = int(np.prod(shape)) if "np" in globals() else shape[0] * shape[1] * shape[2]
+        return {util.DEFAULT_OUTPUT_SLOT: (int(n_pt), 3)}
 
     
 def compute_kernel_factory(params):
@@ -71,7 +71,7 @@ def compute_kernel_factory(params):
 
         # Get ALL indices in a fixed-size (padded) way
         # nonzero(..., size=...) guarantees a static-length result under jit.
-        size = min(field.size,params["N_vec"])
+        size = min(field.size,params["N_pt"])
         ix, iy, iz = jnp.nonzero(mask, size=size, fill_value=0)  # each (size,)
 
         # Convert voxel indices -> world coordinates at voxel centers

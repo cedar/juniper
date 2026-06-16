@@ -39,11 +39,11 @@ def compute_kernel_factory(params):
     return compute_kernel
 
 
-class VectorsToField(Step):
+class PointCloudToField(Step):
     """
     Description
     ---------
-    Converts 3D Cartesian vectors into a 3D field like representation (Nx, Ny, Nz).
+    Converts a 3D PointCloud into a 3D field like representation (Nx, Ny, Nz).
     
     Parameters
     ----------
