@@ -2,6 +2,9 @@ from __future__ import annotations
 from typing import Callable
 from typing import Optional
 
+from ..backend.Exceptions import CircuitError
+from ..backend.Exceptions import CircuitConnectionError
+
 from .Slot import Slot
 from .Element import Element
 from . import CircuitContext
@@ -78,18 +81,18 @@ class Circuit(Element):
     def add_element(self, element : Element):
         element_name = element.get_local_circuit_id()
         if element_name in self.element_map.keys():
-            raise Exception(f"Circuit::add_element(): Element {element_name} already exists in Circuit ({self.get_local_circuit_id()})")
+            raise CircuitError(f"Circuit::add_element(): Element {element_name} already exists in circuit {self.get_path_str()}")
         if self is element:
-            raise Exception(f"Circuit::add_element(): A Circuit can't be added as a sub-element to itself ({self.get_local_circuit_id()}).")
+            raise CircuitError(f"Circuit::add_element(): A circuit can't be added as a sub-element to itself ({self.get_path_str()}).")
         self.element_map[element_name] = element
         for slot in element.input_slot_map.values():
             #print(slot.get_local_circuit_id())
             self.connection_map_reversed[slot.get_local_circuit_id()] = []
 
         if (element.get_local_circuit_id() in self.input_slot_map.keys()) or (element.get_local_circuit_id() in self.input_slot_map.keys()):
-            raise Exception(f"A sub-element of a circuit cannot have the same name as its input or output slot ({self.get_local_circuit_id(), element.get_local_circuit_id()})")
+            raise CircuitError(f"A sub-element of a circuit cannot have the same name as its input or output slot ({element.get_path_str()})")
         elif getattr(self, element.get_local_circuit_id(), None) is not None:
-            raise Exception(f"{element.self.get_local_circuit_id()} is already registed in circuit {self.get_local_circuit_id()}")
+            raise CircuitError(f"{element.self.get_local_circuit_id()} is already registed in circuit {element.get_path_str()}")
         else:
             setattr(self, element.get_local_circuit_id(), element)
     
@@ -98,7 +101,7 @@ class Circuit(Element):
     
     def get_element(self, name : str) -> Element:
         if name not in self.element_map:
-            raise Exception(f"Architecture::get_element(): Element {name} not found in Architecture")
+            raise CircuitError(f"Circuit::get_element(): Element {name} not found in circuit {self.get_path_str()}")
         return self.element_map[name]
     
     def get_incoming_elements(self, dest : Element) -> list[Slot]:
@@ -119,14 +122,14 @@ class Circuit(Element):
         dest_name = dest.get_local_circuit_id()
 
         if source in self.connection_map_reversed[dest_name]:
-            raise Exception(f"Circuit::connect_to(): Connection from {source_name} to {dest_name} already exists ({self.get_local_circuit_id()})")
+            raise CircuitConnectionError(f"Circuit::connect_to(): Connection from {source_name} to {dest_name} already exists in {self.get_path_str()}")
         
         if len(self.connection_map_reversed[dest_name]) >= dest.max_incoming_connections:
-            raise Exception(f"Circuit::connect_to(): Slot {dest_name} already has {dest.max_incoming_connections} incoming connection(s) ({self.get_local_circuit_id()})")
+            raise CircuitConnectionError(f"Circuit::connect_to(): Slot {dest_name} already has {dest.max_incoming_connections} incoming connection(s) {self.get_path_str()}")
 
         for parent in [source.parent, dest.parent]:
             if (parent is not self) and (parent.get_local_circuit_id() not in self.element_map.keys()):
-                raise Exception(f"Circuit::connect_to(): Element {parent.get_local_circuit_id()} not found in Circuit (source:{source.parent.get_local_circuit_id()},dest:{dest.parent.get_local_circuit_id()}).")
+                raise CircuitConnectionError(f"Circuit::connect_to(): Element {parent.get_local_circuit_id()} not found in circuit {self.get_path_str()} (source:{source.parent.get_local_circuit_id()},dest:{dest.parent.get_local_circuit_id()})")
             
         self.connection_map_reversed.setdefault(dest_name, [])
         self.connection_map_reversed[dest_name].append(source)

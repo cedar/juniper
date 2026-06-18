@@ -10,6 +10,7 @@ from ..frontend.Element import Element
 from ..frontend.Circuit import Circuit
 from ..frontend.Slot import Slot
 from ..frontend.Buffer import Buffer
+from .Exceptions import RecordingError
 
 import numpy as np
 import time
@@ -175,7 +176,7 @@ class Recording:
         """Appends the data of another recording. The recording has to have identical keys"""
         key_strings = recording.key_strings
         if not self.key_strings == key_strings:
-            raise Exception(f"Can't append recording when recorded steps do not match. {self.key_strings}")
+            raise RecordingError(f"Can't append recording when recorded steps do not match. {self.key_strings}")
 
         self.recording.append(recording.recording)
 

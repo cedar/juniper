@@ -130,9 +130,6 @@ def euler_func_singleton(static, params):
 def compute_kernel_factory(params, delta_t):
     _euler_func, _reward_func = euler_func_singleton(util_jax.cfg['euler_step_static_precompile'], params)
     def compute_kernel(input_mats, buffer, **kwargs):
-        if "prng_key" not in kwargs:
-            raise Exception("prng_key is a mandatory kwarg to dynamic compute()")
-
         prng_key = kwargs["prng_key"]
         source_mat = input_mats[util.DEFAULT_INPUT_SLOT]
         target_mat = input_mats["in1"]

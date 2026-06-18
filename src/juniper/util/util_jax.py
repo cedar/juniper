@@ -1,3 +1,4 @@
+from ..core.backend.Exceptions import JuniperConfigurationError
 import os
 from . import util
 import json
@@ -13,7 +14,7 @@ def _load_config():
     if "dtype" in cfg:
         dtype_str = cfg["dtype"]
         if cfg["dtype"] in unsupported_dtypes:
-            raise Exception(f"dtype {cfg['dtype']} not supported")
+            raise JuniperConfigurationError(f"dtype {cfg['dtype']} not supported")
         cfg["dtype"] = np.dtype(dtype_str).type
         cfg["jdtype"] = jnp.dtype(dtype_str).type
     return cfg

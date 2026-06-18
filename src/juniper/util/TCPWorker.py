@@ -1,4 +1,5 @@
 from ..core.frontend.Configurable import Configurable
+from ..core.backend.Exceptions import TCPError
 
 import numpy as np
 import re
@@ -397,7 +398,7 @@ class TCPWorker(Configurable):
                     return
                 raise
             if heart_beat == b"" and (time.time()-self.last_heartbeat) > self.timeout:
-                raise Exception()
+                raise TCPError()
             else:
                 self.last_heartbeat = time.time()
                 self.missed_heartbeats = 0

@@ -1,5 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
+
+from ..backend.Exceptions import CircuitConnectionError
+
 from .Configurable import Configurable
 from ..frontend import CircuitContext
 from ...util import util
@@ -20,7 +23,7 @@ class Connectable(Configurable):
             self._connection_circuit(self_slot, other_slot).connect_to(self_slot, other_slot)
             return other
         else:
-            raise Exception(f"Cannot connect to unknown type ({type(other)})")
+            raise CircuitConnectionError(f"Connectable::>>: Can't connect {self.get_path_str()} to unknown type ({type(other)})")
 
     def __lshift__(self, other : Connectable | str) -> Connectable:
         if hasattr(other, "get_slot_id") or hasattr(other, "get_slot") or isinstance(other, str):
@@ -29,7 +32,7 @@ class Connectable(Configurable):
             self._connection_circuit(other_slot, self_slot).connect_to(other_slot, self_slot)
             return self
         else:
-            raise Exception(f"Cannot connect to unknown type ({type(other)})")
+            raise CircuitConnectionError(f"Connectable::>>: Can't connect {self.get_path_str()} to unknown type ({type(other)})")
 
     def _connection_circuit(self, source: Slot, dest: Slot) -> Circuit:
         """Return the circuit that owns a connection between two slots."""

@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any
 from .DataClasses import CompileInfo
 from .DataClasses import ElementRef
+from .Exceptions import CompilerError
 
 from ..frontend.Circuit import Circuit
 from ..frontend.Element import Element
@@ -50,8 +51,7 @@ class Compiler:
         except Exception as e:
             failed_elements = compiler._gather_uncompiled_elements(circuit=circuit)
             element_paths = [ElementRef(element).path_str for element in failed_elements]
-            
-            raise Exception(f"{e}: The circuit '{circuit.get_local_circuit_id()}' could not be compiled. \nThese elements failed to compile: {element_paths}")
+            raise CompilerError(f"The circuit '{circuit.get_local_circuit_id()}' could not be compiled. \nThese elements failed to compile: {element_paths}") from e
 
         compiler.compile_info = compiler.local_compile_info[compiler.circuit]
         return compiler.compile_info

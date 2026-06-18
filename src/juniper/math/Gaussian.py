@@ -1,3 +1,5 @@
+from ..core.backend.Exceptions import JuniperConfigurationError
+
 import jax.numpy as jnp
 from ..util import util_jax
 from ..core.frontend.Configurable import Configurable
@@ -41,11 +43,11 @@ class Gaussian(Configurable):
             self._params["factorized"] = True
 
         # materialize the kernel tensor
-        self._gaussian = self.gen_gauss_for_all_shapes(self._params["normalized"], self._params["factorized"])
+        self._gaussian = self._gen_gauss_for_all_shapes(self._params["normalized"], self._params["factorized"])
 
         # check if the kernel size is within the max_shape
         if "max_shape" in params:
-            self.check_gaussian_size(self._params["factorized"])
+            self._check_gaussian_size(self._params["factorized"])
 
         if len(self._params["shape"]) != len(self._params["sigma"]):
             raise ValueError(f"Gaussian requires equal dimensionality of sigma ({len(self._params['sigma'])}) and shape ({len(self._params['shape'])})")
@@ -64,11 +66,11 @@ class Gaussian(Configurable):
                 widths.append(width)
         return widths
     
-    def check_gaussian_size(self, factorize):
+    def _check_gaussian_size(self, factorize):
         gaussian_size = self._params["shape"]
         max_shape = self._params["max_shape"]
         if len(gaussian_size) != len(max_shape):
-            raise Exception(f"Dimensionality of kernel size and max_shape must be equal ({len(gaussian_size)} != {len(max_shape)})")
+            raise JuniperConfigurationError(f"Gaussian::__init__: Dimensionality of kernel size and max_shape must be equal ({len(gaussian_size)} != {len(max_shape)})")
 
         for dim in range(len(gaussian_size)):
             if gaussian_size[dim] > max_shape[dim]:
@@ -87,7 +89,7 @@ class Gaussian(Configurable):
                 else:
                     self._gaussian = self._gaussian[tuple(slices)]
 
-    def gen_gauss_for_all_shapes(self, normalize, factorize):
+    def _gen_gauss_for_all_shapes(self, normalize, factorize):
         shape = self._params["shape"]
         center = self._params["center"]
         sigma = self._params["sigma"]

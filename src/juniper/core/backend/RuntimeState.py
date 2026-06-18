@@ -6,6 +6,9 @@ from .DataClasses import CompileInfo
 from .DataClasses import ElementPath
 from .DataClasses import StateTree
 
+from .Exceptions import LoadBufferError
+from .Exceptions import SaveBufferError
+
 import json
 import jax.numpy as jnp
 import numpy as np
@@ -134,9 +137,9 @@ def load_permanent_buffers(compile_info: CompileInfo, runtime_state: RuntimeStat
         path = tuple(path_str.split("."))
         try:
             if path not in compile_info.compiled_elements:
-                raise Exception(f"No compiled step at path {path_str}")
+                raise LoadBufferError(f"No compiled step at path {path_str}")
             if "BUFFER" not in step_tree:
-                raise Exception(f"Invalid buffer format. Expected BUFFER, got {step_tree.keys()}")
+                raise LoadBufferError(f"Invalid buffer format. Expected BUFFER, got {step_tree.keys()}")
 
             ref = compile_info.ref_at(path)
             buffer_map = getattr(ref.element, "buffer_map", {})
@@ -145,7 +148,7 @@ def load_permanent_buffers(compile_info: CompileInfo, runtime_state: RuntimeStat
 
             for buffer_id, buffer_data in step_tree["BUFFER"].items():
                 if buffer_id not in buffer_map:
-                    raise Exception(f"Step {path_str} has no buffer '{buffer_id}'")
+                    raise LoadBufferError(f"Step {path_str} has no buffer '{buffer_id}'")
 
                 buffer = buffer_map[buffer_id]
                 loaded_array = jnp.array(buffer_data, dtype=buffer.dtype or util_jax.cfg["jdtype"])
@@ -164,16 +167,22 @@ def load_permanent_buffers(compile_info: CompileInfo, runtime_state: RuntimeStat
 def save_permanent_buffers(compile_info: CompileInfo, runtime_state: RuntimeState) -> None:
     """Save persistant buffer to disk."""
     tree = {}
-    for ref in compile_info.compiled_elements.values():
-        buffers = {}
-        step_state = runtime_state.get(ref)
-        for buffer_id, buffer in getattr(ref.element, "buffer_map", {}).items():
-            if buffer.permanent:
-                buffers[buffer_id] = np.array(step_state[buffer_id]).tolist()
-        if len(buffers) > 0:
-            tree[".".join(ref.path)] = {"BUFFER": buffers}
+    try:
+        for ref in compile_info.compiled_elements.values():
+            buffers = {}
+            step_state = runtime_state.get(ref)
+            for buffer_id, buffer in getattr(ref.element, "buffer_map", {}).items():
+                if buffer.permanent:
+                    buffers[buffer_id] = np.array(step_state[buffer_id]).tolist()
+            if len(buffers) > 0:
+                tree[".".join(ref.path)] = {"BUFFER": buffers}
+    except Exception as e:
+        raise SaveBufferError("Failed to construct buffer tree.") from e
 
-    if len(tree) > 0:
-        data_file = util_jax.cfg["arch_file_path"] + compile_info.circuit.get_local_circuit_id() + ".data"
-        with open(data_file, "w") as f:
-            f.write(json.dumps(tree, indent=4))
+    try:
+        if len(tree) > 0:
+            data_file = util_jax.cfg["arch_file_path"] + compile_info.circuit.get_local_circuit_id() + ".data"
+            with open(data_file, "w") as f:
+                f.write(json.dumps(tree, indent=4))
+    except Exception as e:
+        raise SaveBufferError("Failed to save buffer tree.") from e

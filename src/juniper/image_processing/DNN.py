@@ -1,3 +1,5 @@
+from ..core.backend.Exceptions import JuniperUserError
+
 import jax
 import jax.numpy as jnp
 import flaxmodels as fm
@@ -114,7 +116,7 @@ def _check_vgg16_presents(params, name):
                 download_request = 2
                 pass
             elif res=="n" or res=="N":
-                raise Exception(f"DNN step '{name}' unable to load vgg16 weights.")
+                raise JuniperUserError(f"DNN::__init__: User declined to download DNN. '{name}' unable to load vgg16 weights.")
             else:
                 print("Invalid response.")
                 download_request += 1

@@ -4,8 +4,6 @@ from ..util import util_jax
 
 def compute_kernel_factory(params, start, end, delta_t):
     def compute_kernel(input_mats, buffer, **kwargs):
-        if "prng_key" not in kwargs:
-            raise Exception("prng_key is a mandatory kwarg to dynamic compute()")
         # input sum is computed in step.update_input()
         status = start < buffer["local_time"] < end
 

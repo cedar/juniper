@@ -36,9 +36,6 @@ if __name__ == "__main__":
 
     print("Computing devices found by JAX:")
     print(jax.local_devices())
-    if args.cpu:
-        if "Cpu" not in str(jax.local_devices()):
-            raise Exception("CPU not loaded. Make sure util_jax is not (in)directly imported before this line")
 
     # These imports have to happen *after* the jax config is set
     from juniper.util import util_jax

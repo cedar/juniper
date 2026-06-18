@@ -3,6 +3,7 @@ from .frontend import CircuitContext
 from .backend.Engine import Engine
 from .backend.Engine import Recording
 from .backend.Engine import TimingInfo
+from .backend.Exceptions import CircuitError
 
 _architecture_singleton = None
 
@@ -23,7 +24,7 @@ class Architecture(Circuit):
         """A singleton instance for the top-level circuit. Cannot have input or output slots.\n
         The architecture class also includes useful functions for comilation and simulation without manually having to call engine and compiler."""
         if Circuit._current is not None:
-            raise Exception("Parent circuit already exists. Use this class only to initialize the top-level architecture.")
+            raise CircuitError("Parent circuit already exists. Use Architecture class only to initialize the top-level architecture.")
         else:
             Circuit._current = self
             CircuitContext.set_current(self)
@@ -52,8 +53,8 @@ class Architecture(Circuit):
         self.engine._close_connections()
 
     def register_input_slot(self, input_slot_id, max_incoming_connections = 1):
-        raise Exception("The top-level architecture singleton should not have danglin input slots. Use Sinks and Sources for external communication.")
+        raise CircuitError("The top-level architecture singleton should not have danglin input slots. Use Sinks and Sources for external communication.")
     
     def register_output_slot(self, output_slot_id):
-        raise Exception("The top-level architecture singleton should not have danglin output slots. Use Sinks and Sources for external communication.")
+        raise CircuitError("The top-level architecture singleton should not have danglin output slots. Use Sinks and Sources for external communication.")
     

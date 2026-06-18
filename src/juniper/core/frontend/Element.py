@@ -1,5 +1,8 @@
 from __future__ import annotations
 from typing import Any
+
+from ..backend.Exceptions import CircuitError
+
 from .Connectable import Connectable
 from .Slot import Slot
 from typing import Callable
@@ -33,7 +36,7 @@ class Element(Connectable):
 
     def register_output_slot(self, slot_id : str) -> Slot:
         if slot_id in self.output_slot_map.keys():
-            raise Exception(f"Output slot {slot_id} already registered in step {self.get_local_circuit_id()}")
+            raise CircuitError(f"Element::register_output_slot: Output slot {slot_id} already registered in step {self.get_path_str()}")
         slot = Slot(self, slot_id)
         # Register output slot shortcut
         setattr(self, f"{slot_id}", slot)
@@ -43,13 +46,13 @@ class Element(Connectable):
 
     def register_input_slot(self, slot_id : str, max_incoming_connections : int = 1) -> Slot:
         if slot_id in self.input_slot_map.keys():
-            raise Exception(f"Input slot {slot_id} already registered in step {self.get_local_circuit_id()}")
+            raise CircuitError(f"Element::register_input_slot: Input slot {slot_id} already registered in step {self.get_path_str()}")
         slot = Slot(self, slot_id, max_incoming_connections)
         # Register input slot shortcut
         if getattr(self, f"{slot_id}", None) is None:
             setattr(self, f"{slot_id}", slot)
         else:
-            raise Exception(f"{slot_id} is already registered in step {self.get_local_circuit_id()}")
+            raise CircuitError(f"Element::register_input_slot: {slot_id} is already registered as an attribute in {self.get_path_str()}")
         # register slot
         self.input_slot_map[slot_id] = slot
         # register input slot with parent circuit if not already done so
@@ -74,15 +77,15 @@ class Element(Connectable):
                 slot = self.get_output_slot(slot_id)
                 return slot
             except Exception:
-                raise Exception(f"Slot {slot_id} does not exist in step {self.get_local_circuit_id()}")
+                raise CircuitError(f"Element::get_slot: Slot {slot_id} does not exist in {self.get_path_str()}")
     
     def get_input_slot(self, slot_id : str) -> Slot:
         if slot_id not in self.input_slot_map.keys():
-            raise Exception(f"Slot {slot_id} does not exist in step {self.get_local_circuit_id()}")
+            raise CircuitError(f"Element::get_input_slot: Input slot {slot_id} does not exist in step {self.get_path_str()}")
         return self.input_slot_map[slot_id]
     
     def get_output_slot(self, slot_id : str) -> Slot:
         if slot_id not in self.output_slot_map.keys():
-            raise Exception(f"Slot {slot_id} does not exist in step {self.get_local_circuit_id()}")
+            raise CircuitError(f"Element::get_output_slot: Output slot {slot_id} does not exist in step {self.get_path_str()}")
         return self.output_slot_map[slot_id]
     

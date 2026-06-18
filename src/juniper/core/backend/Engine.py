@@ -6,6 +6,9 @@ from .DataClasses import TimingInfo
 from .DataClasses import Recording
 from .DataClasses import RecKey
 
+from .Exceptions import NotCompiledError
+from .Exceptions import CompilerError
+
 from ...util.util import timer
 from ...util import util_jax
 import jax
@@ -68,7 +71,7 @@ class Engine:
         """
 
         if not self.circuit.is_compiled:
-            raise Exception("Engine::run_simulation(): Circuit is not compiled")
+            raise NotCompiledError(f"Can't run simulation. The circtuit {self.circuit.get_local_circuit_id} is not compiled.")
 
         history = []
         key_timings = []
@@ -115,7 +118,7 @@ class Engine:
         """Compile a circuit, allocate runtime state, and prepare IO/processes."""
         self.circuit = circuit
         if self.circuit.is_compiled:
-            raise Exception(f"Engine::compile(): Circuit is already compiled ({circuit.get_local_circuit_id()})")
+            raise CompilerError(f"The circuit {circuit.get_local_circuit_id()} is already compiled.")
         t_compile, self.compile_info = timer(Compiler.compile)(circuit)
 
         self.kernel_map = self.compile_info.kernel_map
