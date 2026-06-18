@@ -43,12 +43,11 @@ class Resize(Step):
     - out0 : jnp.ndarray 
     """
 
-    def __init__(self, name : str, params : dict):
+    _interpolation = 0
+    def __init__(self, name : str, output_shape : tuple, interpolation : int = _interpolation):
+        params = locals().copy()
         mandatory_params = ["output_shape"]
         super().__init__(name, params, mandatory_params)
-
-        if "interpolation" not in self._params.keys():
-            self._params["interpolation"] = 0
 
         self.compute_kernel = compute_kernel_factory(self._params)  
 

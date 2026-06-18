@@ -79,14 +79,15 @@ class RemoveBlackWhiteGreys(Step):
     (based on value + saturation thresholds) and replaces them with white.
     """
 
-    def __init__(self, name, params):
+    _saturation_threshold = 0.2
+    _value_threshold = 0.2
+    def __init__(
+            self,
+            name : str,
+            saturation_threshold : float = _saturation_threshold,
+            value_threshold : float = _value_threshold):
+        params = locals().copy()
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
-
-        # Default threshold values if not provided
-        if "saturation_threshold" not in self._params:
-            self._params["saturation_threshold"] = 0.2
-        if "value_threshold" not in self._params:
-            self._params["value_threshold"] = 0.2
 
         self.compute_kernel = compute_kernel_factory(self._params)

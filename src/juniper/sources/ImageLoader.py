@@ -23,7 +23,8 @@ class ImageLoader(Source):
     ---------
     - out0: jnp.ndarray
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, image_path : str):
+        params = locals().copy()
         mandatory_params = ["image_path"]
         super().__init__(name, params, mandatory_params)
         

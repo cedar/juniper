@@ -303,26 +303,31 @@ def compute_kernel_factory(params, delta_t):
 
 class ViewportCamera(Step):
  
-    def __init__(self, name, params):
+    _simplified = False
+    _threshold = 0.5
+    _move_eps = 0.05
+    _saccade_duration_s = 0.020
+    _learn_interval_s = 0.025
+    _learn_total_s = 0.325
+    def __init__(
+            self,
+            name : str,
+            input_shape : tuple,
+            kernel_shape : tuple,
+            viewport_size : tuple,
+            simplified : bool = _simplified,
+            threshold : float = _threshold,
+            move_eps : float = _move_eps,
+            saccade_duration_s : float = _saccade_duration_s,
+            learn_interval_s : float = _learn_interval_s,
+            learn_total_s : float = _learn_total_s):
+        params = locals().copy()
         mandatory_params = ["input_shape", "kernel_shape", "viewport_size"]
-        params["shape"] = params["viewport_size"] + (3,)
+        params["shape"] = viewport_size + (3,)
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self._params["CoS_shape"] = (1,)
         self._params["output_shape"] = self._params["viewport_size"] + (3,)
         self._delta_t = float(util_jax.get_config()["delta_t"])
-
-        if "simplified" not in self._params.keys():
-            self._params["simplified"] = False
-        if "threshold"  not in self._params.keys():
-            self._params["threshold"] = 0.5
-        if "move_eps" not in self._params.keys():
-            self._params["move_eps"] = 0.05
-        if "saccade_duration_s"  not in self._params.keys():
-            self._params["saccade_duration_s"] = 0.020
-        if "learn_interval_s" not in self._params.keys():
-            self._params["learn_interval_s"] = 0.025
-        if "learn_total_s"  not in self._params.keys():
-            self._params["learn_total_s"] = 0.325
 
         self.register_input_slot("viewport_center")
         self.register_input_slot("learn_mode")

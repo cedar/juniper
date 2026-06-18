@@ -162,7 +162,7 @@ class HebbianConnection(Step):
 
     Parameters
     ---------
-    - shape : tuple((Nx,Ny,...))
+    - source_shape : tuple((Nx,Ny,...))
     - target_shape : tuple((Nx,...))
     - tau (optional) : float
         - Default = 0.01
@@ -181,38 +181,40 @@ class HebbianConnection(Step):
 
     Step Input/Output slots
     ---------
-    - in0: jnp.array(shape)
+    - in0: jnp.array(source_shape)
     - in1: jnp.array(target_shape)
     - in2: jnp.array((1,))
     - in3 (optional): jnp.array((1,))
     - out0: jnp.array(target_shape)
-    - out1: jnp.array(shape)
+    - out1: jnp.array(source_shape)
     """
-    def __init__(self, name : str, params : dict):
-        mandatory_params = ["shape", "target_shape"]
-        super().__init__(name, params, mandatory_params=mandatory_params, is_dynamic=True)
+    _tau = util_jax.get_config()["delta_t"] * 10
+    _tau_decay = _tau * 10
+    _learning_rate = 0.1
+    _learning_rule = "instar"
+    _bidirectional = True
+    _reward_type = "no_reward"
+    _reward_duration = (0,1)
+    _wheight_reset_slot = False
+    def __init__(self, 
+                 name : str,
+                 source_shape : tuple[int,...],
+                 target_shape : tuple[int,...],
+                 tau : float = _tau,
+                 tau_decay : float = _tau_decay,
+                 learning_rate : float = _learning_rate,
+                 learning_rule : float = _learning_rule,
+                 bidirectional : bool = _bidirectional,
+                 reward_type : str = _reward_type,
+                 reward_duration : tuple[int,int] = _reward_duration,
+                 wheight_reset_slot : bool = _wheight_reset_slot):
+        params = locals().copy()
+        mandatory_params = ["source_shape", "target_shape"]
+        super().__init__(name, params, mandatory_params, is_dynamic=True)
 
-        if "tau" not in self._params.keys():
-            self._params["tau"] = 0.01
-        if "tau_decay" not in self._params.keys():
-            self._params["tau_decay"] = 0.1
-        if "learning_rate" not in self._params.keys():
-            self._params["learnig_rate"] = 0.1
-        if "learning_rule" not in self._params.keys():
-            self._params["learning_rule"] = "instar"
-        if "bidirectional" not in self._params.keys():
-            self._params["bidirectional"] = True
-        if "reward_type" not in self._params.keys():
-            self._params["reward_type"] = "no_reward"
-        if "reward_duration" not in self._params.keys():
-            self._params["reward_duration"] = [0,1]
-        if "wheight_reset_slot" not in self._params.keys():
-            self._params["wheight_reset_slot"] = False
-
-
-        self._params["wheight_shape"] = self._params["shape"] + self._params["target_shape"]
+        self._params["wheight_shape"] = source_shape + target_shape
         self._params["scalar_shape"] = (1,)
-        self._params["reward_duration"] = tuple(self._params["reward_duration"]) 
+        self._params["reward_duration"] = tuple(reward_duration) 
 
         self.needs_input_connections = True
         self.set_max_incoming_connections(util.DEFAULT_INPUT_SLOT, 3)
@@ -233,5 +235,5 @@ class HebbianConnection(Step):
     def infer_output_shapes(self, input_specs):
         return {
             util.DEFAULT_OUTPUT_SLOT: tuple(self._params["target_shape"]),
-            "out1": tuple(self._params["shape"]),
+            "out1": tuple(self._params["source_shape"]),
         }

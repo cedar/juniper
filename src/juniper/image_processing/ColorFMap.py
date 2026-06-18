@@ -65,19 +65,20 @@ def compute_kernel_factory(params):
 
 class ColorFMap(Step):
 
-    def __init__(self, name, params):
+    _saturation_threshold = 0.2
+    _hue_range = 360
+    _value_threshold = 0.2
+    def __init__(
+            self,
+            name : str,
+            bins : int,
+            saturation_threshold : float = _saturation_threshold,
+            hue_range : int = _hue_range,
+            value_threshold : float = _value_threshold):
+        params = locals().copy()
         mandatory_params = ["bins"] 
         super().__init__(name, params, mandatory_params)
         self.compute_kernel = compute_kernel_factory(self._params)
-        
-        if "saturation_threshold" not in self._params.keys():
-            self._params["saturation_threshold"] = 0
-
-        if "hue_range" not in self._params.keys():
-            self._params["hue_range"] = 360
-
-        if "value_threshold" not in self._params.keys():
-            self._params["value_threshold"] = 0
 
         self.register_input_slot("in1")
         self.register_input_slot("in2")

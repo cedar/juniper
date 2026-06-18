@@ -47,13 +47,14 @@ class Convolution(Step):
     - in0 : jnp.array()
     - out0 : jnp.array()
     """
-    def __init__(self, name : str, params : dict):
+    _kernel = None
+    _mode = "same"
+    def __init__(self, name : str, kernel = _kernel, mode : str = _mode):
+        params = locals().copy()
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
-        self._use_dynamic = "kernel" not in self._params.keys()
-        self._kernel = 0 if self._use_dynamic else self._params["kernel"].get_kernel()
-        if "mode" not in self._params.keys():
-            self._params["mode"] = "same"
+        self._use_dynamic = kernel is None
+        self._kernel = 0 if self._use_dynamic else kernel.get_kernel()
 
         self._params["shape"] = (1,) # used for initial warmup to set input
 

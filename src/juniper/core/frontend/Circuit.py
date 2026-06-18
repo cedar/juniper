@@ -50,17 +50,27 @@ class Circuit(Element):
     
     def clean(self) -> None:
         """Deletes all elements and slots in the circuit."""
-        self.element_map = {}
-        self.connection_map_reversed = {}
-        if self.get_local_circuit_id() in self.parent.element_map.keys():
-            self.parent.element_map.pop(self.get_local_circuit_id())
-        for slot in self.input_slot_map.values():
+        for element_name, element in self.element_map.items():
+            if getattr(self, element_name, None) is element:
+                delattr(self, element_name)
+        for slot_id, slot in self.input_slot_map.items():
+            if getattr(self, slot_id, None) is slot:
+                delattr(self, slot_id)
             if slot.get_local_circuit_id() in self.parent.connection_map_reversed.keys():
                 self.parent.connection_map_reversed.pop(slot.get_local_circuit_id())
-        for slot in self.output_slot_map.values():
+        for slot_id, slot in self.output_slot_map.items():
+            if getattr(self, slot_id, None) is slot:
+                delattr(self, slot_id)
             if slot.get_local_circuit_id() in self.parent.connection_map_reversed.keys():
                 self.parent.connection_map_reversed.pop(slot.get_local_circuit_id())
 
+        if self.get_local_circuit_id() in self.parent.element_map.keys():
+            self.parent.element_map.pop(self.get_local_circuit_id())
+
+        self.element_map = {}
+        self.input_slot_map = {}
+        self.output_slot_map = {}
+        self.connection_map_reversed = {}
         self.is_compiled = False
         self.compute_kernel = None
 
@@ -75,6 +85,13 @@ class Circuit(Element):
         for slot in element.input_slot_map.values():
             #print(slot.get_local_circuit_id())
             self.connection_map_reversed[slot.get_local_circuit_id()] = []
+
+        if (element.get_local_circuit_id() in self.input_slot_map.keys()) or (element.get_local_circuit_id() in self.input_slot_map.keys()):
+            raise Exception(f"A sub-element of a circuit cannot have the same name as its input or output slot ({self.get_local_circuit_id(), element.get_local_circuit_id()})")
+        elif getattr(self, element.get_local_circuit_id(), None) is not None:
+            raise Exception(f"{element.self.get_local_circuit_id()} is already registed in circuit {self.get_local_circuit_id()}")
+        else:
+            setattr(self, element.get_local_circuit_id(), element)
     
     def get_elements(self) -> dict[str,Element]:
         return self.element_map

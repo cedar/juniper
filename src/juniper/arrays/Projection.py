@@ -69,7 +69,15 @@ class Projection(Step):
     - in0: jnp.array(input_shape)
     - out0: jnp.ndarray(output_shape)
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(
+            self,
+            name : str,
+            input_shape : tuple,
+            output_shape : tuple,
+            axis : tuple,
+            order : tuple,
+            compression_type : str):
+        params = locals().copy()
         mandatory_params = ["input_shape", "output_shape", "axis", "order", "compression_type"]
         super().__init__(name, params, mandatory_params)
         in_dim = len(self._params["input_shape"])

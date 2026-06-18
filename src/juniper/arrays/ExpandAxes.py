@@ -35,7 +35,8 @@ class ExpandAxes(Step):
     - in0 : jnp.array((Nx,...))
     - out0 : jnp.array((Nx,ax0,ax1,...))
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, axis : tuple, sizes : tuple):
+        params = locals().copy()
         mandatory_params = ["axis", "sizes"]
         super().__init__(name, params, mandatory_params)
 

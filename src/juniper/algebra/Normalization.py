@@ -91,7 +91,8 @@ class Normalization(Step):
     - Input: jnp.ndarray
     - output: jnp.ndarray
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, function : str):
+        params = locals().copy()
         mandatory_params = ["function"]
         super().__init__(name, params, mandatory_params)
         try:

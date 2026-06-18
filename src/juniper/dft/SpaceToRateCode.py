@@ -42,18 +42,20 @@ class SpaceToRateCode(Step):
     - in0 : jnp.array((Nx,Ny,...))
     - out0 : jnp.array(len(Nx,Ny,...))
     """
-    def __init__(self, name : str, params : dict):
+    _tau = 0
+    _cyclic = False
+    _threshold = 0.9
+    def __init__(
+            self,
+            name : str,
+            shape : tuple,
+            limits : tuple,
+            tau : float = _tau,
+            cyclic : bool = _cyclic,
+            threshold : float = _threshold):
+        params = locals().copy()
         mandatory_params = ['limits', 'shape']
         super().__init__(name, params, mandatory_params, is_dynamic=True)
-
-        if "tau" not in self._params.keys():
-            self._params["tau"] = 0
-
-        if "cyclic" not in self._params.keys():
-            self._params["cyclic"] = 0
-
-        if "threshold" not in self._params.keys():
-            self._params["threshold"] = 0.9
 
         self._params["space_dim"] = len(self._params["shape"])
 

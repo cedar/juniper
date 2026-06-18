@@ -40,11 +40,33 @@ class TCPWriter(Sink):
         - this output is mostly for debugging. May be removed in the future.
     """
     
-    def __init__(self, name : str, params : dict):
+    _dtype = np.float32
+    _timeout = 3
+    _buffer_size = 32768
+    _time_step = 1/30
+    _connect_retry_delay = None
+    _max_missed_heartbeats = 3
+    _send_on_change_only = True
+    def __init__(
+            self,
+            name : str,
+            ip : str,
+            port : int,
+            shape : tuple,
+            dtype = _dtype,
+            timeout : float = _timeout,
+            buffer_size : int = _buffer_size,
+            time_step : float = _time_step,
+            connect_retry_delay = _connect_retry_delay,
+            max_missed_heartbeats : int = _max_missed_heartbeats,
+            send_on_change_only : bool = _send_on_change_only):
+        params = locals().copy()
         mandatory_params = ['ip', 'port', 'shape']
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.needs_input_connections = False
         self._params["mode"] = "write"
+        if connect_retry_delay is None:
+            self._params["connect_retry_delay"] = max(time_step, 0.5)
 
         self.compute_kernel = compute_kernel_factory(self._params)
 

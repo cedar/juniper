@@ -1,3 +1,8 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from ..math.LateralKernel import LateralKernel
+
 from ..core.frontend.Step import Step
 from ..util import util
 from ..util import util_jax
@@ -42,13 +47,13 @@ class NeuralField(Step):
     Parameters
     ---------    
     - shape : tuple(Nx,Ny,...)
-    - sigmoid : str(AbsSigmoid, HeavySideSigmoid, ExpSigmoid, LinearSigmoid, SemiLinearSigmoid, LogarithmicSigmoid)
-    - beta : float
-    - theta : float
-    - resting_level : float
-    - global_inhibition : float
-    - input_noise_gain : float
-    - tau [ms] : float
+    - sigmoid (optional) : str(AbsSigmoid, HeavySideSigmoid, ExpSigmoid, LinearSigmoid, SemiLinearSigmoid, LogarithmicSigmoid)
+    - beta (optional) : float
+    - theta (optional) : float
+    - resting_level (optional) : float
+    - global_inhibition (optional) : float
+    - input_noise_gain (optional) : float
+    - tau (optional) [ms] : float
     - LateralKernel (optional) : LateralKernel or Gaussian
 
     Step Input/Output slots
@@ -56,22 +61,44 @@ class NeuralField(Step):
     - Input: jnp.ndarray(shape)
     - output: jnp.ndarray(shape)
     """
-    def __init__(self, name : str, params : dict):
-        mandatory_params = ["shape", "sigmoid", "beta", "theta", "resting_level", "global_inhibition", "input_noise_gain", "tau"]
+    # Default params
+    _sigmoid = "AbsSigmoid"
+    _beta = 100
+    _theta = 0
+    _resting_level = -5
+    _global_inhibition = 0
+    _input_noise_gain = 0
+    _tau = util_jax.get_config()["delta_t"] * 10
+    _lateral_kernel = None
+    def __init__(self, 
+                 name : str, 
+                 shape : tuple[int, ...], 
+                 sigmoid : str = _sigmoid,
+                 beta : int = _beta,
+                 theta : float = _theta,
+                 resting_level : float = _resting_level,
+                 global_inhibition : float = _global_inhibition,
+                 input_noise_gain : float = 0,
+                 tau : float = _tau,
+                 lateral_kernel : LateralKernel | None = _lateral_kernel
+                 ):
+        params = locals().copy()
+        mandatory_params = ["shape"]
         super().__init__(name, params, mandatory_params, is_dynamic=True)
+
         self.needs_input_connections = False
         self.set_max_incoming_connections(util.DEFAULT_INPUT_SLOT, np.inf)
-        self._delta_t = util_jax.get_config()["delta_t"]
+        delta_t = util_jax.get_config()["delta_t"]
 
-        if "LateralKernel" not in self._params:
-            self._lateral_kernel_convolve = lambda x: x*0
+        if lateral_kernel is None:
+            def lateral_kernel_convolve(x):
+                return x*0
         else:
-            self._lateral_kernel_convolve = self._params["LateralKernel"].gen_convolve_func()
+            lateral_kernel_convolve = self._params["LateralKernel"].gen_convolve_func()
 
-        self.sigmoid = Sigmoid({"sigmoid":self._params["sigmoid"]}).sigmoid
+        sigmoid = Sigmoid({"sigmoid":sigmoid}).sigmoid
 
-        self.compute_kernel = compute_kernel_factory(self._delta_t, self._params["resting_level"], self._params["global_inhibition"], 
-                                                       self._params["beta"], self._params["theta"], self._params["tau"], self._params["input_noise_gain"], 
-                                                       self.sigmoid, self._lateral_kernel_convolve)
+        self.compute_kernel = compute_kernel_factory(delta_t, resting_level, global_inhibition, beta, theta, tau, input_noise_gain, 
+                                                       sigmoid, lateral_kernel_convolve)
         
         self.register_buffer("activation", self._params["shape"])

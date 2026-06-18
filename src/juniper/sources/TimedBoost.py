@@ -31,18 +31,19 @@ class TimedBoost(Source):
     ----------
     - out0 : jnp.ndarray((1,))
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, amplitude : float, duration : tuple):
+        params = locals().copy()
         mandatory_params = ["amplitude", "duration"]
         super().__init__(name, params, mandatory_params, is_dynamic=True)
 
         self._delta_t = util_jax.get_config()["delta_t"]
         
-        if len(params["duration"]) != 2:
-            raise ValueError(f"TimedBoost {name} requires a duration parameter with two values (start, end). Got: {params['duration']}")
-        elif params["duration"][0] > params["duration"][1]:
-            raise ValueError(f"TimedBoost {name} requires a duration parameter with start < end. Got: {params['duration']}")
-        self._start = params["duration"][0]
-        self._end = params["duration"][1]
+        if len(duration) != 2:
+            raise ValueError(f"TimedBoost {name} requires a duration parameter with two values (start, end). Got: {duration}")
+        elif duration[0] > duration[1]:
+            raise ValueError(f"TimedBoost {name} requires a duration parameter with start < end. Got: {duration}")
+        self._start = duration[0]
+        self._end = duration[1]
 
         self.compute_kernel = compute_kernel_factory(self._params, self._start, self._end, self._delta_t)
         self.register_buffer("local_time", (1,))

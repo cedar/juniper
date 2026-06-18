@@ -39,7 +39,9 @@ class CompressAxes(Step):
     - in0 : jnp.array()
     - out0 : jnp.array()
     """
-    def __init__(self, name : str, params : dict):
+    _compress_all = False
+    def __init__(self, name : str, axis : tuple, compression_type : str, compress_all : bool = _compress_all):
+        params = locals().copy()
         mandatory_params = ["axis", "compression_type"]
         super().__init__(name, params, mandatory_params)
         try:
@@ -50,9 +52,6 @@ class CompressAxes(Step):
                 f"Supported compression types are: {', '.join(COMPRESSION_TYPE_MAP)}"
                 )
         
-        if "compress_all" not in params.keys():
-            self._params["compress_all"] = False
-
         self.compute_kernel = compute_kernel_factory(self._params, self._red_func)
 
     def infer_output_shapes(self, input_specs):

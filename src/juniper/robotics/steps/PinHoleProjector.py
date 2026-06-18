@@ -44,10 +44,10 @@ class PinHoleProjector(Step):
     - Input: jnp.array(img_shape)
     - output: jnp.ndarray(H*W,3)
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, img_shape : tuple, focal_length : float, frustrum_angles : tuple):
+        params = locals().copy()
         mandatory_params = ["img_shape", "focal_length", "frustrum_angles"]
         super().__init__(name, params, mandatory_params)
-        self._params = params.copy()
 
         f = self._params["focal_length"]
         angleRangeX = self._params["frustrum_angles"][0] * jnp.pi / 180

@@ -27,7 +27,8 @@ class Clamp(Step):
     - in0 : jnp.array()
     - out0 : jnp.array()
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, limits : tuple):
+        params = locals().copy()
         mandatory_params = ["limits"]
         super().__init__(name, params, mandatory_params)
         

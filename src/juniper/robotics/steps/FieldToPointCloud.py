@@ -30,21 +30,20 @@ class FieldToPointCloud(Step):
     - in0 : jnp.array((Nx,Ny,Nz))
     - out0 : jnp.array((Nx*Ny*Nz,3))
     """
-    def __init__(self, name : str, params : dict):
+    _origin = (0.0,0.0,0.0)
+    _field_units_per_meter = (100.0,100.0,100.0)
+    _threshold = 0.9
+    _N_pt = jnp.inf
+    def __init__(
+            self,
+            name : str,
+            origin : tuple = _origin,
+            field_units_per_meter : tuple = _field_units_per_meter,
+            threshold : float = _threshold,
+            N_pt = _N_pt):
+        params = locals().copy()
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
-
-        if "origin" not in self._params.keys():
-            self._params["origin"] = (0.0,0.0,0.0)
-
-        if "field_units_per_meter" not in self._params.keys():
-            self._params["field_units_per_meter"] = (100.0,100.0,100.0)
-
-        if "threshold" not in self._params.keys():
-            self._params["threshold"] = 0.9
-
-        if "N_pt" not in self._params.keys():
-            self._params["N_pt"] = jnp.inf
 
         self.compute_kernel = compute_kernel_factory(self._params)
 

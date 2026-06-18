@@ -26,7 +26,8 @@ class ComponentMultiply(Step):
     - in0 : jnp.array()
     - out0 : jnp.array()
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str):
+        params = locals().copy()
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
         self.needs_input_connections = True

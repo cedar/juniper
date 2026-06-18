@@ -49,7 +49,8 @@ class RangeImageToPointCloud(Step):
     - in0: jnp.ndarray(image_shape)
     - out0: jnp.ndarray(H*W,3)
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, image_shape : tuple, pan_range : tuple, tilt_range : tuple):
+        params = locals().copy()
         mandatory_params = ["image_shape", "pan_range", "tilt_range"]
         super().__init__(name, params, mandatory_params)
         self.compute_kernel = compute_kernel_factory(self._params)

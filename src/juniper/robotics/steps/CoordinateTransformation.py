@@ -26,11 +26,10 @@ class CoordinateTransformation(Step):
     - in1 : jnp.array((3,))
     - out0 : jnp.array((N,3))
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, FrameGraph, source_frame : str, target_frame : str):
+        params = locals().copy()
         mandatory_params = ["FrameGraph", "source_frame", "target_frame"]
         super().__init__(name, params, mandatory_params)
-
-        self._params = params
 
         self._frame_graph = self._params["FrameGraph"]
         self._T = self._frame_graph.lookup(source=self._params["source_frame"], target=self._params["target_frame"])

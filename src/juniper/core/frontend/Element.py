@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Any
 from .Connectable import Connectable
 from .Slot import Slot
 from typing import Callable
@@ -24,6 +26,11 @@ class Element(Connectable):
         # compiler flag to signal that the internal state has been successfully inferred
         self.is_compiled = False
 
+    @classmethod
+    def from_params(cls, name : str, params : dict[str, Any]) -> Any:
+        """Init element from param dict"""
+        return cls(name=name, **params)
+
     def register_output_slot(self, slot_id : str) -> Slot:
         if slot_id in self.output_slot_map.keys():
             raise Exception(f"Output slot {slot_id} already registered in step {self.get_local_circuit_id()}")
@@ -39,7 +46,10 @@ class Element(Connectable):
             raise Exception(f"Input slot {slot_id} already registered in step {self.get_local_circuit_id()}")
         slot = Slot(self, slot_id, max_incoming_connections)
         # Register input slot shortcut
-        setattr(self, f"{slot_id}", slot)
+        if getattr(self, f"{slot_id}", None) is None:
+            setattr(self, f"{slot_id}", slot)
+        else:
+            raise Exception(f"{slot_id} is already registered in step {self.get_local_circuit_id()}")
         # register slot
         self.input_slot_map[slot_id] = slot
         # register input slot with parent circuit if not already done so

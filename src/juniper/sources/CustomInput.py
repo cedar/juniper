@@ -19,7 +19,8 @@ class CustomInput(Source):
     ---------
     - out0 : jnp.array(shape)
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, shape : tuple):
+        params = locals().copy()
         mandatory_params = ["shape"]
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.read_from_cpu = True

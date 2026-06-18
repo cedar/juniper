@@ -27,7 +27,8 @@ class Flip(Step):
     - out0: jnp.array()
     """
 
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, axis : tuple):
+        params = locals().copy()
         mandatory_params = ["axis"]
         super().__init__(name, params, mandatory_params)
         self.compute_kernel = compute_kernel_factory(self._params)

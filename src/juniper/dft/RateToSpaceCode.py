@@ -46,22 +46,27 @@ class RateToSpaceCode(Step):
     - in0 : jnp.ndarray(len(shape))
     - out0 : jnp.ndarray(shape)
     """
-    def __init__(self, name : str, params : dict):
+    _center = None
+    _amplitude = 1.0
+    _sigma = None
+    _cyclic = False
+    def __init__(self, name : str,
+                 shape : tuple[int,...],
+                 limits : tuple[int,...],
+                 center : tuple[int,...] = _center,
+                 amplitude : float = _amplitude,
+                 sigma : tuple[int,...] = _sigma,
+                 cyclic : bool = _cyclic):
+        params = locals().copy()
         mandatory_params = ['shape', 'limits']
         super().__init__(name, params, mandatory_params)
 
-        if "center" not in self._params.keys():
+        if center is None:
             limits = self._params["limits"]
             self._params["center"] = [(limits[i][1]+limits[i][0])/2 for i in range(len(limits))]
 
-        if "amplitude" not in self._params.keys():
-            self._params["amplitude"] = 1.0
-
-        if "sigma" not in self._params.keys():
+        if sigma is None:
             self._params["sigma"] = tuple([1.0 for i in range(len(self._params["shape"]))])
-
-        if "cyclic" not in self._params.keys():
-            self._params["cyclic"] = False
 
         self._limits = jnp.asarray(self._params["limits"], dtype=jnp.float32)
         self._scaling_factor = jnp.array(self._params["shape"]) / jnp.array(self._limits[:,1] - self._limits[:,0]) 

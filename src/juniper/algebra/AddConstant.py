@@ -26,7 +26,8 @@ class AddConstant(Step):
     - in0 : jnp.array()
     - out0 : jnp.array()
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, constant : float):
+        params = locals().copy()
         mandatory_params = ["constant"]
         super().__init__(name, params, mandatory_params)
         self.compute_kernel = compute_kernel_factory(self._params)

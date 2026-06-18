@@ -114,19 +114,35 @@ def compute_kernel_factory(params, delta_t):
 
 class BCMConnection(Step):
 
-    def __init__(self, name, params):
+    _tau_weights = 1.0
+    _tau_theta = 1.0
+    _learning_rate = 0.1
+    _min_theta = 0.0
+    _use_fixed_theta = True
+    _fixed_theta = 0.25
+    _norm_target = 0.0
+    _norm_rate = 0.0
+    _safeguard_thr = -1.0
+    _theta_eps = 1e-6
+    def __init__(
+            self,
+            name : str,
+            shape : tuple,
+            target_shape : tuple,
+            tau_weights : float = _tau_weights,
+            tau_theta : float = _tau_theta,
+            learning_rate : float = _learning_rate,
+            min_theta : float = _min_theta,
+            use_fixed_theta : bool = _use_fixed_theta,
+            fixed_theta : float = _fixed_theta,
+            norm_target : float = _norm_target,
+            norm_rate : float = _norm_rate,
+            safeguard_thr : float = _safeguard_thr,
+            theta_eps : float = _theta_eps):
+        params = locals().copy()
         mandatory = [
             "shape",
             "target_shape",
-            "tau_weights",
-            "tau_theta",
-            "learning_rate",
-            "min_theta",
-            "use_fixed_theta",
-            "fixed_theta",
-            "norm_target",
-            "norm_rate",
-            "safeguard_thr",
         ]
         super().__init__(name, params, mandatory_params=mandatory, is_dynamic=True)
         sx, sy, sf = self._params["shape"]

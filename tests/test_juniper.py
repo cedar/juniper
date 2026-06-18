@@ -13,13 +13,22 @@ import io
 import sys
 
 from juniper.core.backend.DataClasses import Recording
+from juniper.core.frontend import CircuitContext
 from juniper.util import util_jax
 
+
+def clean_arch(arch):
+    """Clean architecture test state, including dynamic element attributes."""
+    arch.clean()
+    arch.engine.clean()
+    CircuitContext.set_current(arch)
 
 def function_test(func):
     """Decorator to clean arch after every test."""
     functools.wraps(func)
     def wrapper(*args, **kwargs):
+        arch = jp.get_arch()
+        clean_arch(arch)
         try:
             func(*args, **kwargs)
         except Exception:
@@ -27,8 +36,7 @@ def function_test(func):
             raise RuntimeError(f"test_function {func.__name__} failed with the above stderr call")
         finally:
             arch = jp.get_arch()
-            arch.clean()
-            arch.engine.clean()
+            clean_arch(arch)
     return wrapper
 
 @contextmanager
@@ -59,7 +67,7 @@ class TestJuniper:
 
     @function_test
     def test_recording(self):
-        in1 = jp.CustomInput("in1", {"shape":(1,)})
+        in1 = jp.CustomInput("in1", (1,))
         in1.set_data(np.ones((1,)))
 
         self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
@@ -132,7 +140,7 @@ class TestJuniper:
     @function_test
     def test_custom_input_updates_after_compile(self):
         """Sources should push new CPU-side data into runtime state each tick."""
-        in1 = jp.CustomInput("in1", {"shape":(2,)})
+        in1 = jp.CustomInput("in1", (2,))
         in1.set_data(np.array([1, 2], dtype=np.float32))
 
         self.arch.compile(warmup=1, print_compile_info=False, load_buffer=False)
@@ -148,11 +156,11 @@ class TestJuniper:
     @function_test
     def test_static_arch(self):
         """test: 1*3+1=4"""
-        const = jp.AddConstant("constant", {"constant":2})
-        in1 = jp.GaussInput("input", {"shape":(1,), "sigma":(0.01,), "center": (0.,), "amplitude":1})
-        in2 = jp.GaussInput("input2", {"shape":(1,), "sigma":(0.01,), "center": (0.,), "amplitude":1})
-        mult = jp.ComponentMultiply("mult", {})
-        out = jp.Sum("out", {})
+        const = jp.AddConstant("constant", 2)
+        in1 = jp.GaussInput("input", (1,), (0.01,), 1, center=(0.,))
+        in2 = jp.GaussInput("input2", (1,), (0.01,), 1, center=(0.,))
+        mult = jp.ComponentMultiply("mult")
+        out = jp.Sum("out")
         in1 >> const >> mult >> out
         in2 >> out
 
@@ -169,12 +177,12 @@ class TestJuniper:
     @function_test
     def test_juniper_syntax(self):
         """test all syntactic categories implemented in the juniper dsl"""
-        const = jp.AddConstant("constant", {"constant":2})
-        in1 = jp.GaussInput("input", {"shape":(1,), "sigma":(0.01,), "center": (0.,), "amplitude":1})
-        in2 = jp.GaussInput("input2", {"shape":(1,), "sigma":(0.01,), "center": (0.,), "amplitude":1})
-        mult = jp.ComponentMultiply("mult", {})
-        out = jp.Sum("out", {})
-        out2 = jp.Sum("out2", {})
+        const = jp.AddConstant("constant", 2)
+        in1 = jp.GaussInput("input", (1,), (0.01,), 1, center=(0.,))
+        in2 = jp.GaussInput("input2", (1,), (0.01,), 1, center=(0.,))
+        mult = jp.ComponentMultiply("mult")
+        out = jp.Sum("out")
+        out2 = jp.Sum("out2")
         # (1+2)*1+1=4
         # 4+3=7
         in1 >> const
@@ -201,9 +209,9 @@ class TestJuniper:
     @function_test
     def test_nested_circuit(self):
         """Tests if nested circuits are handled correctly."""
-        circ = jp.Circuit("circ", {})
+        circ = jp.Circuit("circ")
         with circ as c:
-            summed_inputs = jp.Sum("summed_inputs", {})
+            summed_inputs = jp.Sum("summed_inputs")
             c.register_input_slot("in0")
             c.register_input_slot("in1")
             c.register_input_slot("in2")
@@ -216,14 +224,14 @@ class TestJuniper:
             c.in3 >> summed_inputs >> c.out0
             
 
-        circ2 = jp.Circuit("circ2", {})
+        circ2 = jp.Circuit("circ2")
         with circ2 as c:
-            summed_inputs = jp.Sum("summed_inputs", {})
+            summed_inputs = jp.Sum("summed_inputs")
             c.register_input_slot("in0")
             c.register_output_slot("out0")
             c.in0 >> summed_inputs >> c.out0
 
-        external_input = jp.CustomInput("external_input", {"shape":(1,)})
+        external_input = jp.CustomInput("external_input", (1,))
         external_input.set_data(np.ones((1,)))
 
         external_input >> circ.in0
@@ -251,14 +259,14 @@ class TestJuniper:
     @function_test
     def test_compile_info_flattened_nested_circuit(self):
         """Top-level CompileInfo should expose nested elements with extended paths."""
-        circ = jp.Circuit("circ", {})
+        circ = jp.Circuit("circ")
         with circ as c:
-            summed_inputs = jp.Sum("summed_inputs", {})
+            summed_inputs = jp.Sum("summed_inputs")
             c.register_input_slot("in0")
             c.register_output_slot("out0")
             c.in0 >> summed_inputs >> c.out0
 
-        external_input = jp.CustomInput("external_input", {"shape":(1,)})
+        external_input = jp.CustomInput("external_input", (1,))
         external_input.set_data(np.ones((1,)))
         external_input >> circ
 
@@ -274,13 +282,13 @@ class TestJuniper:
     @function_test
     def test_component_multiply_product_aggregation(self):
         """ComponentMultiply should multiply multiple incoming values instead of summing them."""
-        in1 = jp.CustomInput("in1", {"shape":(1,)})
-        in2 = jp.CustomInput("in2", {"shape":(1,)})
-        in3 = jp.CustomInput("in3", {"shape":(1,)})
+        in1 = jp.CustomInput("in1", (1,))
+        in2 = jp.CustomInput("in2", (1,))
+        in3 = jp.CustomInput("in3", (1,))
         in1.set_data(np.array([2], dtype=np.float32))
         in2.set_data(np.array([3], dtype=np.float32))
         in3.set_data(np.array([4], dtype=np.float32))
-        mult = jp.ComponentMultiply("mult", {})
+        mult = jp.ComponentMultiply("mult")
 
         in1 >> mult
         in2 >> mult
@@ -294,16 +302,16 @@ class TestJuniper:
     @function_test
     def test_duplicate_element_name_fails(self):
         """Circuit construction should reject duplicate element names."""
-        jp.CustomInput("in1", {"shape":(1,)})
+        jp.CustomInput("in1", (1,))
         with pytest.raises(Exception):
-            jp.CustomInput("in1", {"shape":(1,)})
+            jp.CustomInput("in1", (1,))
 
     @function_test
     def test_max_incoming_connection_fails(self):
         """Slots with one allowed incoming connection should reject a second source."""
-        in1 = jp.CustomInput("in1", {"shape":(1,)})
-        in2 = jp.CustomInput("in2", {"shape":(1,)})
-        out = jp.AddConstant("out", {"constant": 1})
+        in1 = jp.CustomInput("in1", (1,))
+        in2 = jp.CustomInput("in2", (1,))
+        out = jp.AddConstant("out", 1)
         in1 >> out
         with pytest.raises(Exception):
             in2 >> out
@@ -311,8 +319,8 @@ class TestJuniper:
     @function_test
     def test_reset(self):
         """tests if reset correctly restores the initial state and doesn't cause retracing from jax."""
-        nf1 = jp.NeuralField("nf1", {"shape": (50,50), "sigmoid": "ExpSigmoid", "beta": 100, "theta": 0, "resting_level":-5, "global_inhibition":0, "input_noise_gain":0, "tau":0.02})
-        gauss = jp.GaussInput("gauss", {"sigma": (3,3), "shape":(50,50), "amplitude": 6, "center": (25,25)})
+        nf1 = jp.NeuralField("nf1", (50,50), sigmoid="ExpSigmoid", beta=100, theta=0, resting_level=-5, global_inhibition=0, input_noise_gain=0, tau=0.02)
+        gauss = jp.GaussInput("gauss", (50,50), (3,3), 6, center=(25,25))
         gauss >> nf1
 
         self.arch.compile(warmup=0, print_compile_info=False, load_buffer=False)
@@ -365,7 +373,7 @@ class TestJuniper:
 
         with pytest.raises(Exception):
             with simulate_user_input("n"):
-                jp.DNN("dnn2", {"layer":"4_3"})
+                jp.DNN("dnn2", "4_3")
 
     @function_test
     def test_buffer_save_and_load(self):
@@ -397,8 +405,7 @@ class TestJuniper:
             with open(data_file, "w") as f:
                 json.dump(saved_tree, f)
 
-            self.arch.clean()
-            self.arch.engine.clean()
+            clean_arch(self.arch)
 
             build_bcm_buffer_circuit()
             self.arch.compile(warmup=0, print_compile_info=False, load_buffer=True)
@@ -423,10 +430,10 @@ class TestJuniper:
             "time_step": 0.005,
             "connect_retry_delay": 0.01,
         }
-        jp.TCPReader("tcp_reader", tcp_params)
-        tcp_writer = jp.TCPWriter("tcp_writer", tcp_params)
+        jp.TCPReader("tcp_reader", **tcp_params)
+        tcp_writer = jp.TCPWriter("tcp_writer", **tcp_params)
 
-        input = jp.CustomInput("input", {"shape":(3,)})
+        input = jp.CustomInput("input", (3,))
         in_array = np.asanyarray([1,2,3], dtype=np.uint8)
         input.set_data(in_array)
         input >> tcp_writer
@@ -457,115 +464,80 @@ class TestJuniper:
         """Tests if the comiler catches invalid input shapes."""
 
         # case 1
-        out = jp.Sum("out", {})
-        in1 = jp.CustomInput("in1", {"shape":(2,)})
-        in2 = jp.CustomInput("in2", {"shape":(2,2)})
+        out = jp.Sum("out")
+        in1 = jp.CustomInput("in1", (2,))
+        in2 = jp.CustomInput("in2", (2,2))
         in1 >> out
         in2 >> out
         with pytest.raises(Exception):
             self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
-        self.arch.clean()
+        clean_arch(self.arch)
 
-        out = jp.NeuralField("out", {"shape":(50,50),
-                                     "sigmoid": "AbsSigmoid",
-                                     "beta": 100,
-                                     "theta":0,
-                                     "resting_level":-5,
-                                     "global_inhibition":0,
-                                     "input_noise_gain":0,
-                                     "tau":0.02})
-        in1 = jp.CustomInput("in1", {"shape":(50,50)})
+        out = jp.NeuralField("out", (50,50), sigmoid="AbsSigmoid", beta=100, theta=0, resting_level=-5, global_inhibition=0, input_noise_gain=0, tau=0.02)
+        in1 = jp.CustomInput("in1", (50,50))
         in1 >> out
         self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
         assert self.arch.is_compiled
-        self.arch.clean()
+        clean_arch(self.arch)
 
         # case 2
-        out = jp.NeuralField("out", {"shape":(50,50),
-                                     "sigmoid": "AbsSigmoid",
-                                     "beta": 100,
-                                     "theta":0,
-                                     "resting_level":-5,
-                                     "global_inhibition":0,
-                                     "input_noise_gain":0,
-                                     "tau":0.02})
-        in1 = jp.CustomInput("in1", {"shape":(50,50)})
-        in2 = jp.CustomInput("in2", {"shape":(1,)})
-        proj = jp.CompressAxes("proj", {"axis": (0,1), "compression_type":"Maximum"})
+        out = jp.NeuralField("out", (50,50), sigmoid="AbsSigmoid", beta=100, theta=0, resting_level=-5, global_inhibition=0, input_noise_gain=0, tau=0.02)
+        in1 = jp.CustomInput("in1", (50,50))
+        in2 = jp.CustomInput("in2", (1,))
+        proj = jp.CompressAxes("proj", (0,1), "Maximum")
         in1 >> out
         in2 >> out
         out >> proj >> out
         self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
         assert self.arch.is_compiled
-        self.arch.clean()
+        clean_arch(self.arch)
 
         # case 3
-        out = jp.NeuralField("out", {"shape":(50,50),
-                                     "sigmoid": "AbsSigmoid",
-                                     "beta": 100,
-                                     "theta":0,
-                                     "resting_level":-5,
-                                     "global_inhibition":0,
-                                     "input_noise_gain":0,
-                                     "tau":0.02})
-        in1 = jp.CustomInput("in1", {"shape":(50,50)})
-        in2 = jp.CustomInput("in2", {"shape":(1,)})
-        proj = jp.CompressAxes("proj", {"axis": (0,), "compression_type":"Maximum"})
+        out = jp.NeuralField("out", (50,50), sigmoid="AbsSigmoid", beta=100, theta=0, resting_level=-5, global_inhibition=0, input_noise_gain=0, tau=0.02)
+        in1 = jp.CustomInput("in1", (50,50))
+        in2 = jp.CustomInput("in2", (1,))
+        proj = jp.CompressAxes("proj", (0,), "Maximum")
         in1 >> out
         in2 >> out
         out >> proj >> out
         with pytest.raises(Exception):
             self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
-        self.arch.clean()
+        clean_arch(self.arch)
 
         # case 4
-        out = jp.NeuralField("out", {"shape":(50,50),
-                                     "sigmoid": "AbsSigmoid",
-                                     "beta": 100,
-                                     "theta":0,
-                                     "resting_level":-5,
-                                     "global_inhibition":0,
-                                     "input_noise_gain":0,
-                                     "tau":0.02})
-        in1 = jp.CustomInput("in1", {"shape":(50,50)})
-        in2 = jp.CustomInput("in2", {"shape":(1,)})
-        proj = jp.CompressAxes("proj", {"axis": (0,1), "compression_type":"Maximum", "compress_all":True})
+        out = jp.NeuralField("out", (50,50), sigmoid="AbsSigmoid", beta=100, theta=0, resting_level=-5, global_inhibition=0, input_noise_gain=0, tau=0.02)
+        in1 = jp.CustomInput("in1", (50,50))
+        in2 = jp.CustomInput("in2", (1,))
+        proj = jp.CompressAxes("proj", (0,1), "Maximum", compress_all=True)
         in1 >> out
         in2 >> out
         out >> proj >> out
         self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
         assert self.arch.is_compiled
-        self.arch.clean()
+        clean_arch(self.arch)
 
         # case 5
-        out = jp.NeuralField("out", {"shape":(50,50),
-                                     "sigmoid": "AbsSigmoid",
-                                     "beta": 100,
-                                     "theta":0,
-                                     "resting_level":-5,
-                                     "global_inhibition":0,
-                                     "input_noise_gain":0,
-                                     "tau":0.02})
-        in1 = jp.CustomInput("in1", {"shape":(50,50)})
-        in2 = jp.CustomInput("in2", {"shape":()})
-        proj = jp.CompressAxes("proj", {"axis": (0,1), "compression_type":"Maximum", "compress_all":True})
+        out = jp.NeuralField("out", (50,50), sigmoid="AbsSigmoid", beta=100, theta=0, resting_level=-5, global_inhibition=0, input_noise_gain=0, tau=0.02)
+        in1 = jp.CustomInput("in1", (50,50))
+        in2 = jp.CustomInput("in2", ())
+        proj = jp.CompressAxes("proj", (0,1), "Maximum", compress_all=True)
         in1 >> out
         in2 >> out
         out >> proj >> out
         self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
         assert self.arch.is_compiled
-        self.arch.clean()
+        clean_arch(self.arch)
 
     @function_test
     def test_nested_state_update(self):
         """Tests if steps in nested circuits update their state correctly and can be recorded."""
-        c = jp.Circuit("c", {})
+        c = jp.Circuit("c")
         with c as c:
-            s = jp.Sum("s", {})
+            s = jp.Sum("s")
             c.register_input_slot("in0")
             c.in0 >> s
         
-        input = jp.CustomInput("input", {"shape":(3,)})
+        input = jp.CustomInput("input", (3,))
         in_array = np.asanyarray([1,2,3], dtype=np.float32)
         input.set_data(in_array)
 
@@ -585,18 +557,18 @@ class TestJuniper:
     @function_test
     def test_circuit_output_multiple_sources(self):
         """Circuit output slots should sum all registered internal source slots."""
-        c = jp.Circuit("c", {})
+        c = jp.Circuit("c")
         with c as c:
-            in0 = jp.Sum("in0", {})
-            in1 = jp.Sum("in1", {})
+            sum0 = jp.Sum("sum0")
+            sum1 = jp.Sum("sum1")
             c.register_input_slot("in0")
             c.register_input_slot("in1")
             c.register_output_slot("out0")
-            c.in0 >> in0 >> c.out0
-            c.in1 >> in1 >> c.out0
+            c.in0 >> sum0 >> c.out0
+            c.in1 >> sum1 >> c.out0
 
-        input0 = jp.CustomInput("input0", {"shape":(1,)})
-        input1 = jp.CustomInput("input1", {"shape":(1,)})
+        input0 = jp.CustomInput("input0", (1,))
+        input1 = jp.CustomInput("input1", (1,))
         input0.set_data(np.ones((1,), dtype=np.float32))
         input1.set_data(np.ones((1,), dtype=np.float32) * 2)
 
@@ -617,7 +589,7 @@ class TestJuniper:
             with ssc as ssc:
                 sssc = jp.Circuit("sssc")
                 with sssc as sssc:
-                    inner_state = jp.Sum("inner_state", {})
+                    inner_state = jp.Sum("inner_state")
                     sssc.register_input_slot("in0")
                     sssc.register_output_slot("out0")
                     sssc >> inner_state >> sssc
@@ -627,7 +599,7 @@ class TestJuniper:
             sc.register_input_slot("in0")
             sc.register_output_slot("out0")
             sc.in0 >> ssc >> sc
-        external_input = jp.CustomInput("external_input", {"shape":(3,)})
+        external_input = jp.CustomInput("external_input", (3,))
         external_input >> sc
 
         in_array = np.array([1,2,3])
@@ -642,28 +614,47 @@ class TestJuniper:
             out_array = np.asanyarray(out_state)
             assert np.array_equal(in_array, out_array)
 
+    @function_test
+    def test_constructor_methods(self):
+        """Tests if the constructor methods for creating steps using params or individual args works, and defaults work."""
+        params = {"shape":(50,50), "sigmoid":"AbsSigmoid", "beta":100, "theta":0, "resting_level":-5, "global_inhibition":0, "input_noise_gain":0, "tau":0.02}
+        jp.NeuralField("_1", (50,50), sigmoid="AbsSigmoid", beta=100, theta=0, resting_level=-5, global_inhibition=0, input_noise_gain=0, tau=0.02)
+        jp.NeuralField("_2", **params)
+        jp.NeuralField.from_params("_3", params)
+        jp.NeuralField("_4", shape=(50,50))
+        self.arch._1 >> self.arch._2 >> self.arch._3
+
+        self.arch.compile()
+        assert self.arch.is_compiled
+        assert self.arch._4._params["sigmoid"] == jp.NeuralField._sigmoid
+        assert self.arch._4._params["beta"] == jp.NeuralField._beta
+        assert self.arch._4._params["theta"] == jp.NeuralField._theta
+        assert self.arch._4._params["resting_level"] == jp.NeuralField._resting_level
+        assert self.arch._4._params["global_inhibition"] == jp.NeuralField._global_inhibition
+        assert self.arch._4._params["input_noise_gain"] == jp.NeuralField._input_noise_gain
+        assert self.arch._4._params["tau"] == jp.NeuralField._tau
+
+
 def build_bcm_buffer_circuit():
-    source = jp.CustomInput("source", {"shape":(1, 1, 1)})
-    target = jp.CustomInput("target", {"shape":(1, 1, 1)})
-    reward = jp.CustomInput("reward", {"shape":(1,)})
+    source = jp.CustomInput("source", (1, 1, 1))
+    target = jp.CustomInput("target", (1, 1, 1))
+    reward = jp.CustomInput("reward", (1,))
     source.set_data(np.ones((1, 1, 1), dtype=np.float32))
     target.set_data(np.ones((1, 1, 1), dtype=np.float32))
     reward.set_data(np.zeros((1,), dtype=np.float32))
     bcm = jp.BCMConnection(
         "bcm",
-        {
-            "shape": (1, 1, 1),
-            "target_shape": (1, 1, 1),
-            "tau_weights": 1.0,
-            "tau_theta": 1.0,
-            "learning_rate": 0.1,
-            "min_theta": 0.0,
-            "use_fixed_theta": True,
-            "fixed_theta": 0.25,
-            "norm_target": 0.0,
-            "norm_rate": 0.0,
-            "safeguard_thr": -1.0,
-        },
+        (1, 1, 1),
+        (1, 1, 1),
+        tau_weights=1.0,
+        tau_theta=1.0,
+        learning_rate=0.1,
+        min_theta=0.0,
+        use_fixed_theta=True,
+        fixed_theta=0.25,
+        norm_target=0.0,
+        norm_rate=0.0,
+        safeguard_thr=-1.0,
     )
     source >> bcm
     target >> bcm.in1

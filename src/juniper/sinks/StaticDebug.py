@@ -21,9 +21,10 @@ class StaticDebug(Step):
     - Input: any
     - output: any
     """
-    def __init__(self, name : str, params : dict):
+    _shape = (1,)
+    def __init__(self, name : str, shape : tuple = _shape):
+        params = locals().copy()
         mandatory_params = ["shape"]
-        params["shape"] = (1,)
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.needs_input_connections = True
         self.set_max_incoming_connections(util.DEFAULT_INPUT_SLOT, np.inf)

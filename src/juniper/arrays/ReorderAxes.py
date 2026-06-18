@@ -25,7 +25,8 @@ class ReorderAxes(Step):
     - in0 : jnp.ndarray
     - out0 : jnp.ndarray
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, order : tuple):
+        params = locals().copy()
         mandatory_params = ["order"]
         super().__init__(name, params, mandatory_params)
         self.compute_kernel = compute_kernel_factory(self._params)

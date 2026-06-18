@@ -29,7 +29,8 @@ class VectorToScalars(Step):
         - separate outputs indexed by 'out{i}'
     """
 
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, N_scalars : int):
+        params = locals().copy()
         mandatory_params = ["N_scalars"]
         super().__init__(name, params, mandatory_params)
 

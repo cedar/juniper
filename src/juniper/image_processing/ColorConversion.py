@@ -74,12 +74,11 @@ class ColorConversion(Step):
     - out1 : jnp.array((H,W))
     - out2 : jnp.array((H,W))
     """
-    def __init__(self, name : str, params : dict):
+    _channels = "rgb"
+    def __init__(self, name : str, channels : str = _channels):
+        params = locals().copy()
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
-
-        if "channels" not in self._params.keys():
-            self._params["channels"] = "rgb"
         
         self.register_output_slot("out1")
         self.register_output_slot("out2")

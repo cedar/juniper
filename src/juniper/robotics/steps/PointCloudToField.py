@@ -60,15 +60,17 @@ class PointCloudToField(Step):
     - in0 : jnp.ndarray((N,3))
     - out0 : jnp.ndarray(field_shape)
     """
-    def __init__(self, name : str, params : dict):
+    _origin = (0.0,0.0,0.0)
+    _field_units_per_meter = (100.0,100.0,100.0)
+    def __init__(
+            self,
+            name : str,
+            field_shape : tuple,
+            origin : tuple = _origin,
+            field_units_per_meter : tuple = _field_units_per_meter):
+        params = locals().copy()
         mandatory_params = ["field_shape"]
         super().__init__(name, params, mandatory_params)
-
-        if "origin" not in self._params.keys():
-            self._params["origin"] = (0.0,0.0,0.0)
-
-        if "field_units_per_meter" not in self._params.keys():
-            self._params["field_units_per_meter"] = (100.0,100.0,100.0)
 
         self.compute_kernel = compute_kernel_factory(self._params)
 

@@ -25,15 +25,17 @@ class GaussInput(Source):
     - in0: jnp.array(shape)
     - out0: jnp.array(shape)
     """
-    def __init__(self, name : str, params : dict):
+    _center = None
+    def __init__(self, name : str, shape : tuple, sigma : tuple, amplitude : float, center = _center):
+        params = locals().copy()
         mandatory_params = ["shape", "sigma", "amplitude"]
         super().__init__(name, params, mandatory_params)
 
-        if len(params["shape"]) != len(params["sigma"]):
-            raise ValueError(f"GaussInput {name} requires equal dimensionality of sigma ({len(params['sigma'])}) and shape ({len(params['shape'])})")
+        if len(shape) != len(sigma):
+            raise ValueError(f"GaussInput {name} requires equal dimensionality of sigma ({len(sigma)}) and shape ({len(shape)})")
 
         # Check if a center for the gaussian is given, otherwise default to (0, 0) (center of the shape)
-        if "center" not in params:
+        if center is None:
             warnings.warn(f"GaussInput {name} does not have a center parameter. Defaulting to (0, 0).")
             self._params["center"] = [x // 2 for x in self._params["shape"]]
 

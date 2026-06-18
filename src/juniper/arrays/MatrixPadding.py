@@ -37,12 +37,11 @@ class MatrixPadding(Step):
     - output: jnp.ndarray 
     """
 
-    def __init__(self, name : str, params : dict):
+    _mode = "constant"
+    def __init__(self, name : str, border_size, mode : str = _mode):
+        params = locals().copy()
         mandatory_params = ["border_size"]
         super().__init__(name, params, mandatory_params)
-
-        if "mode" not in self._params:
-            self._params["mode"] = "constant"
 
         self.compute_kernel = compute_kernel_factory(self._params)
 

@@ -29,7 +29,8 @@ class MatrixSlice(Step):
     - output: jnp.ndarray 
     """
 
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, slices : tuple):
+        params = locals().copy()
         mandatory_params = ["slices"]
         super().__init__(name, params, mandatory_params)
         
