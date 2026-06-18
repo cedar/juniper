@@ -64,6 +64,38 @@ def compute_kernel_factory(params):
 
 
 class ColorFMap(Step):
+    """
+    Description
+    ---------
+    Converts hue, saturation and value maps into a 10-channel color feature map.
+    The first six channels encode red, orange, yellow, green, blue and purple as
+    one-hot activations. Pixels below the saturation or value threshold are
+    suppressed.
+
+    Parameters
+    ---------
+    - bins : int
+        - Number of color bins expected by the feature map interface.
+    - saturation_threshold (optional) : float
+        - Minimum saturation required for a pixel to activate a color channel.
+        - Default = 0.2
+    - hue_range (optional) : int
+        - Hue range metadata.
+        - Default = 360
+    - value_threshold (optional) : float
+        - Minimum value required for a pixel to activate a color channel.
+        - Default = 0.2
+
+    Step Input/Output slots
+    ---------
+    - in0: jnp.array((H,W))
+        - Hue channel in [0,1].
+    - in1: jnp.array((H,W))
+        - Saturation channel in [0,1].
+    - in2: jnp.array((H,W))
+        - Value channel in [0,1].
+    - out0: jnp.array((H,W,10))
+    """
 
     _saturation_threshold = 0.2
     _hue_range = 360
