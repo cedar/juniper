@@ -1,5 +1,5 @@
 import jax.numpy as jnp
-from ..core.Step import Step
+from ..core.frontend.Step import Step
 from ..util import util
 
 COMPRESSION_TYPE_MAP = {

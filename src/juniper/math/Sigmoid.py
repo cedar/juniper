@@ -1,4 +1,4 @@
-from ..core.Configurable import Configurable
+from ..core.frontend.Configurable import Configurable
 import jax.numpy as jnp
 
 class Sigmoid(Configurable):

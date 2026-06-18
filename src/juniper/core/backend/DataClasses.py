@@ -6,10 +6,10 @@ from typing import Callable
 from typing import Union
 from typing import TypeAlias
 
-from .Element import Element
-from .Circuit import Circuit
-from .Slot import Slot
-from .Buffer import Buffer
+from ..frontend.Element import Element
+from ..frontend.Circuit import Circuit
+from ..frontend.Slot import Slot
+from ..frontend.Buffer import Buffer
 
 import numpy as np
 import time
@@ -285,7 +285,7 @@ class Recording:
         figsize=(10, 4),
     ):
         """Plot this recording using juniper.util.plotting.plot_steps."""
-        from ..util.plotting import plot_steps
+        from ...util.plotting import plot_steps
 
         recording = self
         if keys is not None:

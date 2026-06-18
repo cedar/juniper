@@ -1,6 +1,6 @@
 ### ToDo find a better name for this file and class
 import jax.numpy as jnp
-from ..core.Configurable import Configurable
+from ..core.frontend.Configurable import Configurable
 from .Convolution import convolve_func_singleton
 
 class LateralKernel(Configurable):

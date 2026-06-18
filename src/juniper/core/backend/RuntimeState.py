@@ -1,23 +1,23 @@
 from __future__ import annotations
 from typing import Any
 
-from .BackendDataClasses import ElementRef
-from .BackendDataClasses import CompileInfo
-from .BackendDataClasses import ElementPath
-from .BackendDataClasses import StateTree
+from .DataClasses import ElementRef
+from .DataClasses import CompileInfo
+from .DataClasses import ElementPath
+from .DataClasses import StateTree
 
 import json
 import jax.numpy as jnp
 import numpy as np
 
-from .Circuit import Circuit
-from .Element import Element
-from .Connectable import Connectable
-from ..dft.NeuralField import NeuralField
-from ..util import util
-from ..util import util_jax
-from ..util.util_jax import constant
-from ..util.util_jax import zeros
+from ..frontend.Circuit import Circuit
+from ..frontend.Element import Element
+from ..frontend.Connectable import Connectable
+from ...dft.NeuralField import NeuralField
+from ...util import util
+from ...util import util_jax
+from ...util.util_jax import constant
+from ...util.util_jax import zeros
 
 class RuntimeState:
     """Small wrapper around the JAX state tree.

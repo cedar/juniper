@@ -1,6 +1,6 @@
 # api
-from .core.Circuit import Circuit
-from .core.Engine import Engine
+from .core.frontend.Circuit import Circuit
+from .core.backend.Engine import Engine
 
 # architecture
 from .core.Architecture import delete_arch

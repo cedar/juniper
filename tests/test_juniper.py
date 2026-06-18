@@ -12,7 +12,7 @@ from contextlib import contextmanager
 import io
 import sys
 
-from juniper.core.BackendDataClasses import Recording
+from juniper.core.backend.DataClasses import Recording
 from juniper.util import util_jax
 
 

@@ -1,4 +1,4 @@
-from ..core.Source import Source
+from ..core.frontend.Source import Source
 from ..util import util
 import jax.numpy as jnp
 

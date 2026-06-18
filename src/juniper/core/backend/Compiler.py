@@ -1,15 +1,15 @@
 from __future__ import annotations
 from typing import Any
-from .BackendDataClasses import CompileInfo
-from .BackendDataClasses import ElementRef
+from .DataClasses import CompileInfo
+from .DataClasses import ElementRef
 
-from .Circuit import Circuit
-from .Element import Element
-from .Slot import Slot
-from .Buffer import Buffer
-from .Step import Step
-from ..util import util_jax
-from ..util import util
+from ..frontend.Circuit import Circuit
+from ..frontend.Element import Element
+from ..frontend.Slot import Slot
+from ..frontend.Buffer import Buffer
+from ..frontend.Step import Step
+from ...util import util_jax
+from ...util import util
 
 
 

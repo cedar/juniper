@@ -1,17 +1,17 @@
 from __future__ import annotations
-from .BackendDataClasses import CompileInfo
-from .BackendDataClasses import StateTree
-from .BackendDataClasses import TimingInfo
-from .BackendDataClasses import Recording
-from .BackendDataClasses import RecKey
+from .DataClasses import CompileInfo
+from .DataClasses import StateTree
+from .DataClasses import TimingInfo
+from .DataClasses import Recording
+from .DataClasses import RecKey
 
-from ..util.util import timer
-from ..util import util_jax
+from ...util.util import timer
+from ...util import util_jax
 import jax
 import numpy as np
 from functools import partial
 from typing import Any
-from .Circuit import Circuit
+from ..frontend.Circuit import Circuit
 from .Compiler import Compiler
 from .RuntimeState import RuntimeState
 from .RuntimeState import load_permanent_buffers

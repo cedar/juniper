@@ -1,8 +1,8 @@
-from .Circuit import Circuit
-from . import CircuitContext
-from .Engine import Engine
-from .Engine import Recording
-from .Engine import TimingInfo
+from .frontend.Circuit import Circuit
+from .frontend import CircuitContext
+from .backend.Engine import Engine
+from .backend.Engine import Recording
+from .backend.Engine import TimingInfo
 
 _architecture_singleton = None
 

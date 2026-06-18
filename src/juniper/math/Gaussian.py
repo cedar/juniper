@@ -1,6 +1,6 @@
 import jax.numpy as jnp
 from ..util import util_jax
-from ..core.Configurable import Configurable
+from ..core.frontend.Configurable import Configurable
 from .Convolution import convolve_func_singleton
 
 class Gaussian(Configurable):

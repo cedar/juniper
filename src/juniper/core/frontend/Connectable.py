@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 from .Configurable import Configurable
-from . import CircuitContext
-from ..util import util
+from ..frontend import CircuitContext
+from ...util import util
 
 if TYPE_CHECKING:
     from .Slot import Slot

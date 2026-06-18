@@ -1,7 +1,7 @@
 import numpy as np
 from multiprocessing import Process, shared_memory
 
-from ..core.Source import Source
+from ..core.frontend.Source import Source
 from ..util.TCPWorker import TCPWorker
 from ..util import util
 

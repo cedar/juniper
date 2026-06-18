@@ -1,7 +1,7 @@
 import numpy as np
 from multiprocessing import Process, shared_memory
 
-from ..core.Sink import Sink
+from ..core.frontend.Sink import Sink
 from ..util.TCPWorker import TCPWorker
 from ..util import util
 

@@ -1,4 +1,4 @@
-from ..core.Step import Step
+from ..core.frontend.Step import Step
 from ..util import util
 from ..math.Gaussian import Gaussian
 import jax.numpy as jnp

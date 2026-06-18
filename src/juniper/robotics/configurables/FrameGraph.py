@@ -1,4 +1,4 @@
-from ...core.Configurable import Configurable
+from ...core.frontend.Configurable import Configurable
 from .Transform import Transform
 from collections import deque
 
