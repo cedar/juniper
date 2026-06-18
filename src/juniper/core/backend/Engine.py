@@ -1,4 +1,5 @@
 from __future__ import annotations
+from typing import Any
 from .DataClasses import CompileInfo
 from .DataClasses import StateTree
 from .DataClasses import TimingInfo
@@ -10,7 +11,6 @@ from ...util import util_jax
 import jax
 import numpy as np
 from functools import partial
-from typing import Any
 from ..frontend.Circuit import Circuit
 from .Compiler import Compiler
 from .RuntimeState import RuntimeState
@@ -116,20 +116,26 @@ class Engine:
         self.circuit = circuit
         if self.circuit.is_compiled:
             raise Exception(f"Engine::compile(): Circuit is already compiled ({circuit.get_local_circuit_id()})")
-        self.compile_info = Compiler().compile(circuit)
+        t_compile, self.compile_info = timer(Compiler.compile)(circuit)
 
         self.kernel_map = self.compile_info.kernel_map
         self.init_state = RuntimeState.from_compile_info(self.compile_info)
         self.state = self.init_state.copy()
-        self._init_prng_tree()
+        self.prng_tree, self.prng_slots = self._init_prng_tree()
 
         if load_buffer:
             self._load_buffers()
         self._open_connections()
 
+        t_trace, _ = timer(self._tick)(self.state.state_tree, self. prng_tree)
+
         if warmup > 0:
-            self.run_simulation(num_steps=warmup, steps_to_record=[], print_timing=print_compile_info)
+            t_warmup, _ = timer(self.run_simulation)(num_steps=warmup, steps_to_record=[], print_timing=print_compile_info)
             self.reset_state()
+
+        if print_compile_info:
+            self._print_compile_info({"t_compile": t_compile, "t_trace": t_trace, "t_warmup": t_warmup, "N_static":len(self.compile_info.static), "N_dynamic": len(self.compile_info.dynamic), "N_total":len(self.compile_info.compiled_elements), "N_warmup":warmup})
+
 
     def reset_state(self) -> None:
         """Reset the runtime state to the post-compilation initial state."""
@@ -201,7 +207,7 @@ class Engine:
 
     def _init_prng_tree(self) -> None:
         """Build the PRNG tree matching the compiled kernel tree."""
-        self.prng_tree, self.prng_slots = util_jax.build_prng_tree(
+        return util_jax.build_prng_tree(
             self.kernel_map,
             self.compile_info.dynamic_step_paths(),
             self.static_prng_key,
@@ -275,5 +281,20 @@ class Engine:
         print(f"{(1000 * avg_gpu_pull):6.2f} ms average time for gpu read operation")
         print(f"{(1000 * t_buffer_write):6.2f} ms time for buffer write operation")
         print("\n")
-    
-    
+
+    def _print_compile_info(self, timing: TimingInfo) -> None:
+        n_static = timing["N_static"]
+        n_dynamic = timing["N_dynamic"]
+        n_total = timing["N_total"]
+        t_compile = timing["t_compile"]
+        t_trace = timing["t_trace"]
+        t_warmup = timing["t_warmup"]
+        N_warmup = timing["N_warmup"]
+        print(f"Compiled circuit '{self.circuit.get_local_circuit_id()}' with:")
+        print(f"{n_static} static steps,")
+        print(f"{n_dynamic} dynamic steps,")
+        print(f"making a total of {n_total} steps.")
+        print(f"{(t_compile):6.2f} s for compilaton of initial state shapes and dtypes")
+        print(f"{(t_trace):6.2f} s for jax tracing of state and compute kernels")
+        print(f"{(t_warmup):6.2f} s for warmup run [{N_warmup} steps]")
+        print("\n")

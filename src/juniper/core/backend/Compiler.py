@@ -37,22 +37,24 @@ class Compiler:
         self.compile_info : CompileInfo | None = None
         self.compiled_element_map : dict[Circuit, dict[tuple[str, ...], Element]] = {}
 
-    def compile(self, circuit : Circuit):
+    @classmethod
+    def compile(cls, circuit : Circuit):
         """Compile a top-level circuit and return only its runtime CompileInfo.
         """
-        self.circuit = circuit
+        compiler = Compiler()
+        compiler.circuit = circuit
         circuit.generate_kernel()
-        self._compile_circuit(circuit, {})
+        compiler._compile_circuit(circuit, {})
         try:
             assert circuit.is_compiled
         except Exception as e:
-            failed_elements = self._gather_uncompiled_elements(circuit=circuit)
+            failed_elements = compiler._gather_uncompiled_elements(circuit=circuit)
             element_paths = [ElementRef(element).path_str for element in failed_elements]
             
             raise Exception(f"{e}: The circuit '{circuit.get_local_circuit_id()}' could not be compiled. \nThese elements failed to compile: {element_paths}")
 
-        self.compile_info = self.local_compile_info[self.circuit]
-        return self.compile_info
+        compiler.compile_info = compiler.local_compile_info[compiler.circuit]
+        return compiler.compile_info
 
     def _compile_circuit(self, circuit : Circuit, input_slots : dict[str, list[Slot]]) -> bool:
         """Infer a circuit by repeatedly compiling elements whose inputs are known.
