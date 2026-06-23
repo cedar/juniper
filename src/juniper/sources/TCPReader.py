@@ -88,3 +88,9 @@ class TCPReader(Source):
         return_data = np.zeros(self.shared_data.shape, dtype=self.shared_data.dtype)
         return_data[:] = self.shared_data[:]
         return return_data
+
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["shape"])}
+
+    def infer_output_dtypes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: np.dtype(self._params["dtype"]).type}

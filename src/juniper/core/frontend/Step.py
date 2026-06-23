@@ -1,3 +1,5 @@
+from ..backend.Exceptions import CircuitError
+
 from ...util import util
 from ...util import util_jax
 from .Element import Element
@@ -15,20 +17,21 @@ class Step(Element):
 
     def register_buffer(self, buf_id : str, shape : tuple, permanent : bool  = False):
         if buf_id in self.buffer_map.keys():
-            raise ValueError(f"Buffer {buf_id} already registered in step {self.get_local_circuit_id()}")
+            raise CircuitError(f"Buffer {buf_id} already registered in step {self.get_path_str()}")
         self.buffer_map[buf_id] = Buffer(self, buf_id, shape, permanent)
 
     def infer_output_shapes(self, input_specs):
-        if "output_shape" in self._params:
-            return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["output_shape"])}
-        if "shape" in self._params:
-            return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["shape"])}
-        if util.DEFAULT_INPUT_SLOT in input_specs:
-            return {util.DEFAULT_OUTPUT_SLOT: input_specs[util.DEFAULT_INPUT_SLOT][0]}
-        return {}
+        shape = {}
+        for i, out_slot_id in enumerate(self.output_slot_map.keys()):
+            in_slot_id = util.DEFAULT_INPUT_SLOT[:-1] + f"{i}"
+            if in_slot_id in input_specs.keys() and input_specs[in_slot_id] is not None:
+                shape[out_slot_id] = input_specs[in_slot_id][0]
+        return shape
 
     def infer_output_dtypes(self, input_specs):
-        dtype = util_jax.cfg["jdtype"]
-        if util.DEFAULT_INPUT_SLOT in input_specs and input_specs[util.DEFAULT_INPUT_SLOT][1] is not None:
-            dtype = input_specs[util.DEFAULT_INPUT_SLOT][1]
-        return {slot_id: dtype for slot_id in self.output_slot_map.keys()}
+        dtypes = {slot_id: util_jax.cfg["jdtype"] for slot_id in self.output_slot_map.keys()}
+        for i, out_slot_id in enumerate(self.output_slot_map.keys()):
+            in_slot_id = util.DEFAULT_INPUT_SLOT[:-1] + f"{i}"
+            if in_slot_id in input_specs.keys() and input_specs[in_slot_id][1] is not None:
+                dtypes[out_slot_id] = input_specs[in_slot_id][1]
+        return dtypes

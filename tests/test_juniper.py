@@ -3,7 +3,6 @@ import json
 import os
 import shutil
 import tempfile
-import traceback
 import juniper as jp
 import numpy as np
 import pytest
@@ -12,6 +11,7 @@ from contextlib import contextmanager
 import io
 import sys
 
+from juniper.core.backend.Exceptions import JuniperError
 from juniper.core.backend.DataClasses import Recording
 from juniper.core.frontend import CircuitContext
 from juniper.util import util_jax
@@ -31,9 +31,9 @@ def function_test(func):
         clean_arch(arch)
         try:
             func(*args, **kwargs)
-        except Exception:
-            traceback.print_exc()
-            raise RuntimeError(f"test_function {func.__name__} failed with the above stderr call")
+        except Exception as e:
+            #traceback.print_exc()
+            raise JuniperError(f"test_function {func.__name__} failed with the above stderr call") from e
         finally:
             arch = jp.get_arch()
             clean_arch(arch)

@@ -102,3 +102,6 @@ class NeuralField(Step):
                                                        sigmoid, lateral_kernel_convolve)
         
         self.register_buffer("activation", self._params["shape"])
+
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: self._params["shape"]}

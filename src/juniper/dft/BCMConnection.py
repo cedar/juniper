@@ -123,7 +123,7 @@ class BCMConnection(Step):
 
     Parameters
     ---------
-    - shape : tuple((Nx,Ny,Nf))
+    - source_shape : tuple((Nx,Ny,Nf))
         - Source field shape.
     - target_shape : tuple((Nx,Ny,Nd))
         - Target field shape. The first two dimensions must match shape.
@@ -169,7 +169,7 @@ class BCMConnection(Step):
     def __init__(
             self,
             name : str,
-            shape : tuple,
+            source_shape : tuple,
             target_shape : tuple,
             tau_weights : float = _tau_weights,
             tau_theta : float = _tau_theta,
@@ -183,11 +183,11 @@ class BCMConnection(Step):
             theta_eps : float = _theta_eps):
         params = locals().copy()
         mandatory = [
-            "shape",
+            "source_shape",
             "target_shape",
         ]
         super().__init__(name, params, mandatory_params=mandatory, is_dynamic=True)
-        sx, sy, sf = self._params["shape"]
+        sx, sy, sf = self._params["source_shape"]
         tx, ty, td = self._params["target_shape"]
         if (sx, sy) != (tx, ty):
             raise ValueError("BCMConnection requires source and target to match in first two dims (X,Y).")

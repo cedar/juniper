@@ -11,7 +11,7 @@ class Configurable:
         for param in mandatory_params:
             if param not in params.keys():
                 path_str = self.get_local_circuit_id()
-                if hasattr(self, "get_path_str", None) is not None:
+                if hasattr(self, "get_path_str"):
                     path_str = self.get_path_str()
                 raise JuniperConfigurationError(f"Parameter {param} is mandatory for objects of type {self.__class__} ({path_str})")
             

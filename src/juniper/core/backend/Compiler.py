@@ -3,6 +3,8 @@ from typing import Any
 from .DataClasses import CompileInfo
 from .DataClasses import ElementRef
 from .Exceptions import CompilerError
+from .Exceptions import ShapeInferenceError
+from .Warnings import TypeInferenceWarning
 
 from ..frontend.Circuit import Circuit
 from ..frontend.Element import Element
@@ -231,16 +233,25 @@ class Compiler:
             return None, None
 
         shape = known_sources[0].shape
-        dtype = known_sources[0].dtype or util_jax.cfg["jdtype"]
+        dtype = None
+        raise_dtype_warning = False
         for source in known_sources[1:]:
             source_shape = source.shape
             if source_shape != shape:
                 if util._is_scalar_shape(shape):
                     shape = source_shape
                 elif not util._is_scalar_shape(source_shape):
-                    raise ValueError(f"Step {element.get_local_circuit_id()} received incompatible input shapes {[source.shape for source in known_sources]}")
+                    raise ShapeInferenceError(f"Step {element.get_path_str()} received incompatible input shapes {[source.shape for source in known_sources]}")
             if source.dtype is not None:
-                dtype = source.dtype
+                if dtype is None:
+                    dtype = source.dtype
+                elif dtype is not None and dtype != source.dtype:
+                    raise_dtype_warning = True
+                    dtype = util_jax.cfg["jdtype"]
+        if raise_dtype_warning:
+            raise TypeInferenceWarning(f"Step {element.get_path_str()} received incompatible input types {[source.dtype for source in known_sources]}.")
+        if dtype is None:
+            dtype = dtype = util_jax.cfg["jdtype"]
         return shape, dtype
 
     def _collect_compile_info(self, circuit : Circuit) -> CompileInfo:

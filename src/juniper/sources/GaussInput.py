@@ -46,3 +46,6 @@ class GaussInput(Source):
 
     def get_data(self):
         pass
+    
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: self._params["shape"]}

@@ -1,3 +1,4 @@
+# Expose Juniper api
 # api
 from .core.frontend.Circuit import Circuit
 from .core.backend.Engine import Engine
@@ -63,6 +64,37 @@ from .sources.TimedBoost import TimedBoost
 # robotics
 from . import robotics
 
+# error types
+from .core.backend.Exceptions import JuniperError
+from .core.backend.Exceptions import CompilerError
+from .core.backend.Exceptions import ShapeInferenceError
+from .core.backend.Exceptions import TypeInferenceError
+from .core.backend.Exceptions import LoadBufferError
+from .core.backend.Exceptions import SaveBufferError
+from .core.backend.Exceptions import EngineError
+from .core.backend.Exceptions import NotCompiledError
+from .core.backend.Exceptions import CircuitError
+from .core.backend.Exceptions import CircuitConnectionError
+from .core.backend.Exceptions import TCPError
+from .core.backend.Exceptions import RecordingError
+from .core.backend.Exceptions import JuniperConfigurationError
+from .core.backend.Exceptions import JuniperUserError
+
+# warnings
+from .core.backend.Warnings import JuniperWarning
+from .core.backend.Warnings import CompilerWarning
+from .core.backend.Warnings import ShapeInferenceWarning
+from .core.backend.Warnings import TypeInferenceWarning
+from .core.backend.Warnings import LoadBufferWarning
+from .core.backend.Warnings import SaveBufferWarning
+from .core.backend.Warnings import EngineWarning
+from .core.backend.Warnings import NotCompiledWarning
+from .core.backend.Warnings import CircuitWarning
+from .core.backend.Warnings import CircuitConnectionWarning
+from .core.backend.Warnings import TCPWarning
+from .core.backend.Warnings import RecordingWarning
+from .core.backend.Warnings import JuniperConfigurationWarning
+from .core.backend.Warnings import JuniperUserWarning
 
 __all__ =[
     "Engine",
@@ -109,5 +141,33 @@ __all__ =[
     "get_arch",
     "delete_arch",
     "VectorToScalars",
-    "ScalarsToVector"
+    "ScalarsToVector",
+    "JuniperError",
+    "CompilerError",
+    "ShapeInferenceError",
+    "TypeInferenceError",
+    "LoadBufferError",
+    "SaveBufferError",
+    "EngineError",
+    "NotCompiledError",
+    "CircuitError",
+    "CircuitConnectionError",
+    "TCPError",
+    "RecordingError",
+    "JuniperConfigurationError",
+    "JuniperUserError",
+    "JuniperWarning",
+    "CompilerWarning",
+    "ShapeInferenceWarning",
+    "TypeInferenceWarning",
+    "LoadBufferWarning",
+    "SaveBufferWarning",
+    "EngineWarning",
+    "NotCompiledWarning",
+    "CircuitWarning",
+    "CircuitConnectionWarning",
+    "TCPWarning",
+    "RecordingWarning",
+    "JuniperConfigurationWarning",
+    "JuniperUserWarning"
 ]
