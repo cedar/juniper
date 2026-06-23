@@ -1,3 +1,5 @@
+from ..core.backend.Exceptions import JuniperConfigurationError
+
 import jax.numpy as jnp
 from ..core.frontend.Step import Step
 from ..util import util
@@ -98,9 +100,10 @@ class Normalization(Step):
         try:
             self._ord = NORM_ORDER_MAP[self._params["function"]]
         except KeyError:
-            raise ValueError(
+            raise JuniperConfigurationError(
                 f"Unknown function: {self._params['function']}. "
-                f"Supported functions are: {', '.join(NORM_ORDER_MAP)}")
+                f"Supported functions are: {', '.join(NORM_ORDER_MAP)}"
+                f"({self.get_path_str()})")
 
         self.compute_kernel = compute_kernel_factory(self._params, self._ord)
     

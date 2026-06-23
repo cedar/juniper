@@ -39,6 +39,10 @@ class TCPError(JuniperError):
 
 class RecordingError(JuniperError):
     pass
+class LoadRecordingError(RecordingError):
+    pass
+class SaveRecordingError(RecordingError):
+    pass
 
 
 class JuniperConfigurationError(JuniperError):

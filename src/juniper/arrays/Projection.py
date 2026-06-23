@@ -1,3 +1,5 @@
+from ..core.backend.Exceptions import JuniperConfigurationError
+
 from ..core.frontend.Step import Step
 from ..util import util
 import jax.numpy as jnp
@@ -35,7 +37,7 @@ def _compress(input, axis, compression_type):
         return jnp.max(input, axis=axis)
     if compression_type == "Minimum":
         return jnp.min(input, axis=axis)
-    raise ValueError(f"Unknown compression type: {compression_type}")
+    raise JuniperConfigurationError(f"Unknown compression type: {compression_type}")
 
 class Projection(Step):
     """

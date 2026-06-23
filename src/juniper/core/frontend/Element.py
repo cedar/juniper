@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..backend.Exceptions import CircuitError
+from ..backend.Exceptions import JuniperUserError
 
 from .Connectable import Connectable
 from .Slot import Slot
@@ -11,7 +12,7 @@ from typing import Optional
 class Element(Connectable):
     def __init__(self, name : str, params : dict = {}, mandatory_params : dict = {}):
         if "." in name:
-            raise ValueError(f"Element names cannot contain dots. ({name})")
+            raise JuniperUserError(f"Element names cannot contain dots. ({name})")
         
         super().__init__(name=name,params=params, mandatory_params=mandatory_params)
         self.input_slot_map : dict[str, Slot] = {}

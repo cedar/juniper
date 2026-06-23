@@ -2,6 +2,7 @@ from ..core.frontend.Source import Source
 from ..math.Gaussian import Gaussian
 from ..util import util
 import warnings
+from ..core.backend.Exceptions import JuniperConfigurationError
 
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
@@ -31,7 +32,7 @@ class DemoInput(Source):
         super().__init__(name, params, mandatory_params)
 
         if len(shape) != len(sigma):
-            raise ValueError(f"DemoInput {name} requires equal dimensionality of sigma ({len(sigma)}) and shape ({len(shape)})")
+            raise JuniperConfigurationError(f"DemoInput {name} requires equal dimensionality of sigma ({len(sigma)}) and shape ({len(shape)})")
 
         # Check if a center for the gaussian is given, otherwise default to (0, 0) (center of the shape)
         if center is None:

@@ -70,7 +70,7 @@ def serialize_cv_mat(mat: np.ndarray) -> bytes:
 
     dtype = np.dtype(mat.dtype)
     if dtype not in base_dtype_map:
-        raise ValueError(f"Unsupported dtype for TCP serialization: {dtype}.")
+        raise TCPError(f"Unsupported dtype for TCP serialization: {dtype}.")
 
     cv_type = base_dtype_map[dtype]
     if mat.ndim == 3 and mat.shape[-1] == 3:
@@ -95,7 +95,7 @@ def _parse_cv_header(header_bytes: bytes):
     header = header_bytes.decode("utf-8", errors="strict").strip()
     parts = header.split(",")
     if len(parts) < 4 or parts[0] != "Mat":
-        raise ValueError("Invalid header format")
+        raise TCPError("Invalid header format")
 
     cv_type = parts[1]
     shape = [int(dim_str) for dim_str in parts[2:-1]]
@@ -112,13 +112,13 @@ def _parse_cv_header(header_bytes: bytes):
 
     match = re.fullmatch(r"(CV_\d+[FSU])(?:C(\d+))?", cv_type)
     if match is None:
-        raise ValueError(f"Unsupported CV type: {cv_type}")
+        raise TCPError(f"Unsupported CV type: {cv_type}")
 
     base_cv_type = match.group(1)
     channels = int(match.group(2)) if match.group(2) is not None else 1
 
     if base_cv_type not in dtype_map:
-        raise ValueError(f"Unsupported CV type: {cv_type}")
+        raise TCPError(f"Unsupported CV type: {cv_type}")
 
     dtype = np.dtype(dtype_map[base_cv_type])
     expected_size = channels
@@ -132,13 +132,13 @@ def parse_cv_mat(data: bytes):
     trailer_start = data.find(b"CHK-SM", header_end + 1)
 
     if header_end == -1 or trailer_start == -1:
-        raise ValueError("Header or trailer not found in data")
+        raise TCPError("Header or trailer not found in data")
 
     shape, dtype, channels, payload_nbytes = _parse_cv_header(data[:header_end])
     binary_data = memoryview(data)[header_end + 1 : trailer_start]
 
     if len(binary_data) != payload_nbytes:
-        raise ValueError("Data size does not match header dimensions")
+        raise TCPError("Data size does not match header dimensions")
 
     mat = np.frombuffer(binary_data, dtype=dtype)
 
@@ -302,7 +302,7 @@ class TCPWorker(Configurable):
             return None
 
         if bytes(self.read_buffer[footer_start:footer_start + len(footer_tag)]) != footer_tag:
-            raise ValueError("Footer not found after payload")
+            raise TCPError("Footer not found after payload")
 
         end = self.read_buffer.find(end_tag, footer_start + len(footer_tag))
         if end == -1:

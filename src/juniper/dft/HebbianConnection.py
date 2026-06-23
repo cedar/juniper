@@ -4,6 +4,7 @@ from ..util import util_jax
 import jax.numpy as jnp
 import jax
 from functools import partial
+from ..core.backend.Exceptions import JuniperConfigurationError
 
 def no_reward_gating(passedTime, reward_signal, reward_onset, reward_timer, reward_duration):
     return util_jax.ones((1,)), util_jax.ones((1,)), util_jax.zeros((1,))
@@ -63,9 +64,9 @@ def make_reward_func(params, static):
     try:
         _reward_func = REWARD_MAP[params["reward_type"]]
     except KeyError:
-        raise ValueError(
+        raise JuniperConfigurationError(
             f"Unknown reward setting: {params['reward_type']}. "
-            f"Supported settings are: {', '.join(REWARD_MAP)}"
+            f"Supported settings are: {', '.join(REWARD_MAP)} "
             )
     return partial(jax.jit, static_argnames=static_argnames_rew)(_reward_func)
 
@@ -78,7 +79,7 @@ def make_euler_func(params, static):
     try:
         learning_rule = LEARNING_RULE_MAP[params["learning_rule"]]
     except KeyError:
-        raise ValueError(
+        raise JuniperConfigurationError(
             f"Unknown learning rule: {params['learning_rule']}. "
             f"Supported learning rules are: {', '.join(LEARNING_RULE_MAP)}"
             )
@@ -87,7 +88,7 @@ def make_euler_func(params, static):
     try:
         output_rev_func = BIDIR_MAP[params["bidirectional"]]
     except KeyError:
-        raise ValueError(
+        raise JuniperConfigurationError(
             f"Invalid setting for bidirectionality: {params['bidirectional']}. "
             f"Supported functions are: {', '.join(BIDIR_MAP)}"
             )

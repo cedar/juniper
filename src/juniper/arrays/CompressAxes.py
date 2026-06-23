@@ -1,3 +1,5 @@
+from ..core.backend.Exceptions import JuniperConfigurationError
+
 import jax.numpy as jnp
 from ..core.frontend.Step import Step
 from ..util import util
@@ -47,9 +49,10 @@ class CompressAxes(Step):
         try:
             self._red_func = COMPRESSION_TYPE_MAP[self._params["compression_type"]]
         except KeyError:
-            raise ValueError(
+            raise JuniperConfigurationError(
                 f"Unknown compression type: {self._params['compression_type']}. "
                 f"Supported compression types are: {', '.join(COMPRESSION_TYPE_MAP)}"
+                f"({self.get_path_str()})"
                 )
         
         self.compute_kernel = compute_kernel_factory(self._params, self._red_func)

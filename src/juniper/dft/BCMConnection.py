@@ -3,6 +3,7 @@ from ..util import util, util_jax
 import jax
 import jax.numpy as jnp
 from functools import partial
+from ..core.backend.Exceptions import JuniperUserError
 
 def make_euler_bcm_func(params, static):
     static_argnames = []
@@ -190,7 +191,7 @@ class BCMConnection(Step):
         sx, sy, sf = self._params["source_shape"]
         tx, ty, td = self._params["target_shape"]
         if (sx, sy) != (tx, ty):
-            raise ValueError("BCMConnection requires source and target to match in first two dims (X,Y).")
+            raise JuniperUserError(f"BCMConnection requires source and target to match in first two dims (X,Y) ({self.get_path_str()}).")
         self._params["wheight_shape"] = (sx, sy, sf, td)
         self._params["scalar_shape"] = (1,)
         self._params["theta_eps"] = float(self._params.get("theta_eps", 1e-6))

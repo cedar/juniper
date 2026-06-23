@@ -4,6 +4,7 @@ from multiprocessing import Process, shared_memory
 from ..core.frontend.Sink import Sink
 from ..util.TCPWorker import TCPWorker
 from ..util import util
+from ..core.backend.Exceptions import TCPError
 
 def compute_kernel_factory(_params):
     def compute_kernel(input_mats, buffer, **kwargs): 
@@ -94,7 +95,7 @@ class TCPWriter(Sink):
         data = np.asanyarray(data, dtype=self.shared_data.dtype)
         if data.shape != self.shared_data.shape:
             if data.size != self.shared_data.size:
-                raise ValueError(
+                raise TCPError(
                     f"TCPWriter {self._name} received shape {data.shape}, expected {self.shared_data.shape}."
                 )
             data = data.reshape(self.shared_data.shape)

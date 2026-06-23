@@ -2,6 +2,7 @@ from ..core.frontend.Source import Source
 from ..math.Gaussian import Gaussian
 from ..util import util
 import warnings
+from ..core.backend.Exceptions import JuniperConfigurationError
 
 def compute_kernel_factory(kernel):
     return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: kernel}
@@ -32,7 +33,7 @@ class GaussInput(Source):
         super().__init__(name, params, mandatory_params)
 
         if len(shape) != len(sigma):
-            raise ValueError(f"GaussInput {name} requires equal dimensionality of sigma ({len(sigma)}) and shape ({len(shape)})")
+            raise JuniperConfigurationError(f"GaussInput {name} requires equal dimensionality of sigma ({len(sigma)}) and shape ({len(shape)})")
 
         # Check if a center for the gaussian is given, otherwise default to (0, 0) (center of the shape)
         if center is None:
@@ -46,6 +47,6 @@ class GaussInput(Source):
 
     def get_data(self):
         pass
-    
+
     def infer_output_shapes(self, input_specs):
         return {util.DEFAULT_OUTPUT_SLOT: self._params["shape"]}

@@ -1,6 +1,7 @@
 from ..core.frontend.Source import Source
 from ..util import util
 from ..util import util_jax
+from ..core.backend.Exceptions import JuniperConfigurationError
 
 def compute_kernel_factory(params, start, end, delta_t):
     def compute_kernel(input_mats, buffer, **kwargs):
@@ -37,9 +38,9 @@ class TimedBoost(Source):
         self._delta_t = util_jax.get_config()["delta_t"]
         
         if len(duration) != 2:
-            raise ValueError(f"TimedBoost {name} requires a duration parameter with two values (start, end). Got: {duration}")
+            raise JuniperConfigurationError(f"TimedBoost {name} requires a duration parameter with two values (start, end). Got: {duration} ({self.get_path_str()})")
         elif duration[0] > duration[1]:
-            raise ValueError(f"TimedBoost {name} requires a duration parameter with start < end. Got: {duration}")
+            raise JuniperConfigurationError(f"TimedBoost {name} requires a duration parameter with start < end. Got: {duration} ({self.get_path_str()})")
         self._start = duration[0]
         self._end = duration[1]
 

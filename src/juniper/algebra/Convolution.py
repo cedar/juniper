@@ -1,3 +1,5 @@
+from ..core.backend.Exceptions import JuniperConfigurationError
+
 from ..core.frontend.Step import Step
 from ..util import util
 import jax.scipy as jsp
@@ -89,7 +91,7 @@ class Convolution(Step):
         elif mode == "valid":
             output_shape = tuple(abs(in_size - kernel_size) + 1 for in_size, kernel_size in zip(input_shape, kernel_shape))
         else:
-            raise ValueError(f"Unknown convolution mode: {mode}")
+            raise JuniperConfigurationError(f"Unknown convolution mode '{mode}' ({self.get_path_str()})")
 
         return {util.DEFAULT_OUTPUT_SLOT: output_shape}
 

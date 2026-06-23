@@ -1,5 +1,6 @@
 from ..core.frontend.Configurable import Configurable
 import jax.numpy as jnp
+from ..core.backend.Exceptions import JuniperConfigurationError
 
 class Sigmoid(Configurable):
     """
@@ -18,7 +19,7 @@ class Sigmoid(Configurable):
         try:
             self.sigmoid = SIGMOID_MAP[self._params["sigmoid"]]
         except KeyError:
-            raise ValueError(
+            raise JuniperConfigurationError(
                 f'Unknown sigmoid parameter: {self._params["sigmoid"]}.'
                 f"Supported non-linearities are: {', '.join(SIGMOID_MAP)}"
                 )

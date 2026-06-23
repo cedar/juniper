@@ -2,6 +2,7 @@
 import jax.numpy as jnp
 from ..core.frontend.Configurable import Configurable
 from .Convolution import convolve_func_singleton
+from ..core.backend.Exceptions import JuniperConfigurationError
 
 class LateralKernel(Configurable):
     """
@@ -25,10 +26,10 @@ class LateralKernel(Configurable):
         self.factorizations = [kernel._params["factorized"] for kernel in params["kernels"]]
 
         if any(dim != self._dimensionalities[0] for dim in self._dimensionalities):
-            raise ValueError("All kernels must have the same dimensionality.")
+            raise JuniperConfigurationError("All kernels must have the same dimensionality.")
         
         if any(fact != self.factorizations[0] for fact in self.factorizations):
-            raise ValueError("All kernels must either be factorized or full.")
+            raise JuniperConfigurationError("All kernels must either be factorized or full.")
         self.factorized = self.factorizations[0]
 
         self._kernel = self._input_kernels if self.factorized else self.gen_kernel(self._input_kernels, self._shapes)

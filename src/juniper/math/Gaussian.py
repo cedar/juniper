@@ -50,7 +50,7 @@ class Gaussian(Configurable):
             self._check_gaussian_size(self._params["factorized"])
 
         if len(self._params["shape"]) != len(self._params["sigma"]):
-            raise ValueError(f"Gaussian requires equal dimensionality of sigma ({len(self._params['sigma'])}) and shape ({len(self._params['shape'])})")
+            raise JuniperConfigurationError(f"Gaussian requires equal dimensionality of sigma ({len(self._params['sigma'])}) and shape ({len(self._params['shape'])})")
 
     def _estimate_size(self):
         limit = 5

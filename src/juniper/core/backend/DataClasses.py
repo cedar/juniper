@@ -6,11 +6,14 @@ from typing import Callable
 from typing import Union
 from typing import TypeAlias
 
+
 from ..frontend.Element import Element
 from ..frontend.Circuit import Circuit
 from ..frontend.Slot import Slot
 from ..frontend.Buffer import Buffer
 from .Exceptions import RecordingError
+from .Exceptions import LoadRecordingError
+from .Exceptions import SaveRecordingError
 
 import numpy as np
 import time
@@ -197,14 +200,14 @@ class Recording:
         for step_idx in range(num_steps):
             step_path = os.path.join(run_dir, f"t_{step_idx:06d}.pkl")
             if not os.path.exists(step_path):
-                raise FileNotFoundError(f"Missing recording step file {step_path}")
+                raise LoadRecordingError(f"Missing recording step file {step_path}")
 
             with open(step_path, "rb") as f:
                 step_payload = pickle.load(f)
 
             step_names = list(step_payload.get("names", []))
             if step_names != key_strings:
-                raise ValueError(f"Recording step {step_idx} has different keys than manifest")
+                raise LoadRecordingError(f"Recording step {step_idx} has different keys than specified in the manifest file")
 
             step_data = step_payload.get("data", {})
             recording.append([np.asarray(step_data[key]) for key in key_strings])
@@ -235,7 +238,7 @@ class Recording:
         T = len(self.recording)
 
         if len(key_strings) != N:
-            raise ValueError(f"len(keys)={len(key_strings)} but each recording has N={N} arrays")
+            raise SaveRecordingError(f"len(keys)={len(key_strings)} but each recording has N={N} arrays")
 
         run_dir = _make_run_recording_dir(path, run_dir)
 
@@ -247,7 +250,7 @@ class Recording:
         for t in range(T):
             row = _time_step_to_row(self.recording[t])
             if len(row) != N:
-                raise ValueError(f"Inconsistent N at batch step {t}: expected {N}, got {len(row)}")
+                raise SaveRecordingError(f"Inconsistent N at batch step {t}: expected {N}, got {len(row)}")
 
             step_idx = start_t + t
             step_payload = {
@@ -332,7 +335,7 @@ def _make_recording_manifest(manifest_path : str, key_strings : list[str]) -> di
             manifest = json.load(f)
         existing_names = manifest.get("names", [])
         if list(existing_names) != list(key_strings):
-            raise ValueError("Existing pickle recording folder has different names; refuse to append.")
+            raise RecordingError("Existing pickle recording folder has different names; refuse to append.")
     else:
         manifest = {
             "format": "simulation_handler_pickle_per_step_v1",

@@ -6,6 +6,7 @@ from matplotlib import colors
 from matplotlib import gridspec
 import time
 from .util import tprint
+from ..core.backend.Exceptions import JuniperError
 
 def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
     new_cmap = colors.LinearSegmentedColormap.from_list(
@@ -114,7 +115,7 @@ def plot_steps(
         recordings = recordings.recording
 
     if len(recordings) == 0:
-        raise ValueError("recordings is empty.")
+        raise JuniperError("recordings is empty.")
 
     steps = _recordings_to_step_arrays(recordings)
     T = steps[0].shape[0]
@@ -124,7 +125,7 @@ def plot_steps(
     else:
         time_axis = np.asarray(time_axis)
         if time_axis.shape[0] != T:
-            raise ValueError(f"len(time_axis)={time_axis.shape[0]} does not match T={T}.")
+            raise JuniperError(f"len(time_axis)={time_axis.shape[0]} does not match T={T}.")
 
     step_is_scalar = [_is_scalar_step(step) for step in steps]
     scalar_indices = [i for i, is_scalar in enumerate(step_is_scalar) if is_scalar]
@@ -141,7 +142,7 @@ def plot_steps(
 
     n_rows = len(scalar_groups) + len(ungrouped_scalar_indices) + len(non_scalar_indices)
     if n_rows == 0:
-        raise ValueError("No steps to plot.")
+        raise JuniperError("No steps to plot.")
     n_cols = max(1, len(snapshot_indices))
 
     fig = plt.figure(figsize=(figsize[0], figsize[1] * n_rows))
@@ -193,7 +194,7 @@ def _recordings_to_step_arrays(recordings):
     if hasattr(recordings[0], "shape"):
         return [np.asarray(step) for step in recordings]
 
-    raise TypeError("recordings must be time-major list-of-lists or step-major arrays.")
+    raise JuniperError("recordings must be time-major list-of-lists or step-major arrays.")
 
 
 def _is_scalar_step(step):
@@ -222,7 +223,7 @@ def _resolve_scalar_group_indices(scalar_group_keys, step_names):
                 group_indices.append(key)
                 continue
             if step_names is None:
-                raise ValueError("scalar_group_keys must use integer indices when step_names are unavailable.")
+                raise JuniperError("scalar_group_keys must use integer indices when step_names are unavailable.")
             key_name = key if isinstance(key, str) else key.get_path_str()
             group_indices.append(step_names.index(key_name))
         groups.append(group_indices)
@@ -235,7 +236,7 @@ def _validate_scalar_groups(scalar_groups, step_is_scalar):
             if idx not in range(len(step_is_scalar)):
                 raise IndexError(f"Index {idx} in scalar_groups is outside recorded steps.")
             if not step_is_scalar[idx]:
-                raise ValueError(f"Step {idx} in scalar_groups is not scalar.")
+                raise JuniperError(f"Step {idx} in scalar_groups is not scalar.")
 
 
 def _format_scalar_axis(ax, t, y):
