@@ -16,7 +16,7 @@ def compute_kernel_factory(params, limits, gaussian, scaling_factor):
         # update gaussian centers
         gaussian._params["center"] = center
         gaussian._params["amplitude"] = params["amplitude"] * (jnp.sum(center)>0)
-        gaussian._gaussian = gaussian.gen_gauss_for_all_shapes(normalize=False, factorize=False)
+        gaussian._gaussian = gaussian._gen_gauss_for_all_shapes(normalize=False, factorize=False)
         
 
         return {util.DEFAULT_OUTPUT_SLOT: gaussian.get_kernel()}

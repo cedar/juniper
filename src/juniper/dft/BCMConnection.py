@@ -73,7 +73,7 @@ def make_euler_bcm_func(params, static):
             operand=None,
         )
         return out, w, theta
-    return partial(jax.jit, static_argnames=static_argnames)(eulerStepBCM)
+    return eulerStepBCM
 
 _euler_bcm_singleton = None
 

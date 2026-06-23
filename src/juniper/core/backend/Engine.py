@@ -162,6 +162,7 @@ class Engine:
             element = ref.element
             
             input = self._gather_element_input(new_state, element)
+            print(element_path)
             new_state[element_path] = kernel(
                 input,
                 state[element_path],

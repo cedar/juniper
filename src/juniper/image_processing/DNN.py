@@ -7,6 +7,7 @@ import flaxmodels as fm
 import os
 from ..core.frontend.Step import Step
 from ..util import util
+from ..util import util_jax
 
 
 logger = logging.getLogger(__name__)
@@ -109,6 +110,12 @@ class DNN(Step):
         self.buffer_map["lastkey"].dtype = jnp.int32
 
         self.compute_kernel = compute_kernel_factory(self._params, self._model, self._variables)
+
+    def infer_output_shapes(self, input_specs):
+         return {util.DEFAULT_OUTPUT_SLOT: self._params["shape"]}
+
+    def infer_output_dtypes(self, input_specs):
+         return {util.DEFAULT_OUTPUT_SLOT: util_jax.cfg["jdtype"]}
 
 def _check_vgg16_presents(params, name):
     if not os.path.exists(params["model_dir"]+"/flaxmodels/vgg16_weights.h5"):

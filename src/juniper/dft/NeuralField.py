@@ -5,12 +5,12 @@ if TYPE_CHECKING:
     from ..math.LateralKernel import LateralKernel
 
 from ..core.frontend.Step import Step
+from ..core.backend.Exceptions import ShapeInferenceError
 from ..util import util
 from ..util import util_jax
 import jax.numpy as jnp
 import numpy as np
 import jax
-from functools import partial
 from ..math.Sigmoid import Sigmoid
 
 import logging
@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 # This singleton construct is needed as we need to specify the static_argnames in the compiler directive depending on the user input
 # euler step computation
-@partial(jax.jit, static_argnames=["passedTime",  "resting_level", "global_inhibition", "beta", "theta", "tau", "input_noise_gain", "sigmoid", "convolve"])
 def eulerStep(passedTime, input_mat, u_activation, prng_key, resting_level, global_inhibition, beta, theta, tau, input_noise_gain, sigmoid, convolve):
     sigmoided_u = sigmoid(u_activation, beta, theta) # Could be optimized, we don't need this sigmoid computation if we pass the value of the output buffer to this function (which effectively is the sigmoided_u)
     lateral_interaction = convolve(sigmoided_u)
@@ -27,7 +26,7 @@ def eulerStep(passedTime, input_mat, u_activation, prng_key, resting_level, glob
 
     d_u = -u_activation + resting_level + lateral_interaction + global_inhibition * sum_sigmoided_u + input_mat
 
-    input_noise = jax.random.normal(prng_key, input_mat.shape)
+    input_noise = jax.random.normal(prng_key, jnp.asarray(input_mat).shape)
     u_activation += (passedTime / tau) * d_u + ((jnp.sqrt(passedTime*1000) / tau/1000)) * input_noise_gain * input_noise
 
     sigmoided_u = sigmoid(u_activation, beta, theta)
@@ -108,4 +107,12 @@ class NeuralField(Step):
         self.register_buffer("activation", self._params["shape"])
 
     def infer_output_shapes(self, input_specs):
-        return {util.DEFAULT_OUTPUT_SLOT: self._params["shape"]}
+        shape = tuple(self._params["shape"])
+        if util.DEFAULT_INPUT_SLOT in input_specs:
+            input_shape = tuple(input_specs[util.DEFAULT_INPUT_SLOT][0])
+            if input_shape != shape and not util._is_scalar_shape(input_shape):
+                raise ShapeInferenceError(
+                    f"NeuralField {self.get_path_str()} expected input shape {shape}, "
+                    f"received {input_shape}."
+                )
+        return {util.DEFAULT_OUTPUT_SLOT: shape}

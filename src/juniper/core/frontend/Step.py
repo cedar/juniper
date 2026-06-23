@@ -33,8 +33,4 @@ class Step(Element):
 
     def infer_output_dtypes(self, input_specs):
         dtypes = {slot_id: util_jax.cfg["jdtype"] for slot_id in self.output_slot_map.keys()}
-        for i, out_slot_id in enumerate(self.output_slot_map.keys()):
-            in_slot_id = util.DEFAULT_INPUT_SLOT[:-1] + f"{i}"
-            if in_slot_id in input_specs.keys() and input_specs[in_slot_id][1] is not None:
-                dtypes[out_slot_id] = input_specs[in_slot_id][1]
         return dtypes

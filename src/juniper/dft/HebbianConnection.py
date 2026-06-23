@@ -71,7 +71,7 @@ def make_reward_func(params, static):
             f"Unknown reward setting: {params['reward_type']}. "
             f"Supported settings are: {', '.join(REWARD_MAP)} "
             )
-    return partial(jax.jit, static_argnames=static_argnames_rew)(_reward_func)
+    return _reward_func
 
 def make_euler_func(params, static):
     static_argnames_euler = []
@@ -116,7 +116,7 @@ def make_euler_func(params, static):
         
         return output, output_rev, wheight_mat
 
-    return partial(jax.jit, static_argnames=static_argnames_euler)(eulerStep)
+    return eulerStep
 
 euler_func = None
 reward_func = None
