@@ -1,5 +1,8 @@
 from __future__ import annotations
+import logging
 from typing import TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from ..math.LateralKernel import LateralKernel
 

@@ -1,3 +1,4 @@
+import logging
 from ..core.backend.Exceptions import JuniperConfigurationError
 
 import jax.numpy as jnp
@@ -5,6 +6,8 @@ from ..core.frontend.Step import Step
 from ..util import util
 from typing import Union, Sequence
 
+
+logger = logging.getLogger(__name__)
 def nd_norm(
     x: jnp.ndarray,
     ord: Union[int, float, str] = 2,

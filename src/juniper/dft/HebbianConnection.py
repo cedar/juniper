@@ -1,3 +1,4 @@
+import logging
 from ..core.frontend.Step import Step
 from ..util import util
 from ..util import util_jax
@@ -6,6 +7,8 @@ import jax
 from functools import partial
 from ..core.backend.Exceptions import JuniperConfigurationError
 
+
+logger = logging.getLogger(__name__)
 def no_reward_gating(passedTime, reward_signal, reward_onset, reward_timer, reward_duration):
     return util_jax.ones((1,)), util_jax.ones((1,)), util_jax.zeros((1,))
 

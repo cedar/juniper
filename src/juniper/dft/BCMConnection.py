@@ -1,3 +1,4 @@
+import logging
 from ..core.frontend.Step import Step
 from ..util import util, util_jax
 import jax
@@ -5,6 +6,8 @@ import jax.numpy as jnp
 from functools import partial
 from ..core.backend.Exceptions import JuniperUserError
 
+
+logger = logging.getLogger(__name__)
 def make_euler_bcm_func(params, static):
     static_argnames = []
     if static:

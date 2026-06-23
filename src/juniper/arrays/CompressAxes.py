@@ -1,9 +1,12 @@
+import logging
 from ..core.backend.Exceptions import JuniperConfigurationError
 
 import jax.numpy as jnp
 from ..core.frontend.Step import Step
 from ..util import util
 
+
+logger = logging.getLogger(__name__)
 COMPRESSION_TYPE_MAP = {
     "Sum": jnp.sum,
     "Average": jnp.average,

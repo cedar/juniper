@@ -1,9 +1,12 @@
+import logging
 from ...core.frontend.Step import Step
 from ...util import util
 import jax.numpy as jnp
 import numpy as np
 
 
+
+logger = logging.getLogger(__name__)
 class FieldToPointCloud(Step):
     """
     Description

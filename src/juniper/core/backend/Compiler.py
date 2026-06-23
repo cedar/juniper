@@ -1,10 +1,12 @@
 from __future__ import annotations
+import logging
 from typing import Any
 from .DataClasses import CompileInfo
 from .DataClasses import ElementRef
 from .Exceptions import CompilerError
 from .Exceptions import ShapeInferenceError
 from .Warnings import TypeInferenceWarning
+import warnings
 
 from ..frontend.Circuit import Circuit
 from ..frontend.Element import Element
@@ -16,6 +18,8 @@ from ...util import util
 
 
 
+
+logger = logging.getLogger(__name__)
 class Compiler:
     """Turn a user-defined Circuit into runtime metadata.
 
@@ -249,7 +253,7 @@ class Compiler:
                     raise_dtype_warning = True
                     dtype = util_jax.cfg["jdtype"]
         if raise_dtype_warning:
-            raise TypeInferenceWarning(f"Step {element.get_path_str()} received incompatible input types {[source.dtype for source in known_sources]}.")
+            warnings.warn(f"Step {element.get_path_str()} received incompatible input types {[source.dtype for source in known_sources]}.", TypeInferenceWarning, stacklevel=6)
         if dtype is None:
             dtype = dtype = util_jax.cfg["jdtype"]
         return shape, dtype

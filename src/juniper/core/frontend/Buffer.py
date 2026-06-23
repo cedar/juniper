@@ -1,5 +1,8 @@
+import logging
 from .Configurable import Configurable
 
+
+logger = logging.getLogger(__name__)
 class Buffer(Configurable):
     def __init__(self, step, buffer_id : str, shape : tuple, permanent : bool = False, dtype = None):
         name = buffer_id

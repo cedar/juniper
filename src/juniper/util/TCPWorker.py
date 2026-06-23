@@ -6,31 +6,24 @@ import re
 import time
 import socket
 from multiprocessing import shared_memory
+from multiprocessing import Queue
 import logging
-import os
-from pathlib import Path
+from logging.handlers import QueueHandler
 
-_LOGGER_CACHE = {}
 
-def get_tcp_logger(name: str) -> logging.Logger:
-    logger = _LOGGER_CACHE.get(name)
-    if logger is not None:
-        return logger
+logger = logging.getLogger(__name__)
+def get_tcp_logger(name: str, queue : Queue) -> logging.Logger:
+    
+    logger = logging.getLogger(name)
 
-    log_path = Path(os.getcwd()) / "juniper_tcp.log"
-    logger = logging.getLogger(f"juniper.tcp.{name}")
-    logger.setLevel(logging.INFO)
-    logger.propagate = False
-
-    if not logger.handlers:
-        handler = logging.FileHandler(log_path, encoding="utf-8")
-        formatter = logging.Formatter(
+    formatter = logging.Formatter(
             "%(asctime)s %(levelname)s [%(name)s] %(message)s"
         )
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
+    handler = QueueHandler(queue)
+    handler.setFormatter(formatter)
 
-    _LOGGER_CACHE[name] = logger
+    logger.addHandler(handler)
+
     return logger
 
 
@@ -148,7 +141,7 @@ def parse_cv_mat(data: bytes):
     return mat.reshape(shape)
 
 class TCPWorker(Configurable):
-    def __init__(self, name : str, params : dict, shared_memory_name):
+    def __init__(self, name : str, params : dict, shared_memory_name, logging_queue : Queue):
         mandatory_params = ['ip', 'port', 'shape', 'mode']
         super().__init__(name=name, params=params, mandatory_params=mandatory_params)
 
@@ -178,7 +171,8 @@ class TCPWorker(Configurable):
         self.port = self._params['port']
         self.timeout = self._params['timeout']
         self.BUFFER_SIZE = self._params['buffer_size']
-        self.logger = get_tcp_logger(f"writer.{self.get_local_circuit_id()}.{self.port}") if self._params["mode"] == "write" else get_tcp_logger(f"reader.{self.get_local_circuit_id()}.{self.port}")
+        logger_name = f"juniper.tcp.writer.{self.get_local_circuit_id()}.{self.port}" if self._params["mode"] == "write" else f"juniper.tcp.reader.{self.get_local_circuit_id()}.{self.port}"
+        self.logger = get_tcp_logger(logger_name, logging_queue)
         self._connection_announced = False
         self.time_step = self._params['time_step']
         self.connect_retry_delay = self._params['connect_retry_delay']

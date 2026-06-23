@@ -1,3 +1,4 @@
+import logging
 from ..core.backend.Exceptions import JuniperUserError
 
 import jax
@@ -7,6 +8,8 @@ import os
 from ..core.frontend.Step import Step
 from ..util import util
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, model, variables):
     layer = "relu" + params["layer"]
 

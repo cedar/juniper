@@ -1,3 +1,6 @@
+import logging
+
+logger = logging.getLogger(__name__)
 current = None
 
 def get_current():

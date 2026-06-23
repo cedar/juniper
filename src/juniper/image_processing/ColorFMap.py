@@ -1,9 +1,12 @@
+import logging
 from ..core.frontend.Step import Step
 from ..util import util
 
 import jax.numpy as jnp
 import jax.nn as jnn
 
+
+logger = logging.getLogger(__name__)
 def hsv_to_onehot10(hue, sat, val, sat_threshold=0.3, value_threshold=0.3):
     """
     hue, sat, val: (H, W), hue in [0,1)

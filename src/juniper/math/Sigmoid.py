@@ -1,7 +1,10 @@
+import logging
 from ..core.frontend.Configurable import Configurable
 import jax.numpy as jnp
 from ..core.backend.Exceptions import JuniperConfigurationError
 
+
+logger = logging.getLogger(__name__)
 class Sigmoid(Configurable):
     """
     Description

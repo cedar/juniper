@@ -1,9 +1,22 @@
+import logging
 import numpy as np
-from multiprocessing import Process, shared_memory
+from multiprocessing import Process, shared_memory, Queue
+from logging.handlers import QueueListener
+import logging
 
 from ..core.frontend.Source import Source
 from ..util.TCPWorker import TCPWorker
 from ..util import util
+
+
+logger = logging.getLogger(__name__)
+class ForwardingHandler(logging.Handler):
+    def __init__(self, logger_name: str):
+        super().__init__()
+        self.target_logger = logging.getLogger(logger_name)
+
+    def emit(self, record):
+        self.target_logger.handle(record)
 
 def compute_kernel_factory():
     return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: buffer[util.DEFAULT_OUTPUT_SLOT]}
@@ -64,13 +77,20 @@ class TCPReader(Source):
 
         self.compute_kernel = compute_kernel_factory()
 
+        # logging
+        queue = Queue(maxsize=42)
+        handler = ForwardingHandler("juniper")
+        self.logger = QueueListener(queue, handler, respect_handler_level=True)
+        self.logger.start()
+
+        # TCP loop process
         shared_dtype = np.dtype(self._params.get("dtype", np.float32))
         self._params["dtype"] = shared_dtype.str
         initial_data = np.zeros(self._params["shape"], dtype=shared_dtype)
         self.shared_memory = shared_memory.SharedMemory(create=True, size=initial_data.nbytes)
         self.shared_data = np.ndarray(initial_data.shape, dtype=initial_data.dtype, buffer=self.shared_memory.buf)
         self.shared_data[:] = initial_data[:]
-        self.comm_thread = Process(target=TCPWorker, args=(self.get_local_circuit_id(), self._params, self.shared_memory.name))
+        self.comm_thread = Process(target=TCPWorker, args=(self.get_path_str(), self._params, self.shared_memory.name, queue))
         #self.comm_thread.start()
 
     def close(self):
@@ -79,6 +99,7 @@ class TCPReader(Source):
             self.comm_thread.join(timeout=1.)
         self.shared_memory.close()
         self.shared_memory.unlink()
+        self.logger.stop()
     
     def open(self):
         if not self.comm_thread.is_alive():

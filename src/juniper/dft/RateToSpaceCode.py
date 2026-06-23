@@ -1,8 +1,11 @@
+import logging
 from ..core.frontend.Step import Step
 from ..util import util
 from ..math.Gaussian import Gaussian
 import jax.numpy as jnp
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, limits, gaussian, scaling_factor):
     def compute_kernel(input_mats, buffer, **kwargs):
         input_vec = jnp.asarray(input_mats[util.DEFAULT_INPUT_SLOT], dtype=jnp.float32)

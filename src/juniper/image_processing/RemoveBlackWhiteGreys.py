@@ -1,10 +1,13 @@
 
 
 
+import logging
 import jax.numpy as jnp
 from ..core.frontend.Step import Step
 from ..util import util
 
+
+logger = logging.getLogger(__name__)
 def rgb_to_hsv(rgb):
     """Convert RGB image (H,W,3) in [0,1] to HSV in [0,1] using JAX."""
     r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]

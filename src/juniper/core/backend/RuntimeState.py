@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from typing import Any
 
 from .DataClasses import ElementRef
@@ -22,6 +23,8 @@ from ...util import util_jax
 from ...util.util_jax import constant
 from ...util.util_jax import zeros
 
+
+logger = logging.getLogger(__name__)
 class RuntimeState:
     """Small wrapper around the JAX state tree.
 

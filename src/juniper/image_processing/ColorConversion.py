@@ -1,7 +1,10 @@
+import logging
 from ..core.frontend.Step import Step
 from ..util import util
 import jax.numpy as jnp
 
+
+logger = logging.getLogger(__name__)
 # JAX rgb -> hsv, expects rgb in [0, 1], shape (..., 3)
 def rgb_to_hsv_jax(rgb: jnp.ndarray, channels : str, eps: float = 1e-10) -> jnp.ndarray:
     if channels == "rgb":

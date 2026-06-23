@@ -1,9 +1,13 @@
+import logging
 from ..core.frontend.Source import Source
 from ..math.Gaussian import Gaussian
 from ..util import util
 import warnings
 from ..core.backend.Exceptions import JuniperConfigurationError
+from ..core.backend.Warnings import JuniperConfigurationWarning
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
         return {util.DEFAULT_OUTPUT_SLOT: buffer[util.DEFAULT_OUTPUT_SLOT]}
@@ -36,7 +40,7 @@ class DemoInput(Source):
 
         # Check if a center for the gaussian is given, otherwise default to (0, 0) (center of the shape)
         if center is None:
-            warnings.warn(f"DemoInput {name} does not have a center parameter. Defaulting to (0, 0).")
+            warnings.warn(f"DemoInput '{self.get_path_str()}' does not have a center parameter. Defaulting to (0, 0).", JuniperConfigurationWarning, stacklevel=2)
             self._params["center"] = (0,) * len(shape)
         
         # Remove default input slot

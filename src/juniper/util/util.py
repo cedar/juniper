@@ -1,9 +1,12 @@
+import logging
 from ..core.backend.Exceptions import JuniperConfigurationError
 import os
 import numpy as np
 import time
 import atexit
 import functools
+
+logger = logging.getLogger(__name__)
 ROOT_FOLDER = ""
 DEFAULT_INPUT_SLOT = "in0"
 DEFAULT_OUTPUT_SLOT = "out0"

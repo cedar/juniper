@@ -1,3 +1,4 @@
+import logging
 from ..backend.Exceptions import CircuitError
 
 from ...util import util
@@ -5,6 +6,8 @@ from ...util import util_jax
 from .Element import Element
 from .Buffer import Buffer
 
+
+logger = logging.getLogger(__name__)
 class Step(Element):
     def __init__(self, name : str, params : dict, mandatory_params : list, is_dynamic : bool = False):
         super().__init__(name=name, params=params, mandatory_params=mandatory_params)

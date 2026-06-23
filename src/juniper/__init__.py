@@ -6,6 +6,7 @@ from .core.backend.Engine import Engine
 # architecture
 from .core.Architecture import delete_arch
 from .core.Architecture import get_arch
+from .core.Architecture import init_logging
 
 # algebra
 from .algebra.AddConstant import AddConstant
@@ -96,6 +97,11 @@ from .core.backend.Warnings import RecordingWarning
 from .core.backend.Warnings import JuniperConfigurationWarning
 from .core.backend.Warnings import JuniperUserWarning
 
+# loggingimport logging
+import logging
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
+
 __all__ =[
     "Engine",
     "Circuit",
@@ -140,6 +146,7 @@ __all__ =[
     "robotics",
     "get_arch",
     "delete_arch",
+    "init_logging",
     "VectorToScalars",
     "ScalarsToVector",
     "JuniperError",

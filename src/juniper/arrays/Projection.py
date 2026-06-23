@@ -1,9 +1,12 @@
+import logging
 from ..core.backend.Exceptions import JuniperConfigurationError
 
 from ..core.frontend.Step import Step
 from ..util import util
 import jax.numpy as jnp
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, in_dim, out_dim, name):
     if in_dim < out_dim:
         sizes = tuple(params["output_shape"][params["order"][i]] for i in params["axis"])

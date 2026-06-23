@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from typing import Callable
 from typing import Optional
 
@@ -9,6 +10,8 @@ from .Slot import Slot
 from .Element import Element
 from . import CircuitContext
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(output_slot_map : dict[str,Slot]) -> Callable[[dict, dict, Optional[dict]], dict]:
     def compute_kernel(input : dict, state : dict, **kwargs : Optional[dict]) -> dict:
         """

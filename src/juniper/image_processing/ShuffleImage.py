@@ -1,3 +1,4 @@
+import logging
 from ..core.frontend.Step import Step
 from ..util import util, util_jax
 
@@ -5,6 +6,8 @@ import jax.numpy as jnp
 import jax
 import numpy as np
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, delta_t):
     # static (Python) values captured in closure
     H, W = params["input_shape"]

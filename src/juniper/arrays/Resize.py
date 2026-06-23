@@ -1,9 +1,12 @@
+import logging
 import jax.numpy as jnp
 from jax.scipy.ndimage import map_coordinates
 
 from ..core.frontend.Step import Step
 from ..util import util
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
         input = input_mats[util.DEFAULT_INPUT_SLOT]

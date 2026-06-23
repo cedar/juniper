@@ -1,3 +1,6 @@
+import logging
+
+logger = logging.getLogger(__name__)
 ### ToDo find a better name for this file and class
 import jax.numpy as jnp
 from ..core.frontend.Configurable import Configurable

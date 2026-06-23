@@ -1,7 +1,10 @@
+import logging
 from ...core.frontend.Step import Step
 from ...util import util
 import jax.numpy as jnp
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, M_inv):
     def compute_kernel(input_mats, buffer, **kwargs):
         depth = input_mats[util.DEFAULT_INPUT_SLOT]

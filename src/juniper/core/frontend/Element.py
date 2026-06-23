@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from typing import Any
 
 from ..backend.Exceptions import CircuitError
@@ -9,6 +10,8 @@ from .Slot import Slot
 from typing import Callable
 from typing import Optional
 
+
+logger = logging.getLogger(__name__)
 class Element(Connectable):
     def __init__(self, name : str, params : dict = {}, mandatory_params : dict = {}):
         if "." in name:

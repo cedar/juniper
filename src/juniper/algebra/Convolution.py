@@ -1,9 +1,12 @@
+import logging
 from ..core.backend.Exceptions import JuniperConfigurationError
 
 from ..core.frontend.Step import Step
 from ..util import util
 import jax.scipy as jsp
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, kernel, use_dynamic):
     if use_dynamic:
         def compute_kernel(input_mats, buffer, **kwargs):

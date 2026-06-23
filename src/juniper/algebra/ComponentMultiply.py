@@ -1,7 +1,10 @@
+import logging
 from ..core.frontend.Step import Step
 from ..util import util
 import numpy as np
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
         # input prod is computed in update_input

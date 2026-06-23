@@ -1,6 +1,9 @@
+import logging
 from ..core.frontend.Step import Step
 from ..util import util
 
+
+logger = logging.getLogger(__name__)
 # construction of compute kernel
 def compute_kernel_factory(factor):
     return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT:  input_mats[util.DEFAULT_INPUT_SLOT] * factor}

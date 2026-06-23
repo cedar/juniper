@@ -1,3 +1,6 @@
+import logging
+
+logger = logging.getLogger(__name__)
 # Used for parameterizable objects such as steps or kernels.
 from ..backend.Exceptions import JuniperConfigurationError
 import copy

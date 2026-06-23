@@ -1,7 +1,10 @@
+import logging
 from ..core.frontend.Step import Step
 from ..util import util
 from .ColorConversion import rgb_to_hsv_jax
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory():
     def compute_kernel(input_mats, buffer, **kwargs):
         rgb = input_mats[util.DEFAULT_INPUT_SLOT] / 255.0  # shape (H, W, 3)

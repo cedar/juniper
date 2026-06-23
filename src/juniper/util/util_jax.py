@@ -1,3 +1,4 @@
+import logging
 from ..core.backend.Exceptions import JuniperConfigurationError
 import os
 from . import util
@@ -6,6 +7,8 @@ import numpy as np
 import jax.numpy as jnp
 import jax
 
+
+logger = logging.getLogger(__name__)
 def _load_config():
     cfg = json.load(open(os.path.join(util.root(), "run_config.json"), "r"))
 

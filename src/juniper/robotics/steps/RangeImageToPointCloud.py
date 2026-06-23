@@ -1,7 +1,10 @@
+import logging
 from ...core.frontend.Step import Step
 from ...util import util
 import jax.numpy as jnp
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params):
     def az_tilt_dirs(az, tilt):
         ca, sa = jnp.cos(az), jnp.sin(az)

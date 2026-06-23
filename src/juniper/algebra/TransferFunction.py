@@ -1,7 +1,10 @@
+import logging
 from ..core.frontend.Step import Step
 from ..util import util
 from ..math.Sigmoid import Sigmoid
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, trans_func):
     def compute_kernel(input_mats, buffer, **kwargs):
         input = input_mats[util.DEFAULT_INPUT_SLOT]

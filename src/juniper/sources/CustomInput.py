@@ -1,7 +1,10 @@
+import logging
 from ..core.frontend.Source import Source
 from ..util import util
 import jax.numpy as jnp
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory():
     return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: buffer[util.DEFAULT_OUTPUT_SLOT]}
 

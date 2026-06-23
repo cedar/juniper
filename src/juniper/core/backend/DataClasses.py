@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from dataclasses import dataclass
 
 from typing import Any
@@ -21,6 +22,8 @@ import os
 import json
 import pickle
 
+
+logger = logging.getLogger(__name__)
 """
 Central place to define dataclasses and types that are used by the backend Engine, Compiler and RuntimState. 
 Here we have a central place where we can look up types and document them properly.

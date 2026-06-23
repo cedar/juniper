@@ -1,8 +1,11 @@
+import logging
 from ..core.frontend.Source import Source
 from ..util import util
 import numpy as np
 from PIL import Image
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params):
     img = np.array(Image.open(params["image_path"])).astype(np.float32)
     def compute_kernel(input_mats, buffer, **kwargs):

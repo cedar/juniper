@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from typing import TYPE_CHECKING
 
 from ..backend.Exceptions import CircuitConnectionError
@@ -7,6 +8,8 @@ from .Configurable import Configurable
 from ..frontend import CircuitContext
 from ...util import util
 
+
+logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from .Slot import Slot
     from .Circuit import Circuit

@@ -1,7 +1,10 @@
+import logging
 from ..core.frontend.Step import Step
 from ..util import util
 
 
+
+logger = logging.getLogger(__name__)
 # construction of compute kernel
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):

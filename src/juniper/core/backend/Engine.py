@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from typing import Any
 from .DataClasses import CompileInfo
 from .DataClasses import StateTree
@@ -21,6 +22,8 @@ from .RuntimeState import load_permanent_buffers
 from .RuntimeState import save_permanent_buffers
 
 
+
+logger = logging.getLogger(__name__)
 class Engine:
     """Runtime driver for a compiled circuit.
 

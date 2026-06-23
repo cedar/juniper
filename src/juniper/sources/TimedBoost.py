@@ -1,8 +1,11 @@
+import logging
 from ..core.frontend.Source import Source
 from ..util import util
 from ..util import util_jax
 from ..core.backend.Exceptions import JuniperConfigurationError
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, start, end, delta_t):
     def compute_kernel(input_mats, buffer, **kwargs):
         # input sum is computed in step.update_input()

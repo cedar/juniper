@@ -1,3 +1,4 @@
+import logging
 from ...core.frontend.Configurable import Configurable
 from .Transform import Transform
 from collections import deque
@@ -5,6 +6,8 @@ from collections import deque
 import jax.numpy as jnp
 from collections import defaultdict
 
+
+logger = logging.getLogger(__name__)
 def find_path(edges, start, goal): 
     """
     edges: {(u, v): T} meaning T maps u -> v

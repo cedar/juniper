@@ -1,3 +1,6 @@
+import logging
+
+logger = logging.getLogger(__name__)
 # steps
 from .steps.CoordinateTransformation import CoordinateTransformation
 from .steps.FieldToPointCloud import FieldToPointCloud

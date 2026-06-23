@@ -1,3 +1,5 @@
+import logging
+import sys
 from .frontend.Circuit import Circuit
 from .frontend import CircuitContext
 from .backend.Engine import Engine
@@ -5,6 +7,8 @@ from .backend.Engine import Recording
 from .backend.Engine import TimingInfo
 from .backend.Exceptions import CircuitError
 
+
+logger = logging.getLogger(__name__)
 _architecture_singleton = None
 
 def get_arch(name=None):
@@ -19,12 +23,22 @@ def delete_arch():
     Circuit._current = None
     CircuitContext.set_current(None)
 
+def init_logging(level : int = logging.INFO):
+    """Initialize a default logging handler, which prints logs to console."""
+    console_handler = logging.StreamHandler(sys.stdout)
+    formatter = logging.Formatter(
+            "%(levelname)s [%(name)s] %(message)s \n"
+        )
+    console_handler.setFormatter(formatter)
+    logging.basicConfig(handlers=[console_handler], level=logging.INFO)
+    logger.info("Setup default logging.")
+
 class Architecture(Circuit):
     def __init__(self, name : str = "architecture"):
         """A singleton instance for the top-level circuit. Cannot have input or output slots.\n
         The architecture class also includes useful functions for comilation and simulation without manually having to call engine and compiler."""
         if Circuit._current is not None:
-            raise CircuitError("Parent circuit already exists. Use Architecture class only to initialize the top-level architecture.")
+            raise CircuitError("A parent circuit already exists. Use Architecture class only to initialize the top-level architecture.")
         else:
             Circuit._current = self
             CircuitContext.set_current(self)

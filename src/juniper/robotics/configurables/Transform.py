@@ -1,6 +1,9 @@
+import logging
 from ...core.frontend.Configurable import Configurable
 import jax.numpy as jnp
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, M_func):
     def compute_kernel(input_mats, joint_state):
         # input_mats shape [N,3]

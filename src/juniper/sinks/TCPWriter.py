@@ -1,10 +1,16 @@
 import numpy as np
-from multiprocessing import Process, shared_memory
+from multiprocessing import Process, shared_memory, Queue
+import logging
+from logging.handlers import QueueListener
 
 from ..core.frontend.Sink import Sink
 from ..util.TCPWorker import TCPWorker
 from ..util import util
 from ..core.backend.Exceptions import TCPError
+from ..sources.TCPReader import ForwardingHandler
+
+
+logger = logging.getLogger(__name__)
 
 def compute_kernel_factory(_params):
     def compute_kernel(input_mats, buffer, **kwargs): 
@@ -71,13 +77,20 @@ class TCPWriter(Sink):
 
         self.compute_kernel = compute_kernel_factory(self._params)
 
+        # logging
+        queue = Queue(maxsize=42)
+        handler = ForwardingHandler("juniper")
+        self.logger = QueueListener(queue, handler, respect_handler_level=True)
+        self.logger.start()
+
+        # TCP loop process
         shared_dtype = np.dtype(self._params.get("dtype", np.float32))
         self._params["dtype"] = shared_dtype.str
         initial_data = np.zeros(self._params["shape"], dtype=shared_dtype)
         self.shared_memory = shared_memory.SharedMemory(create=True, size=initial_data.nbytes)
         self.shared_data = np.ndarray(initial_data.shape, dtype=initial_data.dtype, buffer=self.shared_memory.buf)
         self.shared_data[:] = initial_data[:]
-        self.comm_thread = Process(target=TCPWorker, args=(self.get_local_circuit_id(), self._params, self.shared_memory.name))
+        self.comm_thread = Process(target=TCPWorker, args=(self.get_path_str(), self._params, self.shared_memory.name, queue))
 
     def close(self):
         if self.comm_thread.is_alive():
@@ -86,6 +99,7 @@ class TCPWriter(Sink):
         self.comm_thread.close()
         self.shared_memory.close()
         self.shared_memory.unlink()
+        self.logger.stop()
 
     def open(self):
         if not self.comm_thread.is_alive():
