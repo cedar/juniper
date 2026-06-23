@@ -1,6 +1,4 @@
-import logging
 
-logger = logging.getLogger(__name__)
 # steps
 from .steps.CoordinateTransformation import CoordinateTransformation
 from .steps.FieldToPointCloud import FieldToPointCloud
@@ -14,6 +12,8 @@ from .steps.PointCloudToRangeImage import PointCloudToRangeImage
 from .configurables.FrameGraph import FrameGraph
 from .configurables.Transform import Transform
 
+import logging
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "CoordinateTransformation",

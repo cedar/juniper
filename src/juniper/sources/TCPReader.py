@@ -2,7 +2,6 @@ import logging
 import numpy as np
 from multiprocessing import Process, shared_memory, Queue
 from logging.handlers import QueueListener
-import logging
 
 from ..core.frontend.Source import Source
 from ..util.TCPWorker import TCPWorker

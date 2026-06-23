@@ -1,9 +1,10 @@
-import logging
-
-logger = logging.getLogger(__name__)
 # Used for parameterizable objects such as steps or kernels.
 from ..backend.Exceptions import JuniperConfigurationError
 import copy
+
+import logging
+logger = logging.getLogger(__name__)
+
 class Configurable:
 
     def __init__(self, name : str, params : dict = {}, mandatory_params : dict = {}):

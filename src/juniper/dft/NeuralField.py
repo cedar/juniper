@@ -1,8 +1,6 @@
 from __future__ import annotations
-import logging
 from typing import TYPE_CHECKING
 
-logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
     from ..math.LateralKernel import LateralKernel
 
@@ -14,6 +12,9 @@ import numpy as np
 import jax
 from functools import partial
 from ..math.Sigmoid import Sigmoid
+
+import logging
+logger = logging.getLogger(__name__)
 
 # This singleton construct is needed as we need to specify the static_argnames in the compiler directive depending on the user input
 # euler step computation
