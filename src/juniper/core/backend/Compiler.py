@@ -57,6 +57,13 @@ class Compiler:
         except Exception as e:
             failed_elements = compiler._gather_uncompiled_elements(circuit=circuit)
             element_paths = [ElementRef(element).path_str for element in failed_elements]
+            failure_traces, failure_sources = _trace_compile_failure_sources(failed_elements)
+            print([failure_source.get_path_str() for failure_source in failure_sources])
+            for trace in failure_traces:
+                trace_str = ""
+                for el in trace:
+                    trace_str += el.get_path_str() + " -> "
+                print(trace_str[:-3])
             raise CompilerError(f"The circuit '{circuit.get_local_circuit_id()}' could not be compiled. \nThese elements failed to compile: {element_paths}") from e
 
         compiler.compile_info = compiler.local_compile_info[compiler.circuit]
@@ -320,6 +327,67 @@ class Compiler:
             if isinstance(element, Circuit):
                 uncompiled_elements += self._gather_uncompiled_elements(element)
         return uncompiled_elements
+    
+def _trace_compile_failure_sources(uncompiled_elements):
+    """Traces the sources of why uncompiled elements didn't compile."""
+    import networkx as nx
+    # build graph for each element
+    # graph with only one node and no edges are sources
+    # group those elements with same source -> they likely failed to compile because of this
+    # log the traces from the elements to the source
+
+    # a element is a source if incoming slots are compiled (if existing) but the step is not compiled anyway
+    # this should actually not really happen, since the api should catch this before it tries to compile, i guess..
+    failure_trace_graph = nx.DiGraph()
+    known_failure_sources = {}
+    all_sources = []
+
+    for element in uncompiled_elements:
+        current_traced_element = element
+        source_found = False
+        known_failure_sources[element] = []
+        while not source_found:
+            failure_reasons = _check_direct_failure_source(current_traced_element)
+            if failure_reasons is None:
+                failure_trace_graph.add_node(current_traced_element)
+                known_failure_sources[element].append(current_traced_element)
+                all_sources.append(current_traced_element)
+                source_found = True
+            
+            elif len(failure_reasons) == 1:
+                failure_trace_graph.add_edge(current_traced_element, failure_reasons[0])
+                current_traced_element = failure_reasons[0]
+
+            elif len(failure_reasons) >= 1:
+                # do some magic stuff here
+                continue
+        
+    element_traces = []
+    for element in uncompiled_elements:
+        for failure_source in known_failure_sources[element]:
+            element_traces.append(nx.shortest_path(failure_trace_graph, source=element, target=failure_source))
+    
+    element_traces.sort(key=lambda x: len(x))
+    return element_traces, all_sources
+
+def _check_direct_failure_source(element : Element) -> list[Element] | None:
+    if element.is_compiled:
+        raise CompilerError(f"The element {element.get_path_str()} is marked as part of a failure trace but is compiled, which is not possible.")
+    
+    incoming_slots = [element.parent_circuit.connection_map_reversed[element.get_local_circuit_id() + '.' + in_slot_id] for in_slot_id in element.input_slot_map.keys()] # check if the incoming steps are compiled and mark as failure surce if not (or at least if their slots are uncompiled)
+
+    incoming_elements = [incoming_slot[0].parent for incoming_slot in incoming_slots]
+    if hasattr(element, 'buffer_map'):
+        buffer = element.buffer_map.values()
+    output_slots = element.output_slot_map.values()
+
+    failure_sources = None
+    for incoming_element in incoming_elements:
+        if not incoming_element.is_compiled:
+            failure_sources = [incoming_element] if failure_sources is None else failure_sources.append(incoming_element)
+            
+    return failure_sources
+
 
 def _changed_and_not_none(old: Any, new: Any) -> bool:
     return (old != new) and (new is not None)

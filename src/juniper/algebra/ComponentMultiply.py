@@ -43,3 +43,6 @@ class ComponentMultiply(Step):
         self.set_max_incoming_connections(util.DEFAULT_INPUT_SLOT, np.inf)
         self.input_aggregation = "product"
         self.compute_kernel = compute_kernel_factory(self._params)
+
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: None}
