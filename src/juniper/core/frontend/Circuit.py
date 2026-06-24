@@ -89,7 +89,6 @@ class Circuit(Element):
             raise CircuitError(f"Circuit::add_element(): A circuit can't be added as a sub-element to itself ({self.get_path_str()}).")
         self.element_map[element_name] = element
         for slot in element.input_slot_map.values():
-            #print(slot.get_local_circuit_id())
             self.connection_map_reversed[slot.get_local_circuit_id()] = []
 
         if (element.get_local_circuit_id() in self.input_slot_map.keys()) or (element.get_local_circuit_id() in self.input_slot_map.keys()):

@@ -21,6 +21,7 @@ from .RuntimeState import RuntimeState
 from .RuntimeState import load_permanent_buffers
 from .RuntimeState import save_permanent_buffers
 
+JAXTRACECOUNTER = 1
 
 logger = logging.getLogger(__name__)
 class Engine:
@@ -71,7 +72,7 @@ class Engine:
         Each tick pushes source data, updates PRNG keys, executes the jitted
         circuit kernel, pulls sinks/recordings, and optionally saves buffers.
         """
-
+        global JAXTRACECOUNTER
         if not self.circuit.is_compiled:
             raise NotCompiledError(f"Can't run simulation. The circtuit {self.circuit.get_local_circuit_id} is not compiled.")
 
@@ -92,6 +93,7 @@ class Engine:
 
             # Execute tick function.
             t_tick, state_tree = timer(self._tick)(self.state.state_tree, prng_keys)
+            JAXTRACECOUNTER += 1
             self.state.state_tree = state_tree
             tick_timings.append(t_tick)
 
@@ -118,6 +120,7 @@ class Engine:
 
     def compile(self, circuit : Circuit, warmup : int = 0, print_compile_info : bool = False, load_buffer : bool = False) -> None:
         """Compile a circuit, allocate runtime state, and prepare IO/processes."""
+        global JAXTRACECOUNTER
         self.circuit = circuit
         if self.circuit.is_compiled:
             raise CompilerError(f"The circuit {circuit.get_local_circuit_id()} is already compiled.")
@@ -133,6 +136,7 @@ class Engine:
         self._open_connections()
 
         t_trace, _ = timer(self._tick)(self.state.state_tree, self. prng_tree)
+        JAXTRACECOUNTER += 1
 
         if warmup > 0:
             t_warmup, _ = timer(self.run_simulation)(num_steps=warmup, steps_to_record=[], print_timing=False)
@@ -156,7 +160,7 @@ class Engine:
         """Execute one compiled tick inside JAX."""
         new_state = state.copy()
 
-        print("|")
+        logger.info(f"Jax tracing attempt number: {JAXTRACECOUNTER}")
         for element_path, kernel in self.kernel_map.items():
             ref = self.compile_info.compiled_elements[element_path]
             element = ref.element

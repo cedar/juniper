@@ -220,7 +220,7 @@ class TCPWorker(Configurable):
                 self.port,
             )
             if not self._connection_announced:
-                print(f"TCP write socket connected to server at ({self.ip}, {self.port})!")
+                self.logger.info(f"TCP write socket connected to server at ({self.ip}, {self.port})!")
             self._connection_announced = True
             self.last_heartbeat = time.time()
             self.missed_heartbeats = 0
@@ -256,7 +256,7 @@ class TCPWorker(Configurable):
                 self.addr,
             )
             if not self._connection_announced:
-                print(f"TCP read socket ({self.ip},{self.port}) established connection with address {self.addr}!")
+                self.logger.info(f"TCP read socket ({self.ip},{self.port}) established connection with address {self.addr}!")
             self._connection_announced = True
             self.missed_heartbeats = 0
             self.read_buffer.clear()
@@ -348,7 +348,7 @@ class TCPWorker(Configurable):
                 e,
             )
             if self._connection_announced:
-                print(f"TCP read socket ({self.ip},{self.port}) lost connection!")
+                self.logger.info(f"TCP read socket ({self.ip},{self.port}) lost connection!")
                 self._connection_announced = False
             if self.running:
                 self.close_connection()
@@ -404,7 +404,7 @@ class TCPWorker(Configurable):
                 e,
             )
             if self._connection_announced:
-                print(f"TCP write socket ({self.ip},{self.port}) lost connection!")
+                self.logger.info(f"TCP write socket ({self.ip},{self.port}) lost connection!")
                 self._connection_announced = False
             if self.running:
                 self._last_sent_snapshot = None

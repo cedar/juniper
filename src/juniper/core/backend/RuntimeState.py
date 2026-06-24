@@ -1,6 +1,7 @@
 from __future__ import annotations
 import logging
 from typing import Any
+import warnings
 
 from .DataClasses import ElementRef
 from .DataClasses import CompileInfo
@@ -170,9 +171,9 @@ def load_permanent_buffers(compile_info: CompileInfo, runtime_state: RuntimeStat
             runtime_state.set(ref, step_state)
             loaded_buffer[path_str] = loaded_step_buffer
         except Exception as e:
-            print(f"-- Error during Engine::load_buffers('{data_file}') --")
-            print(e)
-            print("Buffer for step " + path_str + " could not be loaded")
+            logger.error("-- Error during Engine::load_buffers('{data_file}') -- Buffer for step " + path_str + " could not be loaded.")
+            logger.error(e)
+            warnings.warn("Buffer for step " + path_str + " could not be loaded")
 
     return loaded_buffer
 

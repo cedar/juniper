@@ -13,10 +13,6 @@ def compute_kernel_factory(params):
 
         for ax, size in zip(params["axis"], params["sizes"]):
             output = jnp.repeat(output, size, axis=ax)
-        
-        #jgdb.print(f"name: {params['name']}")
-        #jgdb.print(f"axis: {params['axis']}")
-        #jgdb.print(f"sizes: {params['sizes']}")
 
         return {util.DEFAULT_OUTPUT_SLOT: output}
     return compute_kernel

@@ -19,8 +19,7 @@ def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
 
 def plot_history(num_ticks, history, save_plot, step_names):
     if len(history) == 0:
-        print("Nothing to plot")
-        return
+        raise JuniperError("Nothing to plot")
     cmap = truncate_colormap(plt.get_cmap('hsv_r'), 0.29, 1)
     
     num_steps = len(history[0])
@@ -84,8 +83,9 @@ def plot_history(num_ticks, history, save_plot, step_names):
     if save_plot:
         folder = os.path.join(util.root(), "output")
         os.makedirs(folder, exist_ok=True)
-        plt.savefig(os.path.join(folder, f"plot_{int(time.time())}.png"))
-        tprint("Plot done")
+        file_path = os.path.join(folder, f"plot_{int(time.time())}.png")
+        plt.savefig(file_path)
+        logger.info(f"A recording plot figure has been written to {file_path}.")
     else:
         plt.show()
 
