@@ -7,6 +7,7 @@ from .core.backend.Engine import Engine
 from .core.Architecture import delete_arch
 from .core.Architecture import get_arch
 from .core.Architecture import init_logging
+from .core.Architecture import init_logging_to_file
 
 # algebra
 from .algebra.AddConstant import AddConstant
@@ -147,6 +148,7 @@ __all__ =[
     "get_arch",
     "delete_arch",
     "init_logging",
+    "init_logging_to_file",
     "VectorToScalars",
     "ScalarsToVector",
     "JuniperError",

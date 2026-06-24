@@ -1,10 +1,7 @@
 import argparse
 import jax
-import time
 import os
 
-from juniper.util.plotting import plot_history
-from juniper.util.util import tprint
 from juniper import util
 from juniper.core.Architecture import get_arch
 
@@ -13,8 +10,7 @@ if __name__ == "__main__":
     ## --- Argparse ---
 
     parser = argparse.ArgumentParser(description='JUNIPER: GPU Accelerated Python Implementation of CEDAR Using JAX')
-    parser.add_argument('arch', type=str, help='Load architecture from JSON or Python file (i.e. JSON exported by CEDAR' + \
-                        ' or python file containing get_architecture() function)')
+    parser.add_argument('arch', type=str, help='Load architecture from Python file containing get_architecture() function')
     parser.add_argument('--cpu', action='store_true', help='Use CPU instead of GPU')
     parser.add_argument('--recording', default=[], nargs="+", help='Activates recording mode. Specify steps or their buffers/output_slots to plot, e.g., \'step1 step2.buffer\' or \'"Neural Field1" "Static Gain1" "Neural Field2.activation"\' (without single quotes)')
     parser.add_argument('--num_ticks', type=int, default=10, help='Run simulation for n ticks')
@@ -39,41 +35,28 @@ if __name__ == "__main__":
 
     # These imports have to happen *after* the jax config is set
     from juniper.util import util_jax
-    import juniper.util.architecture_import as architecture_import
 
     util_jax.get_config()["euler_step_static_precompile"] = args.static_euler_compilation == True  # noqa: E712
     util_jax.get_config()["arch_file_path"] = args.arch
 
     ## --- Load architecture ---
     arch = get_arch()
-    architecture_import.import_file(args.arch, args.arch_args)
-    tprint("Architecture loaded")
+    import args.arch
+    arch = args.arch.get_architecture()
 
     ## --- Compile architecture ---
 
-    compile_time = time.time()
 
-    arch.compile(arch.tick_jitted)
-    tprint("Architecture compiled")
+    arch.compile(print_compile_info=True, warmup=3, load_buffer=False)
 
-    compile_time = time.time() - compile_time
 
     ## --- Simulation ---
     
     for i in range(args.num_runs): # Do multiple runs to check stability of timing results
         print(f"\nRun {i+1}")
-        plot_data_history, ms_per_tick, timing = arch.run_simulation(arch.tick_jitted, args.recording, args.num_ticks)
+        recording, timing = arch.run_simulation(num_steps=args.num_ticks, steps_to_record = args.recording, print_timing=True)
         arch.reset_steps()
-
-    print()
-    tprint("Simulations done")
 
     ## --- Plotting ---
     if len(args.recording) > 0:
-        plot_history(args.num_ticks, plot_data_history, args.save_plot, args.recording)
-
-# performance steps to update
-"""
-- Custom Input
-- all other 
-"""
+        recording.plot(args.recording, idx_interval=None, time_axis=None, snapshot_indices=[0, args.num_tikcs - 1], group_keys=None, figsize=(10,4))

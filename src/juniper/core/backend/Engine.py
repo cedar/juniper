@@ -145,7 +145,6 @@ class Engine:
         if print_compile_info:
             self._print_compile_info({"t_compile": t_compile, "t_trace": t_trace, "t_warmup": t_warmup, "N_static":len(self.compile_info.static), "N_dynamic": len(self.compile_info.dynamic), "N_total":len(self.compile_info.compiled_elements), "N_warmup":warmup})
 
-
     def reset_state(self) -> None:
         """Reset the runtime state to the post-compilation initial state."""
         self.state = self.init_state.copy()
@@ -160,7 +159,8 @@ class Engine:
         """Execute one compiled tick inside JAX."""
         new_state = state.copy()
 
-        logger.info(f"Jax tracing attempt number: {JAXTRACECOUNTER}")
+        if JAXTRACECOUNTER > 1:
+            logger.warning(f"Douplicate Jax trace detected on Jax tick attempt number: {JAXTRACECOUNTER}\nThis usually results from poor shape and/or dtype definitions of external inputs.")
         for element_path, kernel in self.kernel_map.items():
             ref = self.compile_info.compiled_elements[element_path]
             element = ref.element

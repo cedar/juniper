@@ -1,3 +1,4 @@
+from __future__ import annotations
 import logging
 import sys
 from .frontend.Circuit import Circuit
@@ -11,7 +12,7 @@ from .backend.Exceptions import CircuitError
 logger = logging.getLogger(__name__)
 _architecture_singleton = None
 
-def get_arch(name=None):
+def get_arch(name : str = None) -> Architecture:
     global _architecture_singleton
     if _architecture_singleton is None:
         _architecture_singleton = Architecture() if name is None else Architecture(name=name)
@@ -30,8 +31,24 @@ def init_logging(level : int = logging.INFO):
             "%(levelname)s [%(name)s] %(message)s \n"
         )
     console_handler.setFormatter(formatter)
-    logging.basicConfig(handlers=[console_handler], level=logging.INFO)
-    logger.info("Setup default logging.")
+    console_handler.setLevel(level)
+    
+    root_logger = logging.getLogger()
+    root_logger.addHandler(console_handler)
+    logger.info("Setup default console logging.")
+
+def init_logging_to_file(path : str, level : int = logging.INFO):
+    file_handler = logging.FileHandler(filename=path, mode="a")
+    formatter = logging.Formatter(
+            "%(asctime)s | %(levelname)s [%(name)s] %(message)s \n"
+        )
+    file_handler.setFormatter(formatter)
+    file_handler.setLevel(level)
+
+    root_logger = logging.getLogger()
+    root_logger.addHandler(file_handler)
+
+    logger.info("Setup default logging to file.")
 
 class Architecture(Circuit):
     def __init__(self, name : str = "architecture"):

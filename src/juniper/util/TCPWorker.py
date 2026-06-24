@@ -229,7 +229,7 @@ class TCPWorker(Configurable):
             self._logged_send_header = False
             return True
         except Exception as e:
-            self.logger.info(
+            self.logger.debug(
                 "Connection attempt to (%s,%s) failed: %r",
                 self.ip,
                 self.port,
@@ -262,7 +262,7 @@ class TCPWorker(Configurable):
             self.read_buffer.clear()
             return True
         except Exception as e:
-            self.logger.info(
+            self.logger.debug(
                 "Connection attempt on (%s,%s) failed: %r",
                 self.ip,
                 self.port,
@@ -369,7 +369,7 @@ class TCPWorker(Configurable):
             if not self._logged_send_header:
                 header_end = self.send_buffer.find(b"\n")
                 if header_end != -1:
-                    self.logger.info(
+                    self.logger.debug(
                         "Sending header to (%s,%s): %s",
                         self.ip,
                         self.port,
@@ -439,7 +439,7 @@ class TCPWorker(Configurable):
                 try:
                     conn.shutdown(socket.SHUT_RDWR)
                 except OSError as e:
-                    self.logger.info(
+                    self.logger.debug(
                         "Reader shutdown on (%s,%s) raised %r during close",
                         self.ip,
                         self.port,

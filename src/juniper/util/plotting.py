@@ -6,7 +6,6 @@ from . import util
 from matplotlib import colors
 from matplotlib import gridspec
 import time
-from .util import tprint
 from ..core.backend.Exceptions import JuniperError
 
 
