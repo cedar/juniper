@@ -1,5 +1,6 @@
 from __future__ import annotations
 import logging
+from dataclasses import dataclass
 from typing import Any
 from .DataClasses import CompileInfo
 from .DataClasses import ElementRef
@@ -55,16 +56,10 @@ class Compiler:
         try:
             assert circuit.is_compiled
         except Exception as e:
-            failed_elements = compiler._gather_uncompiled_elements(circuit=circuit)
-            element_paths = [ElementRef(element).path_str for element in failed_elements]
-            failure_traces, failure_sources = _trace_compile_failure_sources(failed_elements)
-            print([failure_source.get_path_str() for failure_source in failure_sources])
-            for trace in failure_traces:
-                trace_str = ""
-                for el in trace:
-                    trace_str += el.get_path_str() + " -> "
-                print(trace_str[:-3])
-            raise CompilerError(f"The circuit '{circuit.get_local_circuit_id()}' could not be compiled. \nThese elements failed to compile: {element_paths}") from e
+            failed_elements = _gather_uncompiled_elements(circuit=circuit)
+            report = _format_compile_failure_report(circuit, failed_elements)
+            logger.error(report)
+            raise CompilerError(report) from e
 
         compiler.compile_info = compiler.local_compile_info[compiler.circuit]
         return compiler.compile_info
@@ -177,11 +172,16 @@ class Compiler:
             permanent = False if buffer.permanent is None else buffer.permanent
 
             if not buffer.is_compiled:
+                changed = (
+                    _changed_and_not_none(buffer.shape, shape)
+                    or _changed_and_not_none(buffer.dtype, dtype)
+                    or _changed_and_not_none(buffer.permanent, permanent)
+                )
                 buffer.shape = shape
                 buffer.dtype = dtype
                 buffer.permanent = permanent
                 self._check_buffer_compiled(buffer)
-                buffer_updated = True
+                buffer_updated |= changed
         return buffer_updated
 
     def _check_buffer_compiled(self, buffer : Buffer):
@@ -318,76 +318,7 @@ class Compiler:
         """Rebuild and cache CompileInfo for a circuit after inference changes."""
         self.local_compile_info[circuit] = self._collect_compile_info(circuit)
         return self.local_compile_info[circuit]
-
-    def _gather_uncompiled_elements(self, circuit : Circuit) -> list[Element]:
-        uncompiled_elements = []
-        for element in circuit.element_map.values():
-            if not element.is_compiled:
-                uncompiled_elements.append(element)
-            if isinstance(element, Circuit):
-                uncompiled_elements += self._gather_uncompiled_elements(element)
-        return uncompiled_elements
-    
-def _trace_compile_failure_sources(uncompiled_elements):
-    """Traces the sources of why uncompiled elements didn't compile."""
-    import networkx as nx
-    # build graph for each element
-    # graph with only one node and no edges are sources
-    # group those elements with same source -> they likely failed to compile because of this
-    # log the traces from the elements to the source
-
-    # a element is a source if incoming slots are compiled (if existing) but the step is not compiled anyway
-    # this should actually not really happen, since the api should catch this before it tries to compile, i guess..
-    failure_trace_graph = nx.DiGraph()
-    known_failure_sources = {}
-    all_sources = []
-
-    for element in uncompiled_elements:
-        current_traced_element = element
-        source_found = False
-        known_failure_sources[element] = []
-        while not source_found:
-            failure_reasons = _check_direct_failure_source(current_traced_element)
-            if failure_reasons is None:
-                failure_trace_graph.add_node(current_traced_element)
-                known_failure_sources[element].append(current_traced_element)
-                all_sources.append(current_traced_element)
-                source_found = True
-            
-            elif len(failure_reasons) == 1:
-                failure_trace_graph.add_edge(current_traced_element, failure_reasons[0])
-                current_traced_element = failure_reasons[0]
-
-            elif len(failure_reasons) >= 1:
-                # do some magic stuff here
-                continue
-        
-    element_traces = []
-    for element in uncompiled_elements:
-        for failure_source in known_failure_sources[element]:
-            element_traces.append(nx.shortest_path(failure_trace_graph, source=element, target=failure_source))
-    
-    element_traces.sort(key=lambda x: len(x))
-    return element_traces, all_sources
-
-def _check_direct_failure_source(element : Element) -> list[Element] | None:
-    if element.is_compiled:
-        raise CompilerError(f"The element {element.get_path_str()} is marked as part of a failure trace but is compiled, which is not possible.")
-    
-    incoming_slots = [element.parent_circuit.connection_map_reversed[element.get_local_circuit_id() + '.' + in_slot_id] for in_slot_id in element.input_slot_map.keys()] # check if the incoming steps are compiled and mark as failure surce if not (or at least if their slots are uncompiled)
-
-    incoming_elements = [incoming_slot[0].parent for incoming_slot in incoming_slots]
-    if hasattr(element, 'buffer_map'):
-        buffer = element.buffer_map.values()
-    output_slots = element.output_slot_map.values()
-
-    failure_sources = None
-    for incoming_element in incoming_elements:
-        if not incoming_element.is_compiled:
-            failure_sources = [incoming_element] if failure_sources is None else failure_sources.append(incoming_element)
-            
-    return failure_sources
-
+  
 
 def _changed_and_not_none(old: Any, new: Any) -> bool:
     return (old != new) and (new is not None)
@@ -398,3 +329,331 @@ def _slot_changed(slot, new_shape, new_dtype):
         slot.dtype = new_dtype
         return True
     return False
+
+
+
+
+
+
+
+
+
+
+######################## Analyze compilation failures and generate failure code. #########################
+
+@dataclass
+class _CompileFailure:
+    """Local compilation state for one uncompiled element."""
+
+    upstream: tuple[Element, ...]
+    codes: set[str]
+    is_local_source: bool
+
+def _gather_uncompiled_elements(circuit : Circuit) -> list[Element]:
+    uncompiled_elements = []
+    for element in circuit.element_map.values():
+        if not element.is_compiled:
+            uncompiled_elements.append(element)
+        if isinstance(element, Circuit):
+            uncompiled_elements += _gather_uncompiled_elements(element)
+    return uncompiled_elements
+  
+def _trace_compile_failure_sources(
+        uncompiled_elements: list[Element],
+    ) -> tuple[list[list[Element]], list[Element], dict[Element, _CompileFailure], list[list[Element]]]:
+    """Find all failed dependency paths, including branches and feedback loops.
+
+    Edges point from an uncompiled element to the uncompiled upstream elements
+    whose unresolved output prevents it from compiling. Returned traces point in
+    user-facing order: likely source -> downstream affected element.
+    """
+    failed_elements = _unique_elements(uncompiled_elements)
+    failed_set = set(failed_elements)
+    failures = {
+        element: _check_direct_failure_source(element, failed_set)
+        for element in failed_elements
+    }
+
+    sources = {
+        element
+        for element, failure in failures.items()
+        if failure.is_local_source or not failure.upstream
+    }
+    cycle_components = _find_failure_cycles(failures)
+
+    # A feedback component is only a likely source if it cannot already reach
+    # another concrete source through an upstream dependency.
+    cycles = []
+    for component in cycle_components:
+        if any(_can_reach_failure_source(element, failures, sources, set()) for element in component):
+            continue
+        for element in component:
+            failures[element].codes.add("CYCLIC_FAILURE_DEPENDENCY")
+            sources.add(element)
+        cycles.append(component)
+
+    traces = []
+    for element in failed_elements:
+        for trace_to_source in _traces_to_failure_sources(element, failures, sources, ()):
+            traces.append(list(reversed(trace_to_source)))
+
+    unique_traces = []
+    seen_traces = set()
+    for trace in traces:
+        trace_key = tuple(trace)
+        if trace_key not in seen_traces:
+            seen_traces.add(trace_key)
+            unique_traces.append(trace)
+
+    unique_traces.sort(key=lambda trace: (len(trace), _element_path(trace[0]), _element_path(trace[-1])))
+    ordered_sources = sorted(sources, key=_element_path)
+    return unique_traces, ordered_sources, failures, cycles
+
+
+def _check_direct_failure_source(
+        element: Element,
+        failed_elements: set[Element] | None = None,
+    ) -> _CompileFailure:
+    """Classify an uncompiled element and its immediate failed prerequisites."""
+    if element.is_compiled:
+        raise CompilerError(
+            f"The element {element.get_path_str()} is marked as part of a failure trace "
+            "but is compiled."
+        )
+
+    failed_elements = failed_elements or set()
+    codes = set()
+    upstream = set()
+    has_blocking_input = element.needs_input_connections and not element.is_source
+
+    if has_blocking_input:
+        for slot_id, input_slot in element.input_slot_map.items():
+            incoming_slots = element.parent_circuit.connection_map_reversed.get(
+                input_slot.get_local_circuit_id(),
+                [],
+            )
+            if input_slot.is_compiled:
+                continue
+
+            if not incoming_slots:
+                codes.add(f"INPUT_SLOT_UNCONNECTED:{slot_id}")
+            else:
+                codes.update(_slot_failure_codes("INPUT_SLOT", slot_id, input_slot))
+                for source_slot in incoming_slots:
+                    source_element = source_slot.parent
+                    if source_element in failed_elements and not source_element.is_compiled:
+                        upstream.add(source_element)
+
+    if isinstance(element, Circuit):
+        failed_children = [
+            child
+            for child in element.element_map.values()
+            if child in failed_elements and not child.is_compiled
+        ]
+        if failed_children:
+            codes.add("CHILD_ELEMENT_UNCOMPILED")
+            upstream.update(failed_children)
+
+    for slot_id, output_slot in element.output_slot_map.items():
+        if not output_slot.is_compiled:
+            codes.update(_slot_failure_codes("OUTPUT_SLOT", slot_id, output_slot))
+
+    for buffer_id, buffer in getattr(element, "buffer_map", {}).items():
+        if not buffer.is_compiled:
+            codes.update(_buffer_failure_codes(buffer_id, buffer))
+
+    # An element whose required inputs are known but whose own outputs/buffers
+    # are unknown cannot be explained by an upstream failure. It is a likely
+    # failure source itself.
+    own_spec_failure = any(
+        code.startswith(("OUTPUT_SLOT_", "BUFFER_"))
+        for code in codes
+    )
+    all_required_inputs_compiled = (
+        not has_blocking_input
+        or all(slot.is_compiled for slot in element.input_slot_map.values())
+    )
+    is_local_source = (
+        not upstream
+        and (
+            own_spec_failure
+            or any(code.startswith("INPUT_SLOT_UNCONNECTED:") for code in codes)
+            or (all_required_inputs_compiled and bool(codes))
+        )
+    )
+
+    if upstream:
+        codes.add("UPSTREAM_ELEMENT_UNCOMPILED")
+    if not codes:
+        codes.add("COMPILE_STATE_UNRESOLVED")
+        is_local_source = not upstream
+
+    return _CompileFailure(
+        upstream=tuple(sorted(upstream, key=_element_path)),
+        codes=codes,
+        is_local_source=is_local_source,
+    )
+
+
+def _format_compile_failure_report(circuit: Circuit, failed_elements: list[Element]) -> str:
+    """Build the user-facing compilation failure report."""
+    traces, sources, failures, cycles = _trace_compile_failure_sources(failed_elements)
+    lines = [f"The circuit '{circuit.get_local_circuit_id()}' could not be compiled."]
+
+    lines.append("\nLikely failure sources:")
+    for source in sources:
+        codes = ", ".join(sorted(failures[source].codes))
+        lines.append(f"- {_element_label(source)} [{codes}]")
+
+    lines.append("\nUncompiled elements:")
+    for element in sorted(_unique_elements(failed_elements), key=_element_path):
+        codes = ", ".join(sorted(failures[element].codes))
+        lines.append(f"- {_element_label(element)} [{codes}]")
+
+    if traces:
+        lines.append("\nFailure propagation:")
+        for trace in traces:
+            lines.append(f"- {' -> '.join(_element_label(element) for element in trace)}")
+
+    if cycles:
+        lines.append("\nFailure dependency cycles:")
+        for cycle in cycles:
+            lines.append(
+                f"- {' -> '.join(_element_label(element) for element in _cycle_trace(cycle, failures))}"
+            )
+
+    return "\n".join(lines)
+
+
+def _slot_failure_codes(prefix: str, slot_id: str, slot: Slot) -> set[str]:
+    codes = set()
+    if slot.shape is None:
+        codes.add(f"{prefix}_SHAPE_UNRESOLVED:{slot_id}")
+    if slot.dtype is None:
+        codes.add(f"{prefix}_DTYPE_UNRESOLVED:{slot_id}")
+    return codes
+
+
+def _buffer_failure_codes(buffer_id: str, buffer: Buffer) -> set[str]:
+    codes = set()
+    if buffer.shape is None:
+        codes.add(f"BUFFER_SHAPE_UNRESOLVED:{buffer_id}")
+    if buffer.dtype is None:
+        codes.add(f"BUFFER_DTYPE_UNRESOLVED:{buffer_id}")
+    if buffer.permanent is None:
+        codes.add(f"BUFFER_PERMANENCE_UNRESOLVED:{buffer_id}")
+    return codes
+
+
+def _find_failure_cycles(failures: dict[Element, _CompileFailure]) -> list[list[Element]]:
+    """Return strongly connected components that represent dependency loops."""
+    index = 0
+    indices = {}
+    lowlinks = {}
+    stack = []
+    on_stack = set()
+    components = []
+
+    def visit(element: Element):
+        nonlocal index
+        indices[element] = index
+        lowlinks[element] = index
+        index += 1
+        stack.append(element)
+        on_stack.add(element)
+
+        for upstream in failures[element].upstream:
+            if upstream not in indices:
+                visit(upstream)
+                lowlinks[element] = min(lowlinks[element], lowlinks[upstream])
+            elif upstream in on_stack:
+                lowlinks[element] = min(lowlinks[element], indices[upstream])
+
+        if lowlinks[element] != indices[element]:
+            return
+
+        component = []
+        while True:
+            upstream = stack.pop()
+            on_stack.remove(upstream)
+            component.append(upstream)
+            if upstream is element:
+                break
+
+        if len(component) > 1 or element in failures[element].upstream:
+            components.append(sorted(component, key=_element_path))
+
+    for element in failures:
+        if element not in indices:
+            visit(element)
+    return components
+
+
+def _can_reach_failure_source(
+        element: Element,
+        failures: dict[Element, _CompileFailure],
+        sources: set[Element],
+        visited: set[Element],
+    ) -> bool:
+    if element in visited:
+        return False
+    if element in sources:
+        return True
+    visited = visited | {element}
+    return any(
+        _can_reach_failure_source(upstream, failures, sources, visited)
+        for upstream in failures[element].upstream
+    )
+
+
+def _traces_to_failure_sources(
+        element: Element,
+        failures: dict[Element, _CompileFailure],
+        sources: set[Element],
+        path: tuple[Element, ...],
+    ) -> list[tuple[Element, ...]]:
+    """Return every acyclic path from an affected element to a likely source."""
+    if element in path:
+        return []
+    current_path = path + (element,)
+    if element in sources:
+        return [current_path]
+
+    traces = []
+    for upstream in failures[element].upstream:
+        traces.extend(_traces_to_failure_sources(upstream, failures, sources, current_path))
+    return traces
+
+
+def _cycle_trace(
+        component: list[Element],
+        failures: dict[Element, _CompileFailure],
+    ) -> list[Element]:
+    """Return one real directed loop from a strongly connected component."""
+    component_set = set(component)
+    path = []
+    positions = {}
+    current = component[0]
+
+    while current not in positions:
+        positions[current] = len(path)
+        path.append(current)
+        current = next(
+            upstream
+            for upstream in failures[current].upstream
+            if upstream in component_set
+        )
+
+    return path[positions[current]:] + [current]
+
+
+def _unique_elements(elements: list[Element]) -> list[Element]:
+    return list(dict.fromkeys(elements))
+
+
+def _element_path(element: Element) -> str:
+    return element.get_path_str() or element.get_local_circuit_id()
+
+
+def _element_label(element: Element) -> str:
+    return f"{type(element).__name__}({_element_path(element)})"

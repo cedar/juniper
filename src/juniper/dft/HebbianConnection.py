@@ -3,8 +3,6 @@ from ..core.frontend.Step import Step
 from ..util import util
 from ..util import util_jax
 import jax.numpy as jnp
-import jax
-from functools import partial
 from ..core.backend.Exceptions import JuniperConfigurationError
 
 
@@ -61,9 +59,6 @@ BIDIR_MAP = {
 }
 
 def make_reward_func(params, static):
-    static_argnames_rew = []
-    if static:
-        static_argnames_rew = ['reward_duration']
     try:
         _reward_func = REWARD_MAP[params["reward_type"]]
     except KeyError:
@@ -74,10 +69,6 @@ def make_reward_func(params, static):
     return _reward_func
 
 def make_euler_func(params, static):
-    static_argnames_euler = []
-    if static:
-        static_argnames_euler = ["tau", "tau_decay", "learning_rate"]
-
     # Choose update term based on learning rule
     try:
         learning_rule = LEARNING_RULE_MAP[params["learning_rule"]]

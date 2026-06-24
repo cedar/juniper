@@ -3,27 +3,11 @@ from ..core.frontend.Step import Step
 from ..util import util, util_jax
 import jax
 import jax.numpy as jnp
-from functools import partial
 from ..core.backend.Exceptions import JuniperUserError
 
 
 logger = logging.getLogger(__name__)
 def make_euler_bcm_func(params, static):
-    static_argnames = []
-    if static:
-        static_argnames = [
-            "learning_rate",
-            "tau_weights",
-            "tau_theta",
-            "min_theta",
-            "use_fixed_theta",
-            "fixed_theta",
-            "theta_eps",
-            "norm_target",
-            "norm_rate",
-            "safeguard_thr"
-        ]
-
     def eulerStepBCM(
         dt,                
         w,                

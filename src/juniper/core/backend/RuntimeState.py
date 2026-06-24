@@ -47,6 +47,15 @@ class RuntimeState:
         """Allocate the initial runtime state from compiled slot/buffer specs."""
         return cls(_init_state(compile_info))
 
+    def get_specs(self) -> StateTree:
+        """Return the shape and dtype for each element, slot and buffer in the state tree"""
+        specs = {}
+        for key, value in self.state_tree.items():
+            specs[key] = {}
+            for id, jnparray in value.items():
+                specs[key][id] = (jnparray.shape, jnparray.dtype)
+        return specs
+
     def copy(self) -> RuntimeState:
         """Copy the top-level tree."""
         return RuntimeState(self.state_tree.copy())
