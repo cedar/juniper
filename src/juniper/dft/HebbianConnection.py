@@ -223,9 +223,12 @@ class HebbianConnection(Step):
         self.register_buffer("wheights", self._params["wheight_shape"], permanent=True) # dynamic wheight parameter
         self.register_buffer("reward_timer", self._params["scalar_shape"]) # time since reward onset
         self.register_buffer("reward_onset", self._params["scalar_shape"]) # reward onset
+        if self._params["reward_type"] == "reward_gated":
+            self.buffer_map["reward_onset"].dtype = jnp.bool
 
     def infer_output_shapes(self, input_specs):
+        out1_shape = tuple(self._params["source_shape"]) if self._params["bidirectional"] else tuple(self._params["target_shape"])
         return {
             util.DEFAULT_OUTPUT_SLOT: tuple(self._params["target_shape"]),
-            "out1": tuple(self._params["source_shape"]),
+            "out1": out1_shape,
         }

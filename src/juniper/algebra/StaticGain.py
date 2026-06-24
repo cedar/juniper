@@ -14,7 +14,7 @@ def compute_kernel_factory(factor, params):
             input = input.astype(params["jdtype"])
         except Exception as e:
             raise EngineError(f"Dtype {input.dtype} of input into step {params.get('name')} can't be converted to {params.get('jdtype')}") from e
-        return {util.DEFAULT_OUTPUT_SLOT:  input_mats[util.DEFAULT_INPUT_SLOT] * factor}
+        return {util.DEFAULT_OUTPUT_SLOT: input * factor}
     return compute_kernel
 
 

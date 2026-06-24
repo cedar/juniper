@@ -1,17 +1,19 @@
 import logging
-from ..core.frontend.Step import Step
+from ..core.frontend.Sink import Sink
 from ..util import util
 import numpy as np
 
 
 
 logger = logging.getLogger(__name__)
-def compute_kernel_factory():
+def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
-        return {}
+        input = input_mats[util.DEFAULT_INPUT_SLOT]
+        input = input.astype(params["jdtype"])
+        return {util.DEFAULT_OUTPUT_SLOT: input}
     return compute_kernel
 
-class StaticDebug(Step):
+class StaticDebug(Sink):
     """
     Description
     ---------
@@ -32,7 +34,7 @@ class StaticDebug(Step):
         self.needs_input_connections = True
         self.set_max_incoming_connections(util.DEFAULT_INPUT_SLOT, np.inf)
         
-        self.compute_kernel = compute_kernel_factory()
+        self.compute_kernel = compute_kernel_factory(self._params)
     
     def set_data(self, data):
         pass

@@ -14,6 +14,7 @@ from .Exceptions import EngineError
 from ...util.util import timer
 from ...util import util_jax
 import jax
+import jax.numpy as jnp
 import numpy as np
 from functools import partial
 from ..frontend.Circuit import Circuit
@@ -147,7 +148,7 @@ class Engine:
             if print_compile_info:
                 self._print_compile_info({"t_compile": t_compile, "t_trace": t_trace, "t_warmup": t_warmup, "N_static":len(self.compile_info.static), "N_dynamic": len(self.compile_info.dynamic), "N_total":len(self.compile_info.compiled_elements), "N_warmup":warmup})
         except Exception as e:
-            logger.info(str(self.state.get_specs()))
+            logger.info((self.state.get_specs()))
             raise EngineError("During Jax tracing and warmup an exception occured. The full state tree specs are written to logging.info:") from e
 
 
@@ -166,16 +167,21 @@ class Engine:
         new_state = state.copy()
 
         if JAXTRACECOUNTER > 1:
-            logger.warning(f"Douplicate Jax trace detected on Jax tick attempt number: {JAXTRACECOUNTER}\nThis usually results from poor shape and/or dtype definitions of external inputs.")
+            logger.warning(f"Jax retracing detected on Jax tick attempt number: {JAXTRACECOUNTER}\nThis usually results from state drift due to poor shape and/or dtype definitions of external inputs or step definitions.")
         for element_path, kernel in self.kernel_map.items():
             ref = self.compile_info.compiled_elements[element_path]
             element = ref.element
             
             input = self._gather_element_input(new_state, element)
-            new_state[element_path] = kernel(
+            step_state = kernel(
                 input,
                 state[element_path],
                 **{"prng_key": prng_keys[element_path], "prng_keys": prng_keys[element_path]},
+            )
+            new_state[element_path] = _normalize_step_state(
+                state[element_path],
+                step_state,
+                element,
             )
 
         return new_state
@@ -314,3 +320,27 @@ class Engine:
         print(f"{(t_trace):6.2f} s for jax tracing of state and compute kernels")
         print(f"{(t_warmup):6.2f} s for warmup run [{N_warmup} steps]")
         print("\n")
+
+
+def _normalize_step_state(expected_state: StateTree, returned_state: StateTree, element: Circuit) -> StateTree:
+    """Preserve the compiled state contract across every kernel invocation."""
+    expected_keys = set(expected_state)
+    returned_keys = set(returned_state)
+    if expected_keys != returned_keys:
+        missing = sorted(expected_keys - returned_keys)
+        extra = sorted(returned_keys - expected_keys)
+        raise EngineError(
+            f"Kernel for {type(element).__name__}({element.get_path_str()}) returned an invalid "
+            f"state tree; missing keys: {missing}, unexpected keys: {extra}."
+        )
+
+    normalized_state = {}
+    for state_id, expected_value in expected_state.items():
+        returned_value = returned_state[state_id]
+        if returned_value.shape != expected_value.shape:
+            raise EngineError(
+                f"Kernel for {type(element).__name__}({element.get_path_str()}) returned "
+                f"shape {returned_value.shape} for '{state_id}', expected {expected_value.shape}."
+            )
+        normalized_state[state_id] = jnp.asarray(returned_value, dtype=expected_value.dtype)
+    return normalized_state

@@ -43,4 +43,7 @@ class VectorToScalars(Step):
         self.compute_kernel = compute_kernel_factory(self._params)
 
     def infer_output_shapes(self, input_specs):
-        return {f"out{i}": () for i in range(self._params["N_scalars"])}
+        if util.DEFAULT_INPUT_SLOT not in input_specs:
+            return {}
+        scalar_shape = tuple(input_specs[util.DEFAULT_INPUT_SLOT][0][1:])
+        return {f"out{i}": scalar_shape for i in range(self._params["N_scalars"])}

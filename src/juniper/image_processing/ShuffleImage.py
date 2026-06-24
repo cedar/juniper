@@ -146,10 +146,13 @@ class ShuffleImage(Step):
 
         self.register_input_slot("learn_node")
         
-        self.register_buffer("elapsed_learn_time", shape=())
-        self.register_buffer("learn_onset", shape=())
+        self.register_buffer("elapsed_learn_time", shape=(1,))
+        self.register_buffer("learn_onset", shape=(1,))
 
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
 
     def infer_output_dtypes(self, input_specs):
         return {util.DEFAULT_OUTPUT_SLOT: input_specs["learn_node"][1], "elapsed_learn_time": util_jax.cfg["jdtype"], "learn_onset": util_jax.cfg["jdtype"]}
+
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["output_shape"])}
