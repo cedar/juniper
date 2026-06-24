@@ -9,6 +9,7 @@ from .DataClasses import RecKey
 
 from .Exceptions import NotCompiledError
 from .Exceptions import CompilerError
+from .Exceptions import EngineError
 
 from ...util.util import timer
 from ...util import util_jax
@@ -135,15 +136,20 @@ class Engine:
             self._load_buffers()
         self._open_connections()
 
-        t_trace, _ = timer(self._tick)(self.state.state_tree, self. prng_tree)
-        JAXTRACECOUNTER += 1
+        try:
+            t_trace, _ = timer(self._tick)(self.state.state_tree, self. prng_tree)
+            JAXTRACECOUNTER += 1
 
-        if warmup > 0:
-            t_warmup, _ = timer(self.run_simulation)(num_steps=warmup, steps_to_record=[], print_timing=False)
-            self.reset_state()
+            if warmup > 0:
+                t_warmup, _ = timer(self.run_simulation)(num_steps=warmup, steps_to_record=[], print_timing=False)
+                self.reset_state()
 
-        if print_compile_info:
-            self._print_compile_info({"t_compile": t_compile, "t_trace": t_trace, "t_warmup": t_warmup, "N_static":len(self.compile_info.static), "N_dynamic": len(self.compile_info.dynamic), "N_total":len(self.compile_info.compiled_elements), "N_warmup":warmup})
+            if print_compile_info:
+                self._print_compile_info({"t_compile": t_compile, "t_trace": t_trace, "t_warmup": t_warmup, "N_static":len(self.compile_info.static), "N_dynamic": len(self.compile_info.dynamic), "N_total":len(self.compile_info.compiled_elements), "N_warmup":warmup})
+        except Exception as e:
+            logger.info(str(self.state.get_specs()))
+            raise EngineError("During Jax tracing and warmup an exception occured. The full state tree specs are written to logging.info:") from e
+
 
     def reset_state(self) -> None:
         """Reset the runtime state to the post-compilation initial state."""
