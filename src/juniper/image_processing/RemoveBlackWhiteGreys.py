@@ -68,7 +68,7 @@ def compute_kernel_factory(params):
             jnp.clip(out01 * 255.0, 0.0, 255.0),
             out01
         )
-        out = out.astype(rgb_in.dtype)  # keep uint8 if input was uint8
+        out = out.astype(params["jdtype"])  
 
         return {util.DEFAULT_OUTPUT_SLOT: out}
 

@@ -55,9 +55,9 @@ def compute_kernel_factory(params):
         # Convert to HSV
         hsv = rgb_to_hsv_jax(rgb, channels=params["channels"])  # shape (H, W, 3), values in [0,1]
 
-        return {util.DEFAULT_OUTPUT_SLOT: hsv[:,:,0],
-               "out1": hsv[:,:,1],
-               "out2": hsv[:,:,2]}
+        return {util.DEFAULT_OUTPUT_SLOT: hsv[:,:,0].astype(params["jdtype"]),
+               "out1": hsv[:,:,1].astype(params["jdtype"]),
+               "out2": hsv[:,:,2].astype(params["jdtype"])}
     return compute_kernel
 
 

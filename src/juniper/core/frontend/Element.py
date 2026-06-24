@@ -4,6 +4,7 @@ from typing import Any
 
 from ..backend.Exceptions import CircuitError
 from ..backend.Exceptions import JuniperUserError
+from ...util.util_jax import cfg
 
 from .Connectable import Connectable
 from .Slot import Slot
@@ -16,6 +17,9 @@ class Element(Connectable):
     def __init__(self, name : str, params : dict = {}, mandatory_params : dict = {}):
         if "." in name:
             raise JuniperUserError(f"Element names cannot contain dots. ({name})")
+        
+        if "jdtype" not in params.keys():
+            params["jdtype"] = cfg["jdtype"]
         
         super().__init__(name=name,params=params, mandatory_params=mandatory_params)
         self.input_slot_map : dict[str, Slot] = {}

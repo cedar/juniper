@@ -2,13 +2,16 @@ import logging
 from ..core.frontend.Source import Source
 from ..math.Gaussian import Gaussian
 from ..util import util
+from ..util import util_jax
 import warnings
 from ..core.backend.Exceptions import JuniperConfigurationError
 from ..core.backend.Warnings import JuniperConfigurationWarning
+import jax.numpy as jnp
 
 
 logger = logging.getLogger(__name__)
 def compute_kernel_factory(kernel):
+    kernel = jnp.asarray(kernel, dtype=util_jax.cfg["jdtype"])
     return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: kernel}
 
 class GaussInput(Source):

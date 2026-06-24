@@ -22,7 +22,6 @@ from .RuntimeState import load_permanent_buffers
 from .RuntimeState import save_permanent_buffers
 
 
-
 logger = logging.getLogger(__name__)
 class Engine:
     """Runtime driver for a compiled circuit.
@@ -157,12 +156,12 @@ class Engine:
         """Execute one compiled tick inside JAX."""
         new_state = state.copy()
 
+        print("|")
         for element_path, kernel in self.kernel_map.items():
             ref = self.compile_info.compiled_elements[element_path]
             element = ref.element
             
             input = self._gather_element_input(new_state, element)
-            print(element_path)
             new_state[element_path] = kernel(
                 input,
                 state[element_path],

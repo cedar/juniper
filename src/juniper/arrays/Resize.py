@@ -19,7 +19,7 @@ def compute_kernel_factory(params):
         grid = jnp.meshgrid(*coords, indexing='ij')
 
         output += map_coordinates(input, grid, order=params["interpolation"])
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+        return {util.DEFAULT_OUTPUT_SLOT: output.astype(params["jdtype"])}
     return compute_kernel
 
 

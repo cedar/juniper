@@ -1,14 +1,20 @@
 import logging
 from ..core.frontend.Step import Step
+from ..core.backend.Exceptions import EngineError
 from ..util import util
 import numpy as np
+import jax.numpy as jnp
 
 
 logger = logging.getLogger(__name__)
 def compute_kernel_factory(params):
-    def compute_kernel(input_mats, buffer, **kwargs):
+    def compute_kernel(input_mats : dict[str,jnp.ndarray], buffer : dict[str,jnp.ndarray], **kwargs) -> dict[str,jnp.ndarray]:
         # input prod is computed in update_input
         input = input_mats[util.DEFAULT_INPUT_SLOT]
+        try:
+            input = input.astype(params["jdtype"])
+        except Exception as e:
+            raise EngineError(f"Dtype {input.dtype} of input into step {params.get('name')} can't be converted to {params.get('jdtype')}") from e
 
         # Return output
         return {util.DEFAULT_OUTPUT_SLOT: input}
