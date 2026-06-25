@@ -1,54 +1,59 @@
 # JUNIPER
 
-**GPU Accelerated Python Implementation of CEDAR**
+**GPU-accelerated neural dynamics and signal-processing architectures in Python.**
 
-JUNIPER is a high-performance framework for simulating neural dynamics architectures on the GPU. Built on top of [JAX](https://github.com/google/jax), it provides a flexible Python API for constructing computational graphs of processing steps, compiling them, and running simulations with automatic GPU acceleration.
+JUNIPER builds directed computation graphs from small processing elements, compiles the graph into JAX kernels, and runs fixed-step simulations on CPU/GPU/TPU backends supported by JAX. The library is centered on Dynamic Field Theory, but the step library also covers array operations, image processing, robotics transformations, TCP I/O, recording, and reusable nested circuits.
 
-## What is JUNIPER?
+## Current API Shape
 
-JUNIPER implements the concepts of the CEDAR framework in Python, leveraging JAX for just-in-time (JIT) compilation and GPU execution. It is designed for researchers and engineers working with **Dynamic Field Theory (DFT)** and neural dynamics, but its modular step-based architecture makes it suitable for any signal-processing pipeline that benefits from GPU acceleration.
-
-### Key Features
-
-- **GPU acceleration** via JAX with automatic JIT compilation
-- **Modular step-based architecture** -- compose complex processing pipelines from reusable building blocks
-- **Pythonic connection syntax** using `>>` and `<<` operators to wire steps together
-- **Rich library of built-in steps** covering algebra, array manipulation, neural fields, image processing, robotics, and I/O
-- **Dynamic and static steps** -- efficient separation of time-varying (dynamic) and feed-forward (static) computation
-- **Buffer save/restore** for persisting simulation state across runs
-
-## Quick Start
+Most step constructors now use explicit parameters instead of a single parameter dictionary:
 
 ```python
-from juniper import GaussInput, NeuralField, Gaussian, StaticGain
-from juniper.Architecture import get_arch
+from juniper import GaussInput, NeuralField, StaticGain, Gaussian, get_arch
 
-# Create steps
-gi = GaussInput("input", {"shape": (50,), "sigma": (3,), "amplitude": 5})
-gain = StaticGain("gain", {"factor": 0.8})
-nf = NeuralField("field", {
-    "shape": (50,), "resting_level": -5, "global_inhibition": -0.01,
-    "tau": 0.1, "input_noise_gain": 0.1,
-    "sigmoid": "AbsSigmoid", "beta": 100, "theta": 0.5,
-    "LateralKernel": Gaussian({"sigma": (3,), "amplitude": 5, "normalized": True, "max_shape": (50,)}),
-})
-
-# Connect steps using >> operator
-gi >> gain >> nf
-
-# Compile and run
 arch = get_arch()
-arch.compile()
-for _ in range(100):
-    arch.tick()
+source = GaussInput("input", shape=(50,), sigma=(3,), amplitude=5.0)
+gain = StaticGain("gain", factor=0.8)
+field = NeuralField(
+    "field",
+    shape=(50,),
+    resting_level=-5.0,
+    global_inhibition=-0.01,
+    tau=0.1,
+    input_noise_gain=0.1,
+    lateral_kernel=Gaussian({
+        "shape": (50,),
+        "sigma": (3,),
+        "amplitude": 5.0,
+        "normalized": True,
+        "factorized": False,
+    }),
+)
+
+source >> gain >> field
+arch.compile(warmup=1)
+recording, timing = arch.run_simulation(100, steps_to_record=[field])
 ```
+
+Configurables such as `Gaussian`, `LateralKernel`, `Sigmoid`, `FrameGraph`, and `Transform` still take parameter dictionaries.
+
+## Highlights
+
+- Explicit constructor API for steps and sources.
+- `Circuit` context managers for reusable nested circuits.
+- Frontend connection syntax with `>>`, `<<`, slot objects, and string paths.
+- Backend compiler with shape/dtype inference and traceable compile-failure reports.
+- JAX-jitted engine with runtime state, PRNG tree management, source/sink I/O, and persistent buffers.
+- `Recording` utilities for slicing, plotting, saving, and loading simulation output.
+- Expanded DFT, image-processing, robotics, TCP, and error/warning APIs.
 
 ## Documentation Overview
 
 | Section | Description |
 |---------|-------------|
-| [Installation](guide/installation.md) | How to install JUNIPER and its dependencies |
-| [Building Architectures](guide/architecture.md) | How to create steps, connect them, and run simulations |
-| [Command-Line Reference](guide/cli.md) | All `run.py` arguments |
-| [Steps Reference](steps/index.md) | Complete reference for all built-in steps |
-| [Configurables](configurables/index.md) | Configurable objects (Gaussian, LateralKernel, Sigmoid) |
+| [Installation](guide/installation.md) | Installation and runtime dependencies. |
+| [Building Architectures](guide/architecture.md) | Creating steps, circuits, connections, compilation, recording, and simulation. |
+| [Command-Line Reference](guide/cli.md) | `run.py` command-line usage. |
+| [Steps Reference](steps/index.md) | Built-in source, sink, DFT, array, image, robotics, and algebra steps. |
+| [Configurables](configurables/index.md) | Kernels, sigmoid functions, and robotics frame helpers. |
+| [API Reference](api/frontend.md) | Frontend, backend, recording, errors, and warnings. |

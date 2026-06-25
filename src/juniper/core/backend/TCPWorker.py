@@ -1,5 +1,5 @@
-from ..core.frontend.Configurable import Configurable
-from ..core.backend.Exceptions import TCPError
+from ..frontend.Configurable import Configurable
+from .Exceptions import TCPError
 
 import numpy as np
 import re

@@ -1,12 +1,11 @@
 # Dynamic Field Theory Steps
 
-These steps implement core Dynamic Field Theory (DFT) components -- neural fields with lateral interactions, Hebbian learning connections, and conversions between spatial and rate-coded representations.
+Dynamic Field Theory components, learnable connections, and rate/space encoders.
 
-All DFT steps are **dynamic** (they maintain internal state evolving over time).
-
-| Step | Description |
-|------|-------------|
-| [NeuralField](neural_field.md) | Core neural field with sigmoid activation, lateral kernel, and noise |
-| [HebbianConnection](hebbian_connection.md) | Learnable synaptic connection between fields with reward gating |
-| [RateToSpaceCode](rate_to_space_code.md) | Converts a rate-coded vector to a Gaussian bump in field space |
-| [SpaceToRateCode](space_to_rate_code.md) | Extracts peak position from a field as a rate-coded vector |
+| Step | Reference |
+|------|-----------|
+| `BCMConnection` | [BCMConnection](bcm_connection.md) |
+| `HebbianConnection` | [HebbianConnection](hebbian_connection.md) |
+| `NeuralField` | [NeuralField](neural_field.md) |
+| `RateToSpaceCode` | [RateToSpaceCode](rate_to_space_code.md) |
+| `SpaceToRateCode` | [SpaceToRateCode](space_to_rate_code.md) |

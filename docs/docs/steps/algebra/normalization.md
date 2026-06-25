@@ -1,35 +1,21 @@
 # Normalization
 
-Normalizes the input array using a specified norm function. A small epsilon (1e-8) is added to avoid division by zero.
+```python
+Normalization(name: str, function: str)
+```
 
-**Type:** Static
+## Description
+Normalizes incoming step using specified norm function.
 
-**Import:** `from juniper import Normalization`
-
-## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `function` | `str` | Yes | Norm type. One of: `"InfinityNorm"`, `"L1Norm"`, `"L2Norm"` |
-
-### Supported Norms
-
-| Value | Norm |
-|-------|------|
-| `"InfinityNorm"` | Maximum absolute value |
-| `"L1Norm"` | Sum of absolute values |
-| `"L2Norm"` | Euclidean norm |
+## Parameters    
+- function : str(InfinityNorm, L1Norm, L2Norm)
 
 ## Slots
+- Input: jnp.ndarray
+- output: jnp.ndarray
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(...)` | Input array |
-| `out0` | Output | `(...)` | Normalized array |
-
-## Example
+## Import
 
 ```python
-norm = Normalization("norm", {"function": "L2Norm"})
-source >> norm
+from juniper import Normalization
 ```

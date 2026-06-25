@@ -1,31 +1,27 @@
 # CustomInput
 
-A source step whose output can be set programmatically from external code by modifying the `output` attribute. Useful for injecting data from Jupyter notebooks or custom control loops.
+```python
+CustomInput(name: str, shape: tuple)
+```
 
-**Type:** Static (Source)
-
-**Import:** `from juniper import CustomInput`
+## Description
+Custom Input, can be set from outside by modifying self.output.
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `shape` | `tuple` | Yes | Shape of the output array |
+- shape : tuple((Nx,Ny,...))
 
 ## Slots
+- out0 : jnp.array(shape)
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `out0` | Output | `shape` | Output array (set via `step.output`) |
+## Import
+
+```python
+from juniper import CustomInput
+```
 
 ## Example
 
 ```python
-import jax.numpy as jnp
-
-ci = CustomInput("ci", {"shape": (50,)})
-ci >> some_step
-
-# Later, set the output
-ci.output = jnp.ones((50,)) * 3.0
+source = CustomInput("source", shape=(2,))
+source.set_data([1.0, 2.0])
 ```

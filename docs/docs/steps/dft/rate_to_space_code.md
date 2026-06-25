@@ -1,37 +1,32 @@
 # RateToSpaceCode
 
-Converts a rate-coded vector (representing a position in metric space) into a Gaussian bump centered at the corresponding field coordinates. Useful for injecting position information into a neural field.
+```python
+RateToSpaceCode(name: str, shape: tuple[int, ...], limits: tuple[int, ...], center: tuple[int, ...]=_center, amplitude: float=_amplitude, sigma: tuple[int, ...]=_sigma, cyclic: bool=_cyclic)
+```
 
-**Type:** Static
+## Description
+Takes a vector and produces a Gaussian centered at corresponding field coordinates.
 
-**Import:** `from juniper import RateToSpaceCode`
+Note: Implement cyclic mode.
 
-## Parameters
+## Parameters-
+- shape : tuple(Nx,Ny,...)
+- limits : tuple((lx,ux), (ly,uy), ...)
+- center (optional): tuple(x,y,z)
+    - Default = tuple((ux+lx)/2, (uy+ly)/2, ...)
+- amplitude (optional) : float
+    - Default = 1.0
+- sigma (optional) : tuple(sx,sy,...)
+    - Default = (1.0,1.0,...)
+- cyclic (optional) : bool
+    - Default = False
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `shape` | `tuple` | Yes | Shape of the output field |
-| `limits` | `tuple((low, high), ...)` | Yes | Metric range per dimension |
-| `center` | `tuple` | No | Center offset. Default: midpoint of limits |
-| `amplitude` | `float` | No | Gaussian peak amplitude. Default: `1.0` |
-| `sigma` | `tuple` | No | Gaussian width per dimension. Default: `(1.0, ...)` |
-| `cyclic` | `bool` | No | Cyclic mode (not yet implemented). Default: `False` |
+## Slots--
+- in0 : jnp.ndarray(len(shape))
+- out0 : jnp.ndarray(shape)
 
-## Slots
-
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(len(shape),)` | Rate-coded position vector |
-| `out0` | Output | `shape` | Gaussian bump field |
-
-## Example
+## Import
 
 ```python
-r2s = RateToSpaceCode("r2s", {
-    "shape": (50, 50),
-    "limits": ((0, 50), (0, 50)),
-    "amplitude": 2,
-    "sigma": (3, 3),
-})
-position_vector >> r2s >> neural_field
+from juniper import RateToSpaceCode
 ```

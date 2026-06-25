@@ -1,17 +1,17 @@
 # Array Steps
 
-Array steps handle reshaping, slicing, padding, and other structural transformations of arrays. These are all static steps.
+Shape, axis, slicing, projection, and value transformations.
 
-| Step | Description |
-|------|-------------|
-| [Clamp](clamp.md) | Clamps values to a min/max range |
-| [CompressAxes](compress_axes.md) | Reduces dimensions by aggregation (sum, average, max, min) |
-| [ExpandAxes](expand_axes.md) | Adds and repeats new dimensions |
-| [Flip](flip.md) | Reverses array along specified axes |
-| [MatrixPadding](matrix_padding.md) | Pads a matrix with border elements |
-| [MatrixSlice](matrix_slice.md) | Extracts a sub-region of a matrix |
-| [Projection](projection.md) | Combined expand/compress and reorder operation |
-| [ReorderAxes](reorder_axes.md) | Permutes array dimensions |
-| [Resize](resize.md) | Resizes to a new shape with interpolation |
-| [ScalarsToVector](scalars_to_vector.md) | Combines N scalar inputs into a vector |
-| [VectorToScalars](vector_to_scalars.md) | Splits a vector into N scalar outputs |
+| Step | Reference |
+|------|-----------|
+| `Clamp` | [Clamp](clamp.md) |
+| `CompressAxes` | [CompressAxes](compress_axes.md) |
+| `ExpandAxes` | [ExpandAxes](expand_axes.md) |
+| `Flip` | [Flip](flip.md) |
+| `MatrixPadding` | [MatrixPadding](matrix_padding.md) |
+| `MatrixSlice` | [MatrixSlice](matrix_slice.md) |
+| `Projection` | [Projection](projection.md) |
+| `ReorderAxes` | [ReorderAxes](reorder_axes.md) |
+| `Resize` | [Resize](resize.md) |
+| `ScalarsToVector` | [ScalarsToVector](scalars_to_vector.md) |
+| `VectorToScalars` | [VectorToScalars](vector_to_scalars.md) |

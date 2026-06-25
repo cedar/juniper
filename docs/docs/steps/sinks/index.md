@@ -1,7 +1,8 @@
 # Sink Steps
 
-Sink steps send output data to external consumers (e.g., over the network).
+Runtime outputs and debugging sinks.
 
-| Step | Description |
-|------|-------------|
-| [TCPWriter](tcp_writer.md) | Sends matrix data over TCP |
+| Step | Reference |
+|------|-----------|
+| `StaticDebug` | [StaticDebug](static_debug.md) |
+| `TCPWriter` | [TCPWriter](tcp_writer.md) |

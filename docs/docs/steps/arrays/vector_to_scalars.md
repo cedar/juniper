@@ -1,30 +1,24 @@
 # VectorToScalars
 
-Splits a 1D input vector of length N into N separate scalar outputs. Each scalar is written to a separate output slot (`out0`, `out1`, ..., `out{N-1}`).
+```python
+VectorToScalars(name: str, N_scalars: int)
+```
 
-**Type:** Static
-
-**Import:** `from juniper import VectorToScalars`
+## Description
+Turns a 1d-Array (Vector) into a set of individual scalars.
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `N_scalars` | `int` | Yes | Number of scalars (must match input vector length) |
+- N_scalars: int 
+    - Number of scalars (length of input Vector)
 
 ## Slots
+- in0: jnp.ndarray(N_scalars)
+    - 1d-Array of length N_scalars
+- [out0, out1, ..., out{N_scalars-1}]: jnp.ndarray((1,))
+    - separate outputs indexed by 'out{i}'
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(N_scalars,)` | Input vector |
-| `out0` ... `out{N-1}` | Output | scalar | N separate scalar output slots |
-
-## Example
+## Import
 
 ```python
-v2s = VectorToScalars("v2s", {"N_scalars": 3})
-vec_source >> v2s
-v2s.o0 >> x_consumer  # first element
-v2s.o1 >> y_consumer  # second element
-v2s.o2 >> z_consumer  # third element
+from juniper import VectorToScalars
 ```

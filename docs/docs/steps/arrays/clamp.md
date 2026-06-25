@@ -1,27 +1,23 @@
 # Clamp
 
-Clamps all values in the input array to lie within a specified range `[min, max]`.
+```python
+Clamp(name: str, limits: tuple)
+```
 
-**Type:** Static
+## Description
+Clamps the values in an array into the range specified by min and max limits.
 
-**Import:** `from juniper import Clamp`
+Note: Add ability to replace clipped elements with custom values.
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `limits` | `tuple(min, max)` | Yes | Lower and upper bounds for clamping |
+- limits: tuple(min,max)
 
 ## Slots
+- in0 : jnp.array()
+- out0 : jnp.array()
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(...)` | Input array |
-| `out0` | Output | `(...)` | Clamped array |
-
-## Example
+## Import
 
 ```python
-clamp = Clamp("clamp", {"limits": (0.0, 1.0)})
-source >> clamp  # All values outside [0, 1] are clipped
+from juniper import Clamp
 ```

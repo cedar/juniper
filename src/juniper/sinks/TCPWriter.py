@@ -4,7 +4,7 @@ import logging
 from logging.handlers import QueueListener
 
 from ..core.frontend.Sink import Sink
-from ..util.TCPWorker import TCPWorker
+from ..core.backend.TCPWorker import TCPWorker
 from ..util import util
 from ..core.backend.Exceptions import TCPError
 from ..sources.TCPReader import ForwardingHandler

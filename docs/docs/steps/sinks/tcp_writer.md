@@ -1,37 +1,41 @@
 # TCPWriter
 
-Sends matrix data to a TCP server. Launches a background thread that serializes the input matrix in CEDAR's binary format and transmits it over the network. Useful for sending data to external processes or CEDAR instances.
+```python
+TCPWriter(name: str, ip: str, port: int, shape: tuple, dtype=_dtype, timeout: float=_timeout, buffer_size: int=_buffer_size, time_step: float=_time_step, connect_retry_delay=_connect_retry_delay, max_missed_heartbeats: int=_max_missed_heartbeats, send_on_change_only: bool=_send_on_change_only)
+```
 
-**Type:** Dynamic
+## Description
+Launches a TCP write communication thread.
 
-**Import:** `from juniper.sinks.TCPWriter import TCPWriter`
+## Parameters-
+- ip :
+- port : 
+- shape (optional) : (Nx,Ny,...)
+    - Default = (0,)
+- timeout [s] (optional) : float
+    - Time until connection times out
+    - Default = 1.0
+- buffer_size [byte] (optional) : int
+    - size of send packets
+    - Default = 32768
+- time_step [s] (optional) : float
+    - wait time between send calls
+    - Default = 1.0
 
-**Status:** Deprecated (blocking get/set calls)
+## Slots-
+- in0 : jnp.ndarray
+- out0 : jnp.ndarray
+    - this output is mostly for debugging. May be removed in the future.
 
-## Parameters
+## Import
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `ip` | `str` | Yes | IP address of the target server |
-| `port` | `int` | Yes | Port of the target server |
-| `shape` | `tuple` | No | Output buffer shape (mainly for debugging). Default: `(0,)` |
-| `timeout` | `float` | No | Connection timeout in seconds. Default: `1.0` |
-| `buffer_size` | `int` | No | TCP buffer size in bytes. Default: `32768` |
-| `time_step` | `float` | No | Seconds between send attempts. Default: `1.0` |
-
-## Slots
-
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(...)` | Matrix data to send |
-| `out0` | Output | `shape` | Debug output (may be removed in the future) |
+```python
+from juniper import TCPWriter
+```
 
 ## Example
 
 ```python
-writer = TCPWriter("writer", {
-    "ip": "127.0.0.1",
-    "port": 5556,
-})
+writer = TCPWriter("writer", ip="127.0.0.1", port=5001, shape=(32,))
 field >> writer
 ```

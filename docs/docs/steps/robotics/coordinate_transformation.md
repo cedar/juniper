@@ -1,38 +1,24 @@
 # CoordinateTransformation
 
-Applies a rigid coordinate transformation to a set of 3D vectors, converting them from a source frame to a target frame. Uses a `FrameGraph` to look up the transformation chain. Optionally takes joint angles as a second input to support articulated transforms.
+```python
+CoordinateTransformation(name: str, FrameGraph, source_frame: str, target_frame: str)
+```
 
-**Type:** Static
-
-**Import:** `from juniper.robotics.steps.CoordinateTransformation import CoordinateTransformation`
+## Description
+Rigid coordinate transformation of incoming set of 3D vectors.
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `FrameGraph` | `FrameGraph` | Yes | Frame graph object defining coordinate frames and transforms |
-| `source_frame` | `str` | Yes | Name of the source coordinate frame |
-| `target_frame` | `str` | Yes | Name of the target coordinate frame |
+- FrameGraph : FrameGraph
+- source_frame : str
+- target_frame : str
 
 ## Slots
+- in0 : jnp.array((N,3))
+- in1 : jnp.array((3,))
+- out0 : jnp.array((N,3))
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(N, 3)` | Set of 3D vectors in the source frame |
-| `in1` | Input | `(3,)` | Joint angles (for articulated transforms) |
-| `out0` | Output | `(N, 3)` | Transformed vectors in the target frame |
-
-## Example
+## Import
 
 ```python
-from juniper.robotics.configurables.FrameGraph import FrameGraph
-
-fg = FrameGraph(...)  # Define your frame graph
-ct = CoordinateTransformation("ct", {
-    "FrameGraph": fg,
-    "source_frame": "camera",
-    "target_frame": "world",
-})
-vectors >> ct
-joint_angles >> "ct.in1"
+from juniper.robotics import CoordinateTransformation
 ```

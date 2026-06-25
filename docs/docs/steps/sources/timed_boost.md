@@ -1,30 +1,21 @@
 # TimedBoost
 
-Outputs a scalar boost of a given amplitude during a specified time window. Outside the window, the output is zero. Useful for providing timed stimulation to neural fields.
+```python
+TimedBoost(name: str, amplitude: float, duration: tuple)
+```
 
-**Type:** Dynamic (Source)
+## Description
+Applies a homogenous boost to connected steps. Start and end of the boost can be specified.
 
-**Import:** `from juniper import TimedBoost`
+## Parameters-
+- amplitude : float
+- duration [ms] : [start,stop]
 
-## Parameters
+## Slots-
+- out0 : jnp.ndarray((1,))
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `amplitude` | `float` | Yes | Boost value during the active window |
-| `duration` | `list[start, stop]` | Yes | Time window in ms `[start, stop]`. Must have `start < stop`. |
-
-## Slots
-
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `out0` | Output | `(1,)` | Scalar boost (amplitude during window, 0 otherwise) |
-
-## Example
+## Import
 
 ```python
-boost = TimedBoost("boost", {
-    "amplitude": 5.0,
-    "duration": [100, 300],  # Active from 100ms to 300ms
-})
-boost >> field
+from juniper import TimedBoost
 ```

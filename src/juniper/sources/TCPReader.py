@@ -4,7 +4,7 @@ from multiprocessing import Process, shared_memory, Queue
 from logging.handlers import QueueListener
 
 from ..core.frontend.Source import Source
-from ..util.TCPWorker import TCPWorker
+from ..core.backend.TCPWorker import TCPWorker
 from ..util import util
 
 

@@ -1,37 +1,38 @@
 # TCPReader
 
-Receives matrix data from a TCP connection. Launches a background thread that listens for incoming data in CEDAR's binary matrix format. Useful for receiving data from external processes or CEDAR instances.
+```python
+TCPReader(name: str, ip: str, port: int, shape: tuple, dtype=_dtype, timeout: float=_timeout, buffer_size: int=_buffer_size, time_step: float=_time_step, connect_retry_delay=_connect_retry_delay, max_missed_heartbeats: int=_max_missed_heartbeats, send_on_change_only: bool=_send_on_change_only)
+```
 
-**Type:** Dynamic (Source)
+## Description
+Launches a TCP read communication thread.
 
-**Import:** `from juniper.sources.TCPReader import TCPReader`
+## Parameters-
+- ip :
+- port : 
+- shape (optional) : (Nx,Ny,...)
+- Default = (0,)
+- timeout [s] (optional) : float
+    - Time until connection times out
+    - Default = 1.0
+- buffer_size [byte] (optional) : int
+    - size of send packets
+    - Default = 32768
+- time_step [s] (optional) : float
+    - wait time between send calls
+    - Default = 1.0
 
-**Status:** Deprecated (blocking get/set calls)
+## Slots-
+- out0 : jnp.ndarray
 
-## Parameters
+## Import
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `ip` | `str` | Yes | IP address to bind to |
-| `port` | `int` | Yes | Port to listen on |
-| `shape` | `tuple` | Yes | Expected shape of incoming data |
-| `timeout` | `float` | No | Connection timeout in seconds. Default: `1.0` |
-| `buffer_size` | `int` | No | TCP buffer size in bytes. Default: `32768` |
-| `time_step` | `float` | No | Seconds between read attempts. Default: `1.0` |
-
-## Slots
-
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `out0` | Output | `shape` | Last received matrix |
+```python
+from juniper import TCPReader
+```
 
 ## Example
 
 ```python
-reader = TCPReader("reader", {
-    "ip": "127.0.0.1",
-    "port": 5555,
-    "shape": (50, 50),
-})
-reader >> field
+reader = TCPReader("camera", ip="127.0.0.1", port=5000, shape=(480, 640, 3))
 ```

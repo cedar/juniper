@@ -81,10 +81,17 @@ extra:
 
 nav:
   - Home: index.md
+  - Changelog: changelog.md
   - Getting Started:
       - Installation: guide/installation.md
       - Building Architectures: guide/architecture.md
+      - Circuit Subclasses: guide/circuit-subclasses.md
       - Command-Line Reference: guide/cli.md
+  - API Reference:
+      - Overview: api/index.md
+      - Frontend: api/frontend.md
+      - Backend: api/backend.md
+      - Errors And Warnings: api/errors.md
   - Steps:
       - Overview: steps/index.md
       - Algebra:
@@ -111,36 +118,45 @@ nav:
           - VectorToScalars: steps/arrays/vector_to_scalars.md
       - Dynamic Field Theory:
           - Overview: steps/dft/index.md
-          - NeuralField: steps/dft/neural_field.md
+          - BCMConnection: steps/dft/bcm_connection.md
           - HebbianConnection: steps/dft/hebbian_connection.md
+          - NeuralField: steps/dft/neural_field.md
           - RateToSpaceCode: steps/dft/rate_to_space_code.md
           - SpaceToRateCode: steps/dft/space_to_rate_code.md
       - Image Processing:
           - Overview: steps/image_processing/index.md
           - ColorConversion: steps/image_processing/color_conversion.md
+          - ColorFMap: steps/image_processing/color_f_map.md
           - DNN: steps/image_processing/dnn.md
+          - RGB2HSV: steps/image_processing/rgb2hsv.md
+          - RemoveBlackWhiteGreys: steps/image_processing/remove_black_white_greys.md
+          - ShuffleImage: steps/image_processing/shuffle_image.md
+          - ViewportCamera: steps/image_processing/viewport_camera.md
       - Robotics:
           - Overview: steps/robotics/index.md
           - CoordinateTransformation: steps/robotics/coordinate_transformation.md
-          - FieldToVectors: steps/robotics/field_to_vectors.md
-          - PinHoleBackProjector: steps/robotics/pinhole_back_projector.md
-          - RangeImageToVectors: steps/robotics/range_image_to_vectors.md
-          - VectorsToField: steps/robotics/vectors_to_field.md
-          - VectorsToRangeImage: steps/robotics/vectors_to_range_image.md
+          - FieldToPointCloud: steps/robotics/field_to_point_cloud.md
+          - PinHoleBackProjector: steps/robotics/pin_hole_back_projector.md
+          - PinHoleProjector: steps/robotics/pin_hole_projector.md
+          - PointCloudToField: steps/robotics/point_cloud_to_field.md
+          - PointCloudToRangeImage: steps/robotics/point_cloud_to_range_image.md
+          - RangeImageToPointCloud: steps/robotics/range_image_to_point_cloud.md
       - Sources:
           - Overview: steps/sources/index.md
           - CustomInput: steps/sources/custom_input.md
           - DemoInput: steps/sources/demo_input.md
           - GaussInput: steps/sources/gauss_input.md
-          - HSV_input: steps/sources/hsv_input.md
           - ImageLoader: steps/sources/image_loader.md
           - TCPReader: steps/sources/tcp_reader.md
           - TimedBoost: steps/sources/timed_boost.md
       - Sinks:
           - Overview: steps/sinks/index.md
+          - StaticDebug: steps/sinks/static_debug.md
           - TCPWriter: steps/sinks/tcp_writer.md
   - Configurables:
       - Overview: configurables/index.md
       - Gaussian: configurables/gaussian.md
       - LateralKernel: configurables/lateral_kernel.md
       - Sigmoid: configurables/sigmoid.md
+      - FrameGraph: configurables/frame_graph.md
+      - Transform: configurables/transform.md
