@@ -1,9 +1,9 @@
-name: CI/CD pipeline for Juniper
-run-name: Here comes some run-specific info about the run
+name: CI pipeline for Juniper
+run-name: $CI-{{github.run_number}}-${{github.actor}}: CI test for ${{github.repository}} triggered by ${{github.event_name}} event
 on: [push]
 
 jobs:
-  test:
+  test_juniper:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -28,4 +28,4 @@ jobs:
         run: |
           pip install ruff
           ruff clean
-          ruff check --output-format=github --target-version=py39
+          ruff check --output-format=github .
