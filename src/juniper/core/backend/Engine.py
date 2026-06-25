@@ -135,6 +135,7 @@ class Engine:
 
         if load_buffer:
             self._load_buffers()
+            self.init_state = self.state.copy()
         self._open_connections()
 
         try:
@@ -240,7 +241,7 @@ class Engine:
     def _load_buffers(self) -> dict[str, dict[str, Any]]:
         """Load permanent buffers into the already allocated runtime state."""
         if not self.circuit.is_compiled:
-            raise RuntimeError("Engine::load_buffers(): Engine must be compiled before loading buffers")
+            raise EngineError("Engine::load_buffers(): Engine must be compiled before loading buffers")
         return load_permanent_buffers(self.compile_info, self.state)
     
     def _save_buffers(self) -> None:

@@ -408,7 +408,7 @@ class TestJuniper:
             clean_arch(self.arch)
 
             build_bcm_buffer_circuit()
-            self.arch.compile(warmup=0, print_compile_info=False, load_buffer=True)
+            self.arch.compile(warmup=1, print_compile_info=False, load_buffer=True)
 
             bcm_ref = self.arch.engine.compile_info.ref_at(("bcm",))
             bcm_state = self.arch.engine.state.get(bcm_ref)

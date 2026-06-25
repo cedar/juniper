@@ -2,6 +2,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 import warnings
+import os
 
 from .DataClasses import ElementRef
 from .DataClasses import CompileInfo
@@ -10,6 +11,7 @@ from .DataClasses import StateTree
 
 from .Exceptions import LoadBufferError
 from .Exceptions import SaveBufferError
+from .Warnings import LoadBufferWarning
 
 import json
 import jax.numpy as jnp
@@ -142,8 +144,12 @@ def _init_step_state(element: Element) -> StateTree:
 def load_permanent_buffers(compile_info: CompileInfo, runtime_state: RuntimeState) -> dict[str, dict[str, Any]]:
     """Load permanent buffers from the circuit's data file into runtime state."""
     data_file = util_jax.cfg["arch_file_path"] + compile_info.circuit.get_local_circuit_id() + ".data"
-    with open(data_file, "r") as f:
-        tree = json.load(f)
+    if os.path.isfile(data_file):
+        with open(data_file, "r") as f:
+            tree = json.load(f)
+    else:
+        warnings.warn("Could not find data file to load permanent buffer.", LoadBufferWarning)
+        return {}
 
     loaded_buffer = {}
     for path_str, step_tree in tree.items():
