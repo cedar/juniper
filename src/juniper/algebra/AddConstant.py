@@ -2,7 +2,6 @@ import logging
 from ..core.frontend.Step import Step
 from ..util import util
 
-
  
 logger = logging.getLogger(__name__)
 # construction of compute kernel
@@ -11,6 +10,8 @@ def compute_kernel_factory(params):
         input = input_mats[util.DEFAULT_INPUT_SLOT]
         output = input + params["constant"]
         return {util.DEFAULT_OUTPUT_SLOT: output}
+    
+    some_ruff_trigger = 0
     return compute_kernel
 
 
