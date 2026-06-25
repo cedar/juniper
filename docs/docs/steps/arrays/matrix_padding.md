@@ -1,37 +1,32 @@
 # MatrixPadding
 
-Pads a matrix with border elements in each dimension. Padding size and mode are configurable.
+```python
+MatrixPadding(name: str, border_size, mode: str=_mode)
+```
 
-**Type:** Static
+## Description
+Padds a Matrix by a number of elements in each dimension.
 
-**Import:** `from juniper import MatrixPadding`
+Note: Add ability to pad to specified size.
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `border_size` | `int`, `tuple`, or nested `tuple` | Yes | Padding specification (see below) |
-| `mode` | `str` | No | Padding mode as supported by `jax.numpy.pad`. Default: `"constant"` |
-
-### Border Size Formats
-
-- **`int`** -- Pad all dimensions equally on both sides.
-- **`(before, after)`** -- Pad all dimensions with `before` elements before and `after` after.
-- **`((b1, a1), (b2, a2), ...)`** -- Per-dimension before/after padding.
-
-See `jax.numpy.pad` documentation for details.
+- border_size : [int | Array | jnp.ndarray])
+    - Size of border for each dimension.
+    - int or (int,): pad each array dimension with the same number of values both before and after.
+    - (before, after): pad each array with before elements before, and after elements after.
+    - ((before_1, after_1), (before_2, after_2), ... (before_N, after_N)): specify distinct before and after values for each array dimension.
+    - See jax.numpy.pad documentation for reference
+- mode (optional) : str
+    - Specifies by what mode the padded values are chosen.
+    - See available modes in jax.numpy.pad documentation.
+    - Default = "constant"
 
 ## Slots
+- Input: jnp.ndarray 
+- output: jnp.ndarray
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(...)` | Input array |
-| `out0` | Output | `(...)` | Padded array |
-
-## Example
+## Import
 
 ```python
-pad = MatrixPadding("pad", {"border_size": 5})
-# Pads 5 elements of zeros on each side of every dimension
-source >> pad
+from juniper import MatrixPadding
 ```

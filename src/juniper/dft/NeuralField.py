@@ -1,14 +1,23 @@
-from ..configurables.Step import Step
+from __future__ import annotations
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..math.LateralKernel import LateralKernel
+
+from ..core.frontend.Step import Step
+from ..core.backend.Exceptions import ShapeInferenceError
 from ..util import util
 from ..util import util_jax
 import jax.numpy as jnp
+import numpy as np
 import jax
-from functools import partial
-from ..configurables.Sigmoid import Sigmoid
+from ..math.Sigmoid import Sigmoid
+
+import logging
+logger = logging.getLogger(__name__)
 
 # This singleton construct is needed as we need to specify the static_argnames in the compiler directive depending on the user input
 # euler step computation
-@partial(jax.jit, static_argnames=["passedTime",  "resting_level", "global_inhibition", "beta", "theta", "tau", "input_noise_gain", "sigmoid", "convolve"])
 def eulerStep(passedTime, input_mat, u_activation, prng_key, resting_level, global_inhibition, beta, theta, tau, input_noise_gain, sigmoid, convolve):
     sigmoided_u = sigmoid(u_activation, beta, theta) # Could be optimized, we don't need this sigmoid computation if we pass the value of the output buffer to this function (which effectively is the sigmoided_u)
     lateral_interaction = convolve(sigmoided_u)
@@ -17,7 +26,7 @@ def eulerStep(passedTime, input_mat, u_activation, prng_key, resting_level, glob
 
     d_u = -u_activation + resting_level + lateral_interaction + global_inhibition * sum_sigmoided_u + input_mat
 
-    input_noise = jax.random.normal(prng_key, input_mat.shape)
+    input_noise = jax.random.normal(prng_key, jnp.asarray(input_mat).shape)
     u_activation += (passedTime / tau) * d_u + ((jnp.sqrt(passedTime*1000) / tau/1000)) * input_noise_gain * input_noise
 
     sigmoided_u = sigmoid(u_activation, beta, theta)
@@ -41,13 +50,13 @@ class NeuralField(Step):
     Parameters
     ---------    
     - shape : tuple(Nx,Ny,...)
-    - sigmoid : str(AbsSigmoid, HeavySideSigmoid, ExpSigmoid, LinearSigmoid, SemiLinearSigmoid, LogarithmicSigmoid)
-    - beta : float
-    - theta : float
-    - resting_level : float
-    - global_inhibition : float
-    - input_noise_gain : float
-    - tau [ms] : float
+    - sigmoid (optional) : str(AbsSigmoid, HeavySideSigmoid, ExpSigmoid, LinearSigmoid, SemiLinearSigmoid, LogarithmicSigmoid)
+    - beta (optional) : float
+    - theta (optional) : float
+    - resting_level (optional) : float
+    - global_inhibition (optional) : float
+    - input_noise_gain (optional) : float
+    - tau (optional) [ms] : float
     - LateralKernel (optional) : LateralKernel or Gaussian
 
     Step Input/Output slots
@@ -55,39 +64,55 @@ class NeuralField(Step):
     - Input: jnp.ndarray(shape)
     - output: jnp.ndarray(shape)
     """
-    def __init__(self, name : str, params : dict):
-        mandatory_params = ["shape", "sigmoid", "beta", "theta", "resting_level", "global_inhibition", "input_noise_gain", "tau"]
+    # Default params
+    _sigmoid = "AbsSigmoid"
+    _beta = 100
+    _theta = 0
+    _resting_level = -5
+    _global_inhibition = 0
+    _input_noise_gain = 0
+    _tau = util_jax.get_config()["delta_t"] * 10
+    _lateral_kernel = None
+    def __init__(self, 
+                 name : str, 
+                 shape : tuple[int, ...], 
+                 sigmoid : str = _sigmoid,
+                 beta : int = _beta,
+                 theta : float = _theta,
+                 resting_level : float = _resting_level,
+                 global_inhibition : float = _global_inhibition,
+                 input_noise_gain : float = 0,
+                 tau : float = _tau,
+                 lateral_kernel : LateralKernel | None = _lateral_kernel
+                 ):
+        params = locals().copy()
+        mandatory_params = ["shape"]
         super().__init__(name, params, mandatory_params, is_dynamic=True)
+
         self.needs_input_connections = False
-        self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = jnp.inf
-        self._delta_t = util_jax.get_config()["delta_t"]
+        self.set_max_incoming_connections(util.DEFAULT_INPUT_SLOT, np.inf)
+        delta_t = util_jax.get_config()["delta_t"]
 
-        if "LateralKernel" not in self._params:
-            self._lateral_kernel_convolve = lambda x: x*0
+        if lateral_kernel is None:
+            def lateral_kernel_convolve(x):
+                return x*0
         else:
-            self._lateral_kernel_convolve = self._params["LateralKernel"].gen_convolve_func()
+            lateral_kernel_convolve = lateral_kernel.gen_convolve_func()
 
-        self.sigmoid = Sigmoid({"sigmoid":self._params["sigmoid"]}).sigmoid
+        sigmoid = Sigmoid({"sigmoid":sigmoid}).sigmoid
 
-        self.compute_kernel = compute_kernel_factory(self._delta_t, self._params["resting_level"], self._params["global_inhibition"], 
-                                                       self._params["beta"], self._params["theta"], self._params["tau"], self._params["input_noise_gain"], 
-                                                       self.sigmoid, self._lateral_kernel_convolve)
-
-        self.reset()
-
-    # required kwargs are: delta_t, prng_key
-    def compute(self, input_mats, buffer, **kwargs):
-        if "prng_key" not in kwargs:
-            raise Exception("prng_key is a mandatory kwarg to dynamic compute()")
-        #input_mat = input_mats[util.DEFAULT_INPUT_SLOT]
+        self.compute_kernel = compute_kernel_factory(delta_t, resting_level, global_inhibition, beta, theta, tau, input_noise_gain, 
+                                                       sigmoid, lateral_kernel_convolve)
         
-        # Return output
-        return self.compute_kernel(input_mats, buffer, **kwargs)
-    
-    def reset(self): # Override
-        self.buffer["activation"] = util_jax.ones(self._params["shape"]) * self._params["resting_level"]
-        self.reset_buffer(util.DEFAULT_OUTPUT_SLOT)
-        reset_state = {}
-        reset_state["activation"] = self.buffer["activation"]#jax.device_put(self.buffer["activation"], device=jax.devices("gpu")[0])  
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]#jax.device_put(self.buffer[util.DEFAULT_OUTPUT_SLOT], device=jax.devices("gpu")[0])
-        return reset_state
+        self.register_buffer("activation", self._params["shape"])
+
+    def infer_output_shapes(self, input_specs):
+        shape = tuple(self._params["shape"])
+        if util.DEFAULT_INPUT_SLOT in input_specs:
+            input_shape = tuple(input_specs[util.DEFAULT_INPUT_SLOT][0])
+            if input_shape != shape and not util._is_scalar_shape(input_shape):
+                raise ShapeInferenceError(
+                    f"NeuralField {self.get_path_str()} expected input shape {shape}, "
+                    f"received {input_shape}."
+                )
+        return {util.DEFAULT_OUTPUT_SLOT: shape}

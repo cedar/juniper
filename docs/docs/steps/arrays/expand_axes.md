@@ -1,29 +1,23 @@
 # ExpandAxes
 
-Expands the input array by inserting new dimensions at specified positions and repeating values along them.
+```python
+ExpandAxes(name: str, axis: tuple, sizes: tuple)
+```
 
-**Type:** Static
-
-**Import:** `from juniper import ExpandAxes`
+## Description
+Expand incoming step along specified axis.
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `axis` | `tuple` | Yes | Positions where new dimensions are inserted |
-| `sizes` | `tuple` | Yes | Size of each new dimension (same order as `axis`) |
+- axis : tuple(ax0,ax1,...)
+- sizes : tuple(s0,s1,...)
+    - sizes per dimension
 
 ## Slots
+- in0 : jnp.array((Nx,...))
+- out0 : jnp.array((Nx,ax0,ax1,...))
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(...)` | Input array |
-| `out0` | Output | `(...)` | Expanded array with new dimensions |
-
-## Example
+## Import
 
 ```python
-expand = ExpandAxes("expand", {"axis": (1,), "sizes": (10,)})
-# Input shape (50,) -> Output shape (50, 10)
-source >> expand
+from juniper import ExpandAxes
 ```

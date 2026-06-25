@@ -1,27 +1,21 @@
 # StaticGain
 
-Multiplies every element of the input by a constant scalar factor.
+```python
+StaticGain(name: str, factor: float)
+```
 
-**Type:** Static
+## Description
+Multiplies input with constant factor.
 
-**Import:** `from juniper import StaticGain`
+## Parameters-
+- factor : float
 
-## Parameters
+## Slots-
+- in0 : jnp.ndarray 
+- out0 : jnp.ndarray
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `factor` | `float` | Yes | Scalar multiplier |
-
-## Slots
-
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(...)` | Input array |
-| `out0` | Output | `(...)` | Input * factor |
-
-## Example
+## Import
 
 ```python
-gain = StaticGain("gain", {"factor": 0.5})
-source >> gain
+from juniper import StaticGain
 ```

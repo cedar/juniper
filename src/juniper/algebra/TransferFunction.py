@@ -1,9 +1,10 @@
-import jax
-from functools import partial
-from ..configurables.Step import Step
+import logging
+from ..core.frontend.Step import Step
 from ..util import util
-from ..configurables.Sigmoid import Sigmoid
+from ..math.Sigmoid import Sigmoid
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, trans_func):
     def compute_kernel(input_mats, buffer, **kwargs):
         input = input_mats[util.DEFAULT_INPUT_SLOT]
@@ -30,9 +31,9 @@ class TransferFunction(Step):
     - in0 : jnp.ndarray 
     - out0 : jnp.ndarray 
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, threshold : float, beta : float, function : str):
+        params = locals().copy()
         mandatory_params = ["threshold", "beta", "function"]
         super().__init__(name, params, mandatory_params)
         self._trans_func = Sigmoid({"sigmoid":self._params["function"]}).sigmoid
         self.compute_kernel = compute_kernel_factory(self._params, self._trans_func)
-

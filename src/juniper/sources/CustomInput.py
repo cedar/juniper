@@ -1,11 +1,14 @@
-from ..configurables.Step import Step
+import logging
+from ..core.frontend.Source import Source
 from ..util import util
 import jax.numpy as jnp
 
-def compute_kernel_factory():
-    return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: buffer["output"], "output": buffer["output"]}
 
-class CustomInput(Step):
+logger = logging.getLogger(__name__)
+def compute_kernel_factory():
+    return lambda input_mats, buffer, **kwargs: {util.DEFAULT_OUTPUT_SLOT: buffer[util.DEFAULT_OUTPUT_SLOT]}
+
+class CustomInput(Source):
     """
     Description
     ---------
@@ -19,29 +22,20 @@ class CustomInput(Step):
     ---------
     - out0 : jnp.array(shape)
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, shape : tuple):
+        params = locals().copy()
         mandatory_params = ["shape"]
-        super().__init__(name, params, mandatory_params)
-        
-        self.is_source = True
+        super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.read_from_cpu = True
 
         self.output = jnp.zeros(self._params["shape"])
-        self.register_buffer("output")
-        self.buffer["output"] = self.output
         self.compute_kernel = compute_kernel_factory()
         
-    def compute(self, input_mats, buffer, **kwargs):
-        return self.compute_kernel(input_mats, buffer, **kwargs)
-    
-    def reset(self):
-        reset_state = {}
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer["output"]
-        reset_state["output"] = self.output
-        return reset_state
-    
     def set_data(self, data):
         self.output = data
 
     def get_data(self):
         return self.output
+
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: self._params["shape"]}

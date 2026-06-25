@@ -1,14 +1,19 @@
-from ..configurables.Step import Step
+import logging
+from ..core.frontend.Sink import Sink
 from ..util import util
-import jax.numpy as jnp
+import numpy as np
 
 
-def compute_kernel_factory():
+
+logger = logging.getLogger(__name__)
+def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
-        return {}
+        input = input_mats[util.DEFAULT_INPUT_SLOT]
+        input = input.astype(params["jdtype"])
+        return {util.DEFAULT_OUTPUT_SLOT: input}
     return compute_kernel
 
-class StaticDebug(Step):
+class StaticDebug(Sink):
     """
     Description
     ---------
@@ -21,26 +26,15 @@ class StaticDebug(Step):
     - Input: any
     - output: any
     """
-    def __init__(self, name : str, params : dict):
+    _shape = (1,)
+    def __init__(self, name : str, shape : tuple = _shape):
+        params = locals().copy()
         mandatory_params = ["shape"]
-        params["shape"] = (1,)
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.needs_input_connections = True
-        self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = jnp.inf
+        self.set_max_incoming_connections(util.DEFAULT_INPUT_SLOT, np.inf)
         
-        self.compute_kernel = compute_kernel_factory()
-
-    # required kwargs are: delta_t, prng_key
-    def compute(self, input_mats, buffer, **kwargs):
-        if "prng_key" not in kwargs:
-            raise Exception("prng_key is a mandatory kwarg to dynamic compute()")
-        #input_mat = input_mats[util.DEFAULT_INPUT_SLOT]
-        
-        # Return output
-        return {}
-    
-    def update_input(self, arch, input_slot_shape="shape"):
-        return {util.DEFAULT_INPUT_SLOT: jnp.zeros(self._params["shape"])}
+        self.compute_kernel = compute_kernel_factory(self._params)
     
     def set_data(self, data):
         pass

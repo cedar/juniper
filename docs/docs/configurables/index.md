@@ -1,11 +1,11 @@
 # Configurables
 
-Configurables are parameterizable objects used to construct kernels, sigmoids, and other components that are passed as parameters to steps. They are not steps themselves -- they don't participate in the computational graph directly, but are used to configure steps at initialization.
+Configurables are parameterizable helper objects used by steps. They do not participate in graph execution by themselves, but they provide kernels, nonlinearities, or transformation logic during step construction. Unlike most steps, configurables currently take parameter dictionaries.
 
-All configurables inherit from the `Configurable` base class, which handles parameter validation.
-
-| Configurable | Description |
-|--------------|-------------|
-| [Gaussian](gaussian.md) | N-dimensional Gaussian kernel |
-| [LateralKernel](lateral_kernel.md) | Combined lateral interaction kernel from multiple Gaussians |
-| [Sigmoid](sigmoid.md) | Wrapper for sigmoid activation functions |
+| Configurable | Reference |
+|--------------|-----------|
+| `Gaussian` | [Gaussian](gaussian.md) |
+| `LateralKernel` | [LateralKernel](lateral_kernel.md) |
+| `Sigmoid` | [Sigmoid](sigmoid.md) |
+| `FrameGraph` | [FrameGraph](frame_graph.md) |
+| `Transform` | [Transform](transform.md) |

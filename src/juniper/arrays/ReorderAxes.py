@@ -1,9 +1,10 @@
-import jax
+import logging
 import jax.numpy as jnp
-from functools import partial
-from ..configurables.Step import Step
+from ..core.frontend.Step import Step
 from ..util import util
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
         input = input_mats[util.DEFAULT_INPUT_SLOT]
@@ -27,10 +28,16 @@ class ReorderAxes(Step):
     - in0 : jnp.ndarray
     - out0 : jnp.ndarray
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, order : tuple):
+        params = locals().copy()
         mandatory_params = ["order"]
         super().__init__(name, params, mandatory_params)
         self.compute_kernel = compute_kernel_factory(self._params)
         
+    def infer_output_shapes(self, input_specs):
+        if util.DEFAULT_INPUT_SLOT not in input_specs:
+            return {}
+        shape = input_specs[util.DEFAULT_INPUT_SLOT][0]
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(shape[i] for i in self._params["order"])}
 
     

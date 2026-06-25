@@ -1,9 +1,12 @@
-from ..configurables.Step import Step
+import logging
+from ..core.frontend.Step import Step
 from ..util import util
 
 import jax.numpy as jnp
 import jax.nn as jnn
 
+
+logger = logging.getLogger(__name__)
 def hsv_to_onehot10(hue, sat, val, sat_threshold=0.3, value_threshold=0.3):
     """
     hue, sat, val: (H, W), hue in [0,1)
@@ -18,7 +21,7 @@ def hsv_to_onehot10(hue, sat, val, sat_threshold=0.3, value_threshold=0.3):
     yellow = (hue >= 0.10) & (hue < 0.18)
     green  = (hue >= 0.18) & (hue < 0.25)
     blue   = (hue >= 0.25) & (hue < 0.70)
-    purple = (hue >= 0.70) & (hue < 0.96)
+    purple = (hue >= 0.70) & (hue < 0.96)  # noqa: F841
 
     # Build labels in 0..5
     labels = jnp.full(hue.shape, 5, dtype=jnp.int32)  # default purple=5
@@ -64,21 +67,59 @@ def compute_kernel_factory(params):
 
 
 class ColorFMap(Step):
+    """
+    Description
+    ---------
+    Converts hue, saturation and value maps into a 10-channel color feature map.
+    The first six channels encode red, orange, yellow, green, blue and purple as
+    one-hot activations. Pixels below the saturation or value threshold are
+    suppressed.
 
-    def __init__(self, name, params):
+    Parameters
+    ---------
+    - bins : int
+        - Number of color bins expected by the feature map interface.
+    - saturation_threshold (optional) : float
+        - Minimum saturation required for a pixel to activate a color channel.
+        - Default = 0.2
+    - hue_range (optional) : int
+        - Hue range metadata.
+        - Default = 360
+    - value_threshold (optional) : float
+        - Minimum value required for a pixel to activate a color channel.
+        - Default = 0.2
+
+    Step Input/Output slots
+    ---------
+    - in0: jnp.array((H,W))
+        - Hue channel in [0,1].
+    - in1: jnp.array((H,W))
+        - Saturation channel in [0,1].
+    - in2: jnp.array((H,W))
+        - Value channel in [0,1].
+    - out0: jnp.array((H,W,10))
+    """
+
+    _saturation_threshold = 0.2
+    _hue_range = 360
+    _value_threshold = 0.2
+    def __init__(
+            self,
+            name : str,
+            bins : int,
+            saturation_threshold : float = _saturation_threshold,
+            hue_range : int = _hue_range,
+            value_threshold : float = _value_threshold):
+        params = locals().copy()
         mandatory_params = ["bins"] 
         super().__init__(name, params, mandatory_params)
         self.compute_kernel = compute_kernel_factory(self._params)
-        
-        if "saturation_threshold" not in self._params.keys():
-            self._params["saturation_threshold"] = 0
 
-        if "hue_range" not in self._params.keys():
-            self._params["hue_range"] = 360
+        self.register_input_slot("in1")
+        self.register_input_slot("in2")
 
-        if "value_threshold" not in self._params.keys():
-            self._params["value_threshold"] = 0
-
-        self.register_input("in1")
-        self.register_input("in2")
-
+    def infer_output_shapes(self, input_specs):
+        if util.DEFAULT_INPUT_SLOT not in input_specs:
+            return {}
+        hue_shape = input_specs[util.DEFAULT_INPUT_SLOT][0]
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(hue_shape) + (10,)}

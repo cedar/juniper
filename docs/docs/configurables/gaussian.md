@@ -1,57 +1,26 @@
 # Gaussian
 
-An N-dimensional Gaussian kernel object. Used as a kernel for neural field lateral interactions, convolution steps, and as the basis for `GaussInput` and `DemoInput` sources.
-
-By default, the Gaussian is **factorized** (stored as a list of 1D factors per dimension) for efficient separable convolution. Set `factorized=False` to materialize the full N-D kernel.
-
-**Import:** `from juniper import Gaussian`
-
-## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `sigma` | `tuple` | Yes | Standard deviation per dimension |
-| `amplitude` | `float` | Yes | Peak amplitude |
-| `normalized` | `bool` | Yes | If `True`, each 1D factor is normalized to sum to 1 |
-| `shape` | `tuple` | No | Explicit kernel shape. If omitted, estimated from `sigma` (5 * sigma). |
-| `max_shape` | `tuple` | No | Maximum allowed shape. The kernel is trimmed if it exceeds this. |
-| `center` | `tuple` | No | Center of the Gaussian. Default: center of `shape`. |
-| `factorized` | `bool` | No | Store as factorized 1D kernels for separable convolution. Default: `True` |
-
-## Usage
-
-### As a Lateral Kernel for NeuralField
-
 ```python
-from juniper import Gaussian, NeuralField
-
-nf = NeuralField("field", {
-    "shape": (50,),
-    # ...other params...
-    "LateralKernel": Gaussian({
-        "sigma": (3,),
-        "amplitude": 5,
-        "normalized": True,
-        "max_shape": (50,),
-    }),
-})
+Gaussian(params)
 ```
 
-### As a standalone kernel
+## Description
+A wrapper object for production of nd-gaussians. Can be used as a kernel for neural fields or convolutions. This class is also used by GaussianInput and other steps
+to construct their output. If the Gaussian should be of a specific shape the 'max_shape' and 'shape' parameters should be specified otherwise the shape of the Gaussian
+will be infered from the sigma parameter. Per default the Gaussian will be factorized per dimension, to be used for efficiant convolution. To materialize the full kernel,
+set the factorized parameter to False.
+
+## Parameters-
+- sigma : tuple(s1,s2,...)
+- amplitude : float
+- normalized : bool
+- shape (optional) : tuple(Nx,Ny,...)
+- max_shape (optional) : tuple(Mx,My,...)
+- factorized (optional) : bool
+    - Default = True
+
+## Import
 
 ```python
-gauss = Gaussian({
-    "sigma": (3, 3),
-    "amplitude": 1,
-    "normalized": False,
-    "factorized": False,
-})
-kernel_array = gauss.get_kernel()  # Full 2D array
+from juniper import Gaussian
 ```
-
-## Methods
-
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `get_kernel()` | `jnp.ndarray` or `list` | The kernel tensor (full array if not factorized, list of 1D arrays if factorized) |
-| `gen_convolve_func()` | `callable` | Returns a JIT-compiled convolution function using this kernel |

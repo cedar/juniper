@@ -1,10 +1,13 @@
-from ...configurables.Configurable import Configurable
+import logging
+from ...core.frontend.Configurable import Configurable
 from .Transform import Transform
 from collections import deque
 
 import jax.numpy as jnp
-from collections import defaultdict, deque
+from collections import defaultdict
 
+
+logger = logging.getLogger(__name__)
 def find_path(edges, start, goal): 
     """
     edges: {(u, v): T} meaning T maps u -> v
@@ -70,8 +73,7 @@ class FrameGraph(Configurable):
     """
     def __init__(self, params):
         mandatory_params = []
-        self._name = "Frame_Graph"
-        super().__init__(params, mandatory_params)
+        super().__init__("Frame_Graph", params, mandatory_params)
 
         if "edges" not in params:
             self.edges = {}

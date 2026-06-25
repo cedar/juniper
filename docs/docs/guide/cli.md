@@ -1,6 +1,6 @@
 # Command-Line Reference
 
-JUNIPER is run via `run.py`, which takes an architecture file and simulates it.
+JUNIPER can be run via `run.py`, which takes a Python architecture file and simulates it.
 
 ```bash
 python run.py <architecture_file> [options]
@@ -10,17 +10,18 @@ python run.py <architecture_file> [options]
 
 | Argument | Description |
 |----------|-------------|
-| `arch` | Path to the architecture file. Can be a `.py` file (implementing `get_architecture(args)`) or a JSON file (e.g., exported from CEDAR). |
+| `arch` | Path to a `.py` architecture file implementing `get_architecture(args)` or `get_architecture()`. |
 
 ## Optional Arguments
 
 | Argument | Description | Default |
 |----------|-------------|---------|
 | `--cpu` | Force JAX to use CPU instead of GPU. | GPU if available |
-| `--num_ticks N` | Number of simulation time steps. | - |
+| `--num_ticks N` | Number of simulation time steps. | 10 |
 | `--num_runs N` | Number of full simulation runs. Steps are reset between runs. Useful for benchmarking. | 1 |
+| `--warmup N` | Number of warmup ticks during compilation. | 3 |
 | `--recording name [name ...]` | Record buffers for plotting. Accepts step names (`field1`), slot names (`field1.out0`), or internal buffer names (`field1.activation`). Automatically shows a plot after simulation. | - |
-| `--save_plot` | Save the recording plot to `output/plot_<timestamp>.png` instead of displaying it. Only effective with `--recording`. | Off |
+| `--save_plot` | Save the recording plot to `output/recording_plot.png` instead of displaying it. Only effective with `--recording`. | Off |
 | `--cache_jitted_funcs` | Cache JIT-compiled functions to disk. Reduces compile time on subsequent runs of the same architecture at the cost of disk space. | Off |
 | `--static_euler_compilation` | Pre-compile each NeuralField's euler function individually with fixed parameters. Improves simulation performance at the cost of increased compilation time. Best for tuned architectures running many time steps. | Off |
 | `--arch_args val [val ...]` | Pass arguments to the architecture's `get_architecture(args)` function as a list of strings. | `[]` |

@@ -1,27 +1,22 @@
 # Flip
 
-Reverses the order of elements along specified axes.
+```python
+Flip(name: str, axis: tuple)
+```
 
-**Type:** Static
-
-**Import:** `from juniper import Flip`
+## Description
+Flips an input array along specified axes.
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `axis` | `tuple` | Yes | Axes along which to flip |
+- axis: tuple((ax0,ax1,...))
+    - List of dimensions that should be flipped.
 
 ## Slots
+- in0: jnp.array()
+- out0: jnp.array()
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(...)` | Input array |
-| `out0` | Output | `(...)` | Flipped array (same shape) |
-
-## Example
+## Import
 
 ```python
-flip = Flip("flip", {"axis": (0, 1)})
-source >> flip
+from juniper import Flip
 ```

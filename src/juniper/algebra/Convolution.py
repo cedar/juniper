@@ -1,10 +1,12 @@
-from ..configurables.Step import Step
-from ..util import util
-import jax.numpy as jnp
-import jax.scipy as jsp
-import jax
-from functools import partial
+import logging
+from ..core.backend.Exceptions import JuniperConfigurationError
 
+from ..core.frontend.Step import Step
+from ..util import util
+import jax.scipy as jsp
+
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, kernel, use_dynamic):
     if use_dynamic:
         def compute_kernel(input_mats, buffer, **kwargs):
@@ -50,20 +52,51 @@ class Convolution(Step):
     - in0 : jnp.array()
     - out0 : jnp.array()
     """
-    def __init__(self, name : str, params : dict):
+    _kernel = None
+    _mode = "same"
+    def __init__(self, name : str, kernel = _kernel, mode : str = _mode):
+        params = locals().copy()
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
-        self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = 1
-        self._kernel = 0 if "kernel" not in self._params.keys() else self._params["kernel"].get_kernel()
-        self._use_dynamic = jnp.sum(self._kernel) == 0
-        if "mode" not in self._params.keys():
-            self._params["mode"] = "same"
+        self._use_dynamic = kernel is None
+        self._kernel = 0 if self._use_dynamic else kernel.get_kernel()
 
         self._params["shape"] = (1,) # used for initial warmup to set input
 
-        self.register_input("in1")
+        if self._use_dynamic:
+            self.register_input_slot("in1")
 
         self.compute_kernel = compute_kernel_factory(self._params, self._kernel, self._use_dynamic)
+
+    def infer_output_shapes(self, input_specs):
+        if util.DEFAULT_INPUT_SLOT not in input_specs:
+            return {}
+
+        input_shape = tuple(input_specs[util.DEFAULT_INPUT_SLOT][0])
+        mode = self._params["mode"]
+        if mode == "same":
+            return {util.DEFAULT_OUTPUT_SLOT: input_shape}
+
+        kernel_shape = None
+        if self._use_dynamic:
+            if "in1" in input_specs:
+                kernel_shape = tuple(input_specs["in1"][0])
+        elif hasattr(self._kernel, "shape"):
+            kernel_shape = tuple(self._kernel.shape)
+        elif isinstance(self._kernel, (tuple, list)):
+            kernel_shape = tuple(len(axis_kernel) for axis_kernel in self._kernel)
+
+        if kernel_shape is None:
+            return {}
+
+        if mode == "full":
+            output_shape = tuple(in_size + kernel_size - 1 for in_size, kernel_size in zip(input_shape, kernel_shape))
+        elif mode == "valid":
+            output_shape = tuple(abs(in_size - kernel_size) + 1 for in_size, kernel_size in zip(input_shape, kernel_shape))
+        else:
+            raise JuniperConfigurationError(f"Unknown convolution mode '{mode}' ({self.get_path_str()})")
+
+        return {util.DEFAULT_OUTPUT_SLOT: output_shape}
 
 
     

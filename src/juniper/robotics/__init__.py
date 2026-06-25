@@ -1,25 +1,28 @@
+
 # steps
 from .steps.CoordinateTransformation import CoordinateTransformation
-from .steps.FieldToVectors import FieldToVectors
+from .steps.FieldToPointCloud import FieldToPointCloud
 from .steps.PinHoleBackProjector import PinHoleBackProjector
 from .steps.PinHoleProjector import PinHoleProjector
-from .steps.RangeImageToVectors import RangeImageToVectors
-from .steps.VectorsToField import VectorsToField
-from .steps.VectorsToRangeImage import VectorsToRangeImage
+from .steps.RangeImageToPointCloud import RangeImageToPointCloud
+from .steps.PointCloudToField import PointCloudToField
+from .steps.PointCloudToRangeImage import PointCloudToRangeImage
 
 # configurables
 from .configurables.FrameGraph import FrameGraph
 from .configurables.Transform import Transform
 
+import logging
+logger = logging.getLogger(__name__)
 
 __all__ = [
     "CoordinateTransformation",
-    "FieldToVectors",
+    "FieldToPointCloud",
     "PinHoleBackProjector",
     "PinHoleProjector",
-    "RangeImageToVectors",
-    "VectorsToField",
-    "VectorsToRangeImage",
+    "RangeImageToPointCloud",
+    "PointCloudToField",
+    "PointCloudToRangeImage",
     "FrameGraph",
     "Transform"
 ]

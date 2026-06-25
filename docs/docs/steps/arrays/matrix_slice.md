@@ -1,28 +1,25 @@
 # MatrixSlice
 
-Extracts a sub-region of the input matrix using absolute index bounds for each dimension.
+```python
+MatrixSlice(name: str, slices: tuple)
+```
 
-**Type:** Static
+## Description
+Slices Matrix according to specified slice ranges.
 
-**Import:** `from juniper import MatrixSlice`
+Note: Add ability to choose center cutout as a slice mode
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `slices` | `tuple((lower, upper), ...)` | Yes | Per-dimension slice bounds (absolute indices) |
+- slices: tuple((lower,upper), ...)
+    - For each dimension slices specifies the lower and upper indice bounds for slicing. 
+    - Absolute indice coordinates are used. So (0,10) will slice the first 10 elements (not 10 in the center).
 
 ## Slots
+- Input: jnp.ndarray 
+- output: jnp.ndarray
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(...)` | Input array |
-| `out0` | Output | `(...)` | Sliced sub-array |
-
-## Example
+## Import
 
 ```python
-sl = MatrixSlice("sl", {"slices": ((10, 40), (5, 45))})
-# From a (50,50) input, extracts rows 10-39 and columns 5-44
-source >> sl
+from juniper import MatrixSlice
 ```

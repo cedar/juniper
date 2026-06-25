@@ -1,10 +1,11 @@
-from ..configurables.Step import Step
-from functools import partial
+import logging
+from ..core.frontend.Step import Step
 from ..util import util
-from ..configurables.Gaussian import Gaussian
+from ..math.Gaussian import Gaussian
 import jax.numpy as jnp
-import jax
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, limits, gaussian, scaling_factor):
     def compute_kernel(input_mats, buffer, **kwargs):
         input_vec = jnp.asarray(input_mats[util.DEFAULT_INPUT_SLOT], dtype=jnp.float32)
@@ -15,7 +16,7 @@ def compute_kernel_factory(params, limits, gaussian, scaling_factor):
         # update gaussian centers
         gaussian._params["center"] = center
         gaussian._params["amplitude"] = params["amplitude"] * (jnp.sum(center)>0)
-        gaussian._gaussian = gaussian.gen_gauss_for_all_shapes(normalize=False, factorize=False)
+        gaussian._gaussian = gaussian._gen_gauss_for_all_shapes(normalize=False, factorize=False)
         
 
         return {util.DEFAULT_OUTPUT_SLOT: gaussian.get_kernel()}
@@ -48,22 +49,27 @@ class RateToSpaceCode(Step):
     - in0 : jnp.ndarray(len(shape))
     - out0 : jnp.ndarray(shape)
     """
-    def __init__(self, name : str, params : dict):
+    _center = None
+    _amplitude = 1.0
+    _sigma = None
+    _cyclic = False
+    def __init__(self, name : str,
+                 shape : tuple[int,...],
+                 limits : tuple[int,...],
+                 center : tuple[int,...] = _center,
+                 amplitude : float = _amplitude,
+                 sigma : tuple[int,...] = _sigma,
+                 cyclic : bool = _cyclic):
+        params = locals().copy()
         mandatory_params = ['shape', 'limits']
         super().__init__(name, params, mandatory_params)
 
-        if "center" not in self._params.keys():
+        if center is None:
             limits = self._params["limits"]
             self._params["center"] = [(limits[i][1]+limits[i][0])/2 for i in range(len(limits))]
 
-        if "amplitude" not in self._params.keys():
-            self._params["amplitude"] = 1.0
-
-        if "sigma" not in self._params.keys():
+        if sigma is None:
             self._params["sigma"] = tuple([1.0 for i in range(len(self._params["shape"]))])
-
-        if "cyclic" not in self._params.keys():
-            self._params["cyclic"] = False
 
         self._limits = jnp.asarray(self._params["limits"], dtype=jnp.float32)
         self._scaling_factor = jnp.array(self._params["shape"]) / jnp.array(self._limits[:,1] - self._limits[:,0]) 
@@ -74,14 +80,8 @@ class RateToSpaceCode(Step):
         
         self.compute_kernel = compute_kernel_factory(self._params, self._limits, self._gaussian, self._scaling_factor)
         
-        self.reset()
-        
-        
-    def reset(self):
-        self.buffer[util.DEFAULT_OUTPUT_SLOT] = jnp.zeros((len(self._params["shape"]),))
-        reset_state = {}
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        return reset_state
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["shape"])}
     
 
     

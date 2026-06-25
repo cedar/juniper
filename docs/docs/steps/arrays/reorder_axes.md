@@ -1,28 +1,21 @@
 # ReorderAxes
 
-Permutes (transposes) the axes of the input array.
+```python
+ReorderAxes(name: str, order: tuple)
+```
 
-**Type:** Static
+## Description
+Permutation of the axis of the incoming step.
 
-**Import:** `from juniper import ReorderAxes`
+## Parameters-
+- order : tuple(axi,axj,...)
 
-## Parameters
+## Slots--
+- in0 : jnp.ndarray
+- out0 : jnp.ndarray
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `order` | `tuple` | Yes | New axis order, e.g., `(1, 0)` to swap two axes |
-
-## Slots
-
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(...)` | Input array |
-| `out0` | Output | `(...)` | Transposed array |
-
-## Example
+## Import
 
 ```python
-reorder = ReorderAxes("reorder", {"order": (1, 0)})
-# Transposes a 2D matrix
-source >> reorder
+from juniper import ReorderAxes
 ```

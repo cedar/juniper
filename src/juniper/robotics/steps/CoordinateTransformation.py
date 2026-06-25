@@ -1,9 +1,9 @@
-from functools import partial
-import jax
-
-from ...configurables.Step import Step
+import logging
+from ...core.frontend.Step import Step
 from ...util import util
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params,T):
     def compute_kernel(input_mats, buffer, **kwargs):
         output = T.compute_kernel(input_mats[util.DEFAULT_INPUT_SLOT], input_mats["in1"])
@@ -29,16 +29,15 @@ class CoordinateTransformation(Step):
     - in1 : jnp.array((3,))
     - out0 : jnp.array((N,3))
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, FrameGraph, source_frame : str, target_frame : str):
+        params = locals().copy()
         mandatory_params = ["FrameGraph", "source_frame", "target_frame"]
         super().__init__(name, params, mandatory_params)
-
-        self._params = params
 
         self._frame_graph = self._params["FrameGraph"]
         self._T = self._frame_graph.lookup(source=self._params["source_frame"], target=self._params["target_frame"])
 
-        self.register_input("in1") # input slot for joint angles
+        self.register_input_slot("in1") # input slot for joint angles
 
         self.compute_kernel = compute_kernel_factory(self._params, self._T)
 

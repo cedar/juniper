@@ -1,10 +1,13 @@
-import jax
+import logging
+from ..core.backend.Exceptions import JuniperConfigurationError
+
 import jax.numpy as jnp
-from functools import partial
-from ..configurables.Step import Step
+from ..core.frontend.Step import Step
 from ..util import util
 from typing import Union, Sequence
 
+
+logger = logging.getLogger(__name__)
 def nd_norm(
     x: jnp.ndarray,
     ord: Union[int, float, str] = 2,
@@ -93,15 +96,17 @@ class Normalization(Step):
     - Input: jnp.ndarray
     - output: jnp.ndarray
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, function : str):
+        params = locals().copy()
         mandatory_params = ["function"]
         super().__init__(name, params, mandatory_params)
         try:
             self._ord = NORM_ORDER_MAP[self._params["function"]]
         except KeyError:
-            raise ValueError(
+            raise JuniperConfigurationError(
                 f"Unknown function: {self._params['function']}. "
-                f"Supported functions are: {', '.join(NORM_ORDER_MAP)}")
+                f"Supported functions are: {', '.join(NORM_ORDER_MAP)}"
+                f"({self.get_path_str()})")
 
         self.compute_kernel = compute_kernel_factory(self._params, self._ord)
     

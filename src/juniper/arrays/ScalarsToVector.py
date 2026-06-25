@@ -1,15 +1,16 @@
-import jax
+import logging
 import jax.numpy as jnp
-from functools import partial
-from ..configurables.Step import Step
+from ..core.frontend.Step import Step
 from ..util import util
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
         output = jnp.zeros((params["N_scalars"],))
         for i in range(params["N_scalars"]):
             if input_mats[f'in{i}'] is not None:
-                output = output.at[i].set(input_mats[f'in{i}'][0])
+                output = output.at[i].set(jnp.squeeze(input_mats[f'in{i}']))
         return {util.DEFAULT_OUTPUT_SLOT: output}
     return compute_kernel
 
@@ -34,12 +35,16 @@ class ScalarsToVector(Step):
         - Vector of length N_scalars
     """
 
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, N_scalars : int):
+        params = locals().copy()
         mandatory_params = ["N_scalars"]
         super().__init__(name, params, mandatory_params)
 
         for i in range(1, self._params["N_scalars"]):
-            self.register_input(f'in{i}')
+            self.register_input_slot(f'in{i}')
 
-        self.needs_input_connections == False
+        self.needs_input_connections = False
         self.compute_kernel = compute_kernel_factory(self._params)
+
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: (self._params["N_scalars"],)}

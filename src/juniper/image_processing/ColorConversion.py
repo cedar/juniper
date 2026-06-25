@@ -1,8 +1,10 @@
-from ..configurables.Step import Step
+import logging
+from ..core.frontend.Step import Step
 from ..util import util
 import jax.numpy as jnp
-import jax.debug as jgdb
 
+
+logger = logging.getLogger(__name__)
 # JAX rgb -> hsv, expects rgb in [0, 1], shape (..., 3)
 def rgb_to_hsv_jax(rgb: jnp.ndarray, channels : str, eps: float = 1e-10) -> jnp.ndarray:
     if channels == "rgb":
@@ -53,9 +55,9 @@ def compute_kernel_factory(params):
         # Convert to HSV
         hsv = rgb_to_hsv_jax(rgb, channels=params["channels"])  # shape (H, W, 3), values in [0,1]
 
-        return {util.DEFAULT_OUTPUT_SLOT: hsv[:,:,0],
-               "out1": hsv[:,:,1],
-               "out2": hsv[:,:,2]}
+        return {util.DEFAULT_OUTPUT_SLOT: hsv[:,:,0].astype(params["jdtype"]),
+               "out1": hsv[:,:,1].astype(params["jdtype"]),
+               "out2": hsv[:,:,2].astype(params["jdtype"])}
     return compute_kernel
 
 
@@ -75,13 +77,25 @@ class ColorConversion(Step):
     - out1 : jnp.array((H,W))
     - out2 : jnp.array((H,W))
     """
-    def __init__(self, name : str, params : dict):
+    _channels = "rgb"
+    def __init__(self, name : str, channels : str = _channels):
+        params = locals().copy()
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
-
-        if "channels" not in self._params.keys():
-            self._params["channels"] = "rgb"
         
-        self.register_output("out1")
-        self.register_output("out2")
+        self.register_output_slot("out1")
+        self.register_output_slot("out2")
         self.compute_kernel = compute_kernel_factory(self._params)
+
+    def infer_output_shapes(self, input_specs):
+        if util.DEFAULT_INPUT_SLOT not in input_specs:
+            return {}
+        input_shape = tuple(input_specs[util.DEFAULT_INPUT_SLOT][0])
+        if len(input_shape) == 0:
+            return {}
+        output_shape = input_shape[:-1]
+        return {
+            util.DEFAULT_OUTPUT_SLOT: output_shape,
+            "out1": output_shape,
+            "out2": output_shape,
+        }

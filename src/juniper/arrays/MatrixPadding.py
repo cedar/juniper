@@ -1,9 +1,10 @@
-import jax
+import logging
 import jax.numpy as jnp
-from functools import partial
-from ..configurables.Step import Step
+from ..core.frontend.Step import Step
 from ..util import util
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
         input = input_mats[util.DEFAULT_INPUT_SLOT]
@@ -39,11 +40,23 @@ class MatrixPadding(Step):
     - output: jnp.ndarray 
     """
 
-    def __init__(self, name : str, params : dict):
+    _mode = "constant"
+    def __init__(self, name : str, border_size, mode : str = _mode):
+        params = locals().copy()
         mandatory_params = ["border_size"]
         super().__init__(name, params, mandatory_params)
 
-        if "mode" not in self._params:
-            self._params["mode"] = "constant"
-
         self.compute_kernel = compute_kernel_factory(self._params)
+
+    def infer_output_shapes(self, input_specs):
+        if util.DEFAULT_INPUT_SLOT not in input_specs:
+            return {}
+        shape = tuple(input_specs[util.DEFAULT_INPUT_SLOT][0])
+        border = self._params["border_size"]
+        if isinstance(border, int):
+            pads = [(border, border)] * len(shape)
+        elif len(border) == 2 and all(isinstance(x, int) for x in border):
+            pads = [tuple(border)] * len(shape)
+        else:
+            pads = [tuple(pair) for pair in border]
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(size + before + after for size, (before, after) in zip(shape, pads))}

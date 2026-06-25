@@ -1,71 +1,42 @@
 # HebbianConnection
 
-Implements learnable synaptic connections between a source and target field. Supports instar and outstar Hebbian learning rules, optional bidirectional output, and reward gating with configurable timing.
+```python
+HebbianConnection(name: str, source_shape: tuple[int, ...], target_shape: tuple[int, ...], tau: float=_tau, tau_decay: float=_tau_decay, learning_rate: float=_learning_rate, learning_rule: float=_learning_rule, bidirectional: bool=_bidirectional, reward_type: str=_reward_type, reward_duration: tuple[int, int]=_reward_duration, wheight_reset_slot: bool=_wheight_reset_slot)
+```
 
-The weight matrix evolves over time using the selected learning rule, modulated by a reward signal.
-
-**Type:** Dynamic
-
-**Import:** `from juniper import HebbianConnection`
+## Description
+Implements synaptic connections between the source and target field. Synaptic plasticity 
+is implemented using either the instar or outstar hebbian learning rules, that may be gated 
+by a reward signal. Length and delay of the reward signal can be customized. 
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `shape` | `tuple` | Yes | Shape of the source field |
-| `target_shape` | `tuple` | Yes | Shape of the target field |
-| `tau` | `float` | No | Buildup time constant. Default: `0.01` |
-| `tau_decay` | `float` | No | Decay time constant. Default: `0.1` |
-| `learning_rate` | `float` | No | Learning rate. Default: `0.1` |
-| `learning_rule` | `str` | No | `"instar"` or `"outstar"`. Default: `"instar"` |
-| `bidirectional` | `bool` | No | Enable reverse output. Default: `True` |
-| `reward_type` | `str` | No | Reward gating mode (see below). Default: `"no_reward"` |
-| `reward_duration` | `list[start, stop]` | No | Reward timing window. Default: `[0, 1]` |
-
-### Reward Types
-
-| Value | Description |
-|-------|-------------|
-| `"no_reward"` | Learning is always active |
-| `"reward_gated"` | Learning only when reward signal > 0.9 |
-| `"reward_interval"` | Learning during a timed window after reward onset |
+- source_shape : tuple((Nx,Ny,...))
+- target_shape : tuple((Nx,...))
+- tau (optional) : float
+    - Default = 0.01
+- tau_decay (optional) : float
+    - Default = 0.1
+- learning_rate (optional) : float
+    - Default = 0.1
+- learning_rule (optional) : str("instar", "outstar")
+    - Default = instar
+- bidirectional (optional) : bool
+    - Default = True
+- reward_type (optional) : str("no_reward", "reward_gated", "reward_interval")
+    - Default = no_reward
+- reward_duration (optional) : list[start,stop]
+    - Default = [0,1]
 
 ## Slots
+- in0: jnp.array(source_shape)
+- in1: jnp.array(target_shape)
+- in2: jnp.array((1,))
+- in3 (optional): jnp.array((1,))
+- out0: jnp.array(target_shape)
+- out1: jnp.array(source_shape)
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `shape` | Source field activation |
-| `in1` | Input | `target_shape` | Target field activation |
-| `in2` | Input | `(1,)` | Reward signal |
-| `out0` | Output | `target_shape` | Forward output (weight * source) |
-| `out1` | Output | `shape` | Reverse output (bidirectional, weight * target) |
-
-### Internal Buffers
-
-| Buffer | Shape | Description |
-|--------|-------|-------------|
-| `wheights` | `shape + target_shape` | Weight matrix (saved across runs) |
-| `reward_timer` | `(1,)` | Internal reward timing state |
-| `reward_onset` | `(1,)` | Internal reward onset flag |
-
-## Example
+## Import
 
 ```python
-hebb = HebbianConnection("hebb", {
-    "shape": (50,),
-    "target_shape": (50,),
-    "learning_rule": "instar",
-    "reward_type": "no_reward",
-    "tau": 0.01,
-    "tau_decay": 0.1,
-    "learning_rate": 0.1,
-    "bidirectional": True,
-    "reward_duration": [0, 1],
-})
-
-source_field >> hebb                  # in0: source
-target_field >> "hebb.in1"            # in1: target
-reward_signal >> "hebb.in2"           # in2: reward
-hebb >> some_consumer                 # out0: forward
-hebb.o1 >> reverse_consumer           # out1: reverse
+from juniper import HebbianConnection
 ```

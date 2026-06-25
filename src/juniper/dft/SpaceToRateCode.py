@@ -1,9 +1,10 @@
-from ..configurables.Step import Step
-from functools import partial
+import logging
+from ..core.frontend.Step import Step
 from ..util import util
 import jax.numpy as jnp
-import jax
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
 
@@ -44,37 +45,31 @@ class SpaceToRateCode(Step):
     - in0 : jnp.array((Nx,Ny,...))
     - out0 : jnp.array(len(Nx,Ny,...))
     """
-    def __init__(self, name : str, params : dict):
+    _tau = 0
+    _cyclic = False
+    _threshold = 0.9
+    def __init__(
+            self,
+            name : str,
+            shape : tuple,
+            limits : tuple,
+            tau : float = _tau,
+            cyclic : bool = _cyclic,
+            threshold : float = _threshold):
+        params = locals().copy()
         mandatory_params = ['limits', 'shape']
         super().__init__(name, params, mandatory_params, is_dynamic=True)
-
-        if "tau" not in self._params.keys():
-            self._params["tau"] = 0
-
-        if "cyclic" not in self._params.keys():
-            self._params["cyclic"] = 0
-
-        if "threshold" not in self._params.keys():
-            self._params["threshold"] = 0.9
 
         self._params["space_dim"] = len(self._params["shape"])
 
         self._limits = jnp.asarray(self._params["limits"], dtype=jnp.float32)
 
-        self.register_buffer("peak_pos", slot_shape="space_dim")
+        self.register_buffer("peak_pos", shape=())
 
         self.compute_kernel = compute_kernel_factory(self._params)
 
-        self.reset()
-
-
-    def reset(self):
-        self.buffer[util.DEFAULT_OUTPUT_SLOT] = jnp.zeros((len(self._params["shape"]),))
-        self.buffer["peak_pos"] = jnp.zeros((len(self._params["shape"]),))
-        reset_state = {}
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        reset_state["peak_pos"] = self.buffer["peak_pos"]
-        return reset_state
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: ()}
 
 
     

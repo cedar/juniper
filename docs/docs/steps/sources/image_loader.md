@@ -1,26 +1,20 @@
 # ImageLoader
 
-Loads an image file from disk and outputs it as a float32 array. The image is re-read on each tick.
+```python
+ImageLoader(name: str, image_path: str)
+```
 
-**Type:** Static (Source)
-
-**Import:** `from juniper import ImageLoader`
+## Description
+Opens an image file specified by its path.
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `image_path` | `str` | Yes | Path to the image file |
+- image_path : str
 
 ## Slots
+- out0: jnp.ndarray
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `out0` | Output | `(H, W, C)` | Image as float32 array |
-
-## Example
+## Import
 
 ```python
-img = ImageLoader("img", {"image_path": "data/scene.png"})
-img >> color_conversion
+from juniper import ImageLoader
 ```

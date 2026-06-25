@@ -1,3 +1,14 @@
+# Expose Juniper api
+# api
+from .core.frontend.Circuit import Circuit
+from .core.backend.Engine import Engine
+
+# architecture
+from .core.Architecture import delete_arch
+from .core.Architecture import get_arch
+from .core.Architecture import init_logging
+from .core.Architecture import init_logging_to_file
+
 # algebra
 from .algebra.AddConstant import AddConstant
 from .algebra.ComponentMultiply import ComponentMultiply
@@ -20,9 +31,9 @@ from .arrays.Projection import Projection
 from .arrays.VectorToScalars import VectorToScalars
 from .arrays.ScalarsToVector import ScalarsToVector
 
-# configurables
-from .configurables.Gaussian import Gaussian
-from .configurables.LateralKernel import LateralKernel
+# configurable math classes
+from .math.Gaussian import Gaussian
+from .math.LateralKernel import LateralKernel
 
 # dft
 from .dft.HebbianConnection import HebbianConnection
@@ -55,11 +66,46 @@ from .sources.TimedBoost import TimedBoost
 # robotics
 from . import robotics
 
-# architecture
-from .Architecture import delete_arch
-from .Architecture import get_arch
+# error types
+from .core.backend.Exceptions import JuniperError
+from .core.backend.Exceptions import CompilerError
+from .core.backend.Exceptions import ShapeInferenceError
+from .core.backend.Exceptions import TypeInferenceError
+from .core.backend.Exceptions import LoadBufferError
+from .core.backend.Exceptions import SaveBufferError
+from .core.backend.Exceptions import EngineError
+from .core.backend.Exceptions import NotCompiledError
+from .core.backend.Exceptions import CircuitError
+from .core.backend.Exceptions import CircuitConnectionError
+from .core.backend.Exceptions import TCPError
+from .core.backend.Exceptions import RecordingError
+from .core.backend.Exceptions import JuniperConfigurationError
+from .core.backend.Exceptions import JuniperUserError
+
+# warnings
+from .core.backend.Warnings import JuniperWarning
+from .core.backend.Warnings import CompilerWarning
+from .core.backend.Warnings import ShapeInferenceWarning
+from .core.backend.Warnings import TypeInferenceWarning
+from .core.backend.Warnings import LoadBufferWarning
+from .core.backend.Warnings import SaveBufferWarning
+from .core.backend.Warnings import EngineWarning
+from .core.backend.Warnings import NotCompiledWarning
+from .core.backend.Warnings import CircuitWarning
+from .core.backend.Warnings import CircuitConnectionWarning
+from .core.backend.Warnings import TCPWarning
+from .core.backend.Warnings import RecordingWarning
+from .core.backend.Warnings import JuniperConfigurationWarning
+from .core.backend.Warnings import JuniperUserWarning
+
+# loggingimport logging
+import logging
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
 
 __all__ =[
+    "Engine",
+    "Circuit",
     "AddConstant",
     "ComponentMultiply",
     "Convolution",
@@ -101,6 +147,36 @@ __all__ =[
     "robotics",
     "get_arch",
     "delete_arch",
+    "init_logging",
+    "init_logging_to_file",
     "VectorToScalars",
-    "ScalarsToVector"
+    "ScalarsToVector",
+    "JuniperError",
+    "CompilerError",
+    "ShapeInferenceError",
+    "TypeInferenceError",
+    "LoadBufferError",
+    "SaveBufferError",
+    "EngineError",
+    "NotCompiledError",
+    "CircuitError",
+    "CircuitConnectionError",
+    "TCPError",
+    "RecordingError",
+    "JuniperConfigurationError",
+    "JuniperUserError",
+    "JuniperWarning",
+    "CompilerWarning",
+    "ShapeInferenceWarning",
+    "TypeInferenceWarning",
+    "LoadBufferWarning",
+    "SaveBufferWarning",
+    "EngineWarning",
+    "NotCompiledWarning",
+    "CircuitWarning",
+    "CircuitConnectionWarning",
+    "TCPWarning",
+    "RecordingWarning",
+    "JuniperConfigurationWarning",
+    "JuniperUserWarning"
 ]

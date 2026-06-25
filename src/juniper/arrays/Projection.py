@@ -1,36 +1,46 @@
-import jax
-from functools import partial
-from ..configurables.Step import Step
-from .ExpandAxes import ExpandAxes
-from .CompressAxes import CompressAxes
-from .ReorderAxes import ReorderAxes
-from ..util import util
+import logging
+from ..core.backend.Exceptions import JuniperConfigurationError
 
+from ..core.frontend.Step import Step
+from ..util import util
+import jax.numpy as jnp
+
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, in_dim, out_dim, name):
     if in_dim < out_dim:
-        sizes = (params["output_shape"][params["order"][i]] for i in params["axis"])
-        expand_obj = ExpandAxes(name + "_expand", {"axis": params["axis"], "sizes": sizes})
-        reorder_obj = ReorderAxes(name + "_reorder", {"order": params["order"]})
+        sizes = tuple(params["output_shape"][params["order"][i]] for i in params["axis"])
         def compute_kernel(input_mats, buffer, **kwargs):
-            output = expand_obj.compute_kernel(input_mats, buffer, **kwargs)
-            output = reorder_obj.compute_kernel({util.DEFAULT_INPUT_SLOT: output[util.DEFAULT_OUTPUT_SLOT]}, buffer, **kwargs)
-            return output
+            output = jnp.expand_dims(input_mats[util.DEFAULT_INPUT_SLOT], axis=params["axis"])
+            for ax, size in zip(params["axis"], sizes):
+                output = jnp.repeat(output, size, axis=ax)
+            output = jnp.transpose(output, axes=params["order"])
+            return {util.DEFAULT_OUTPUT_SLOT: output}
 
     elif in_dim > out_dim:
-        reorder_obj = ReorderAxes(name + "_reorder", {"order": params["order"]})
-        compress_obj = CompressAxes(name + "_compress", {"axis": params["axis"], "compression_type": params["compression_type"]})
         def compute_kernel(input_mats, buffer, **kwargs):
-            output = compress_obj.compute_kernel(input_mats, buffer, **kwargs)
-            output = reorder_obj.compute_kernel({util.DEFAULT_INPUT_SLOT: output[util.DEFAULT_OUTPUT_SLOT]}, buffer, **kwargs)
-            return output
+            output = input_mats[util.DEFAULT_INPUT_SLOT]
+            output = _compress(output, axis=params["axis"], compression_type=params["compression_type"])
+            output = jnp.transpose(output, axes=params["order"])
+            return {util.DEFAULT_OUTPUT_SLOT: output}
 
     else:
-        reorder_obj = ReorderAxes(name + "_reorder", {"order": params["order"]})
         def compute_kernel(input_mats, buffer, **kwargs):
-            output = reorder_obj.compute_kernel(input_mats, buffer, **kwargs)
-            return output
+            output = jnp.transpose(input_mats[util.DEFAULT_INPUT_SLOT], axes=params["order"])
+            return {util.DEFAULT_OUTPUT_SLOT: output}
 
     return compute_kernel
+
+def _compress(input, axis, compression_type):
+    if compression_type == "Sum":
+        return jnp.sum(input, axis=axis)
+    if compression_type == "Average":
+        return jnp.average(input, axis=axis)
+    if compression_type == "Maximum":
+        return jnp.max(input, axis=axis)
+    if compression_type == "Minimum":
+        return jnp.min(input, axis=axis)
+    raise JuniperConfigurationError(f"Unknown compression type: {compression_type}")
 
 class Projection(Step):
     """
@@ -64,11 +74,21 @@ class Projection(Step):
     - in0: jnp.array(input_shape)
     - out0: jnp.ndarray(output_shape)
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(
+            self,
+            name : str,
+            input_shape : tuple,
+            output_shape : tuple,
+            axis : tuple,
+            order : tuple,
+            compression_type : str):
+        params = locals().copy()
         mandatory_params = ["input_shape", "output_shape", "axis", "order", "compression_type"]
         super().__init__(name, params, mandatory_params)
         in_dim = len(self._params["input_shape"])
         out_dim = len(self._params["output_shape"])
 
-        self.compute_kernel = compute_kernel_factory(self._params, in_dim, out_dim, self._name)
+        self.compute_kernel = compute_kernel_factory(self._params, in_dim, out_dim, self.get_local_circuit_id())
 
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["output_shape"])}

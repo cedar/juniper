@@ -1,27 +1,21 @@
 # AddConstant
 
-Adds a scalar constant to every element of the input array.
+```python
+AddConstant(name: str, constant: float)
+```
 
-**Type:** Static
-
-**Import:** `from juniper import AddConstant`
+## Description
+Adds a constant.
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `constant` | `float` | Yes | The value added to each element |
+- constant : float
 
 ## Slots
+- in0 : jnp.array()
+- out0 : jnp.array()
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(...)` | Input array |
-| `out0` | Output | `(...)` | Input + constant |
-
-## Example
+## Import
 
 ```python
-add5 = AddConstant("add5", {"constant": 5.0})
-source >> add5
+from juniper import AddConstant
 ```

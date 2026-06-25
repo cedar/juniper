@@ -1,9 +1,10 @@
-from ...configurables.Step import Step
-from functools import partial
+import logging
+from ...core.frontend.Step import Step
 from ...util import util
 import jax.numpy as jnp
-import jax
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, M):
     def compute_kernel(input_mats, buffer, **kwargs):
         # this is not quite the same as the backprojection.... 
@@ -46,10 +47,10 @@ class PinHoleProjector(Step):
     - Input: jnp.array(img_shape)
     - output: jnp.ndarray(H*W,3)
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, img_shape : tuple, focal_length : float, frustrum_angles : tuple):
+        params = locals().copy()
         mandatory_params = ["img_shape", "focal_length", "frustrum_angles"]
         super().__init__(name, params, mandatory_params)
-        self._params = params.copy()
 
         f = self._params["focal_length"]
         angleRangeX = self._params["frustrum_angles"][0] * jnp.pi / 180
@@ -70,5 +71,8 @@ class PinHoleProjector(Step):
         self.M_cam = self.M_cam.at[2,2].set(1)
 
         self.compute_kernel = compute_kernel_factory(self._params, self.M_cam)
+
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["img_shape"])}
 
     

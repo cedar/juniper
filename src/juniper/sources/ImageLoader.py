@@ -1,15 +1,18 @@
-from ..configurables.Step import Step
+import logging
+from ..core.frontend.Source import Source
 from ..util import util
 import numpy as np
 from PIL import Image
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params):
     img = np.array(Image.open(params["image_path"])).astype(np.float32)
     def compute_kernel(input_mats, buffer, **kwargs):
         return {util.DEFAULT_OUTPUT_SLOT: img}
     return compute_kernel
 
-class ImageLoader(Step):
+class ImageLoader(Source):
     """
     Description
     ---------
@@ -23,16 +26,17 @@ class ImageLoader(Step):
     ---------
     - out0: jnp.ndarray
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, image_path : str):
+        params = locals().copy()
         mandatory_params = ["image_path"]
         super().__init__(name, params, mandatory_params)
         
-        self.is_source = True
-        
         # Remove default input slot
-        self.input_slot_names = []
-        self._max_incoming_connections = {}
         self.compute_kernel = compute_kernel_factory(self._params)
 
     def get_data(self):
         pass
+
+    def infer_output_shapes(self, input_specs):
+        img = np.array(Image.open(self._params["image_path"]))
+        return {util.DEFAULT_OUTPUT_SLOT: img.shape}

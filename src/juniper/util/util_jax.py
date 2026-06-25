@@ -1,3 +1,5 @@
+import logging
+from ..core.backend.Exceptions import JuniperConfigurationError
 import os
 from . import util
 import json
@@ -5,6 +7,8 @@ import numpy as np
 import jax.numpy as jnp
 import jax
 
+
+logger = logging.getLogger(__name__)
 def _load_config():
     cfg = json.load(open(os.path.join(util.root(), "run_config.json"), "r"))
 
@@ -13,7 +17,7 @@ def _load_config():
     if "dtype" in cfg:
         dtype_str = cfg["dtype"]
         if cfg["dtype"] in unsupported_dtypes:
-            raise Exception(f"dtype {cfg['dtype']} not supported")
+            raise JuniperConfigurationError(f"dtype {cfg['dtype']} not supported")
         cfg["dtype"] = np.dtype(dtype_str).type
         cfg["jdtype"] = jnp.dtype(dtype_str).type
     return cfg
@@ -44,13 +48,31 @@ def next_random_keys(num):
     jax_prng_key = keys[0]
     return keys[1:]
 
-def zeros(shape):
-    mat = jnp.zeros(shape, dtype=cfg["jdtype"])
-    return mat
+def build_prng_tree(kernel_map, dynamic_paths, static_key):
+    tree = {}
+    slots = []
+    for element_path in kernel_map.keys():
+        tree[element_path] = static_key
+        if element_path in dynamic_paths:
+            slots.append((tree, element_path))
+    return tree, slots
 
-def ones(shape):
-    mat = jnp.ones(shape, dtype=cfg["jdtype"])
-    return mat
+def update_prng_tree(prng_tree, prng_slots):
+    if len(prng_slots) == 0:
+        return prng_tree
+    keys = next_random_keys(len(prng_slots))
+    for key, (tree, element_path) in zip(keys, prng_slots):
+        tree[element_path] = key
+    return prng_tree
+
+def zeros(shape, dtype=None):
+    return jnp.zeros(shape, dtype=dtype or cfg["jdtype"])
+
+def ones(shape, dtype=None):
+    return jnp.ones(shape, dtype=dtype or cfg["jdtype"])
+
+def constant(shape, dtype, value):
+    return ones(shape, dtype=dtype) * value
 
 def dtype_CV_string():
     dtype = cfg["dtype"]

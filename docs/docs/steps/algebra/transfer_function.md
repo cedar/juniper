@@ -1,37 +1,23 @@
 # TransferFunction
 
-Applies a sigmoid non-linearity to the input. The sigmoid type, steepness (beta), and threshold are configurable.
+```python
+TransferFunction(name: str, threshold: float, beta: float, function: str)
+```
 
-**Type:** Static
+## Description
+Applies a non-linearity.
 
-**Import:** `from juniper import TransferFunction`
+## Parameters-
+- threshold : float
+- beta : float
+- function : str(AbsSigmoid, HeavySideSigmoid, ExpSigmoid, LinearSigmoid, SemiLinearSigmoid, LogarithmicSigmoid)
 
-## Parameters
+## Slots-
+- in0 : jnp.ndarray 
+- out0 : jnp.ndarray
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `function` | `str` | Yes | Sigmoid type (see below) |
-| `beta` | `float` | Yes | Steepness of the sigmoid |
-| `threshold` | `float` | Yes | Threshold / inflection point |
-
-### Supported Sigmoid Functions
-
-`AbsSigmoid`, `HeavySideSigmoid`, `ExpSigmoid`, `LinearSigmoid`, `SemiLinearSigmoid`, `LogarithmicSigmoid`
-
-## Slots
-
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(...)` | Input array |
-| `out0` | Output | `(...)` | sigmoid(input, beta, threshold) |
-
-## Example
+## Import
 
 ```python
-tf = TransferFunction("tf", {
-    "function": "ExpSigmoid",
-    "threshold": 0.0,
-    "beta": 1.0,
-})
-source >> tf
+from juniper import TransferFunction
 ```

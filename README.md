@@ -1,38 +1,99 @@
 # JUNIPER
+
 Welcome to JUNIPER, the GPU Accelerated Python Implementation of CEDAR
 
 ## Requirements
 
-- Install juniper and the required dependencies by running `pip install -e /path/to/repo`
-- For GPU support install juniper by running `pip install -e /path/to/repo[cuda12]`. Make sure to check the JAX documentation to check for gpu support for your system.
-- Run run.py (see Usage)
-- Check the demo files to see how to run juniper from a jupyter-notebook.
+- Python >= 3.9
+- JAX and jaxlib
+- A CUDA-capable GPU is recommended for accelerated runs, but CPU execution is supported by JAX.
 
-## Usage
+Check available JAX devices with:
 
-JUNIPER requires an architecture file (JSON or .py file) as a mandatory argument and will simulate the architecture on the GPU using JAX.
+```python
+import jax
+print(jax.devices())
+```
 
-Several optional arguments exist to adjust parameters of the simulation.
-While we only give a short overview on the usage of the most important arguments here, there is a detailed overview of all parameters in *DOCS.md*.
+## Installation
 
-The number of ticks the architecture is run can be set with the parameter `--num_ticks`.
+Once JUNIPER is published to PyPI, install it directly:
 
-To plot the output of steps (or internal buffers) a list of names of the steps/slots/buffers can be passed to `--recording`, e.g., `--recording static_gain0 field2 field2.activation`.
+```bash
+pip install juniper
+```
 
-When the `--recording` flag is used a plot will show after the simulation displaying the corresponding matrices.
-If instead the plot should be saved, the `--save_plot` trigger can be set.
-Be careful with plots of matrices with a dimensionality of more than 3 as these get reduced to 3D plots to be able to plot them.
-The reduction performed may not give a meaningful representation of the actual matrix.
+For CUDA-enabled JAX builds, install the matching extra:
 
-If you want to pass arguments to your python architecture file you can use the `--arch_args` argument.
+```bash
+pip install "juniper[cuda12]"
+pip install "juniper[cuda13]"
+```
 
-The `--cache_jitted_funcs` argument can be passed to allow JIT compiled functions to be saved to disk, reducing compile time in subsequent runs of, but requiring disk space. This makes sense if large architectures with long compile times are compiled multiple times (i.e., run.py is executed multiple times) without big changes to the architecture.
+For development from a local checkout:
 
-When the architecture is tuned and should now be run for a large number of iterations, the `--static_euler_compilation` argument can be set. This often improves runtime performance of the simulation but may increase compilation time, as it pre-compiles *every* individual euler function of neural fields so that their parameters can stay constant.
+```bash
+git clone https://github.com/cedar/juniper.git
+cd juniper
+pip install -e .[cudaXX]
+```
 
+The documentation uses Material for MkDocs:
 
-## Developing
+```bash
+mkdocs build --config-file docs/mkdocs.yml
+```
 
-A detailed explanation of all command line arguments can be found in *DOCS.md*.
+## Quick Start
 
-Tutorials on how to create architectures and new steps can be found there as well.
+```python
+import numpy as np
+from juniper import CustomInput, Gaussian, NeuralField, StaticGain, get_arch
+
+arch = get_arch("demo")
+
+source = CustomInput("source", shape=(50,))
+source.set_data(np.ones((50,), dtype=np.float32))
+
+gain = StaticGain("gain", factor=0.8)
+field = NeuralField(
+    "field",
+    shape=(50,),
+    resting_level=-5.0,
+    global_inhibition=-0.01,
+    tau=0.1,
+    input_noise_gain=0.1,
+    lateral_kernel=Gaussian({
+        "shape": (50,),
+        "sigma": (3,),
+        "amplitude": 5.0,
+        "normalized": True,
+        "factorized": False,
+    }),
+)
+
+source >> gain >> field
+
+arch.compile(warmup=1)
+recording, timing = arch.run_simulation(
+    num_steps=100,
+    steps_to_record=[field, "field.activation"],
+)
+```
+
+## Core Concepts
+
+- **Architecture**: the top-level circuit returned by `get_arch()`.
+- **Steps**: computation nodes with named input/output slots, such as `StaticGain`, `NeuralField`, `Sum`, `ColorConversion`, and robotics conversion steps.
+- **Sources and sinks**: runtime I/O endpoints such as `CustomInput`, `TCPReader`, `TCPWriter`, and `StaticDebug`.
+- **Circuits**: reusable nested graphs. You can create them inline or subclass `Circuit` and instantiate them like normal steps.
+- **Configurables**: helper objects such as `Gaussian`, `LateralKernel`, `FrameGraph`, and `Transform`.
+- **Recording**: `run_simulation` returns a `Recording` object with slicing, plotting, save, and load helpers.
+
+## Command-Line Usage
+
+JUNIPER also includes `run.py` for running architecture files from the command line:
+
+```bash
+python run.py path/to/architecture.py --num_ticks 500 --recording field
+```

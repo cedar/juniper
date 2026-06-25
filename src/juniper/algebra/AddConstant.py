@@ -1,9 +1,9 @@
-import jax
-from functools import partial
-from ..configurables.Step import Step
+import logging
+from ..core.frontend.Step import Step
 from ..util import util
 
-
+ 
+logger = logging.getLogger(__name__)
 # construction of compute kernel
 def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
@@ -28,7 +28,8 @@ class AddConstant(Step):
     - in0 : jnp.array()
     - out0 : jnp.array()
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, constant : float):
+        params = locals().copy()
         mandatory_params = ["constant"]
         super().__init__(name, params, mandatory_params)
         self.compute_kernel = compute_kernel_factory(self._params)

@@ -1,38 +1,24 @@
 # CompressAxes
 
-Reduces (compresses) the input array along specified axes using an aggregation function.
+```python
+CompressAxes(name: str, axis: tuple, compression_type: str, compress_all: bool=_compress_all)
+```
 
-**Type:** Static
-
-**Import:** `from juniper import CompressAxes`
+## Description
+Compress incoming step along specified dimension.
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `axis` | `tuple` | Yes | Axes to reduce, e.g. `(2,)` |
-| `compression_type` | `str` | Yes | Aggregation function (see below) |
-
-### Supported Compression Types
-
-| Value | Operation |
-|-------|-----------|
-| `"Sum"` | Sum along axis |
-| `"Average"` | Mean along axis |
-| `"Maximum"` | Max along axis |
-| `"Minimum"` | Min along axis |
+- axis : tuple(ax0,ax1,...)
+- compression_type : str(Sum,Average,Maximum,Minimum)
+- compress_all (optional) : bool
+    - flag to indicate that all input axes will be supressed. This is needed to establish valid output shape.
 
 ## Slots
+- in0 : jnp.array()
+- out0 : jnp.array()
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(...)` | Input array |
-| `out0` | Output | `(...)` | Array with specified axes removed |
-
-## Example
+## Import
 
 ```python
-comp = CompressAxes("comp", {"axis": (2,), "compression_type": "Maximum"})
-# Input shape (50,50,25) -> Output shape (50,50)
-source >> comp
+from juniper import CompressAxes
 ```

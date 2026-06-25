@@ -1,26 +1,13 @@
-from ..configurables.Step import Step
+import logging
+from ..core.frontend.Step import Step
 from ..util import util, util_jax
 import jax
 import jax.numpy as jnp
-from functools import partial
-import numpy as np
+from ..core.backend.Exceptions import JuniperUserError
 
+
+logger = logging.getLogger(__name__)
 def make_euler_bcm_func(params, static):
-    static_argnames = []
-    if static:
-        static_argnames = [
-            "learning_rate",
-            "tau_weights",
-            "tau_theta",
-            "min_theta",
-            "use_fixed_theta",
-            "fixed_theta",
-            "theta_eps",
-            "norm_target",
-            "norm_rate",
-            "safeguard_thr"
-        ]
-
     def eulerStepBCM(
         dt,                
         w,                
@@ -70,7 +57,7 @@ def make_euler_bcm_func(params, static):
             operand=None,
         )
         return out, w, theta
-    return partial(jax.jit, static_argnames=static_argnames)(eulerStepBCM)
+    return eulerStepBCM
 
 _euler_bcm_singleton = None
 
@@ -114,50 +101,94 @@ def compute_kernel_factory(params, delta_t):
 
 
 class BCMConnection(Step):
+    """
+    Description
+    ---------
+    Implements a BCM-style synaptic connection between source and target fields.
+    Weights are learned from source and target activity when the reward input is
+    active. The target trace theta is either updated dynamically or clamped to a
+    fixed value, depending on the use_fixed_theta setting.
 
-    def __init__(self, name, params):
+    Parameters
+    ---------
+    - source_shape : tuple((Nx,Ny,Nf))
+        - Source field shape.
+    - target_shape : tuple((Nx,Ny,Nd))
+        - Target field shape. The first two dimensions must match shape.
+    - tau_weights (optional) : float
+        - Default = 1.0
+    - tau_theta (optional) : float
+        - Default = 1.0
+    - learning_rate (optional) : float
+        - Default = 0.1
+    - min_theta (optional) : float
+        - Default = 0.0
+    - use_fixed_theta (optional) : bool
+        - Default = True
+    - fixed_theta (optional) : float
+        - Default = 0.25
+    - norm_target (optional) : float
+        - Default = 0.0
+    - norm_rate (optional) : float
+        - Default = 0.0
+    - safeguard_thr (optional) : float
+        - Default = -1.0
+    - theta_eps (optional) : float
+        - Default = 1e-6
+
+    Step Input/Output slots
+    ---------
+    - in0: jnp.array(shape)
+    - in1: jnp.array(target_shape)
+    - in2: jnp.array((1,))
+    - out0: jnp.array(target_shape)
+    """
+
+    _tau_weights = 1.0
+    _tau_theta = 1.0
+    _learning_rate = 0.1
+    _min_theta = 0.0
+    _use_fixed_theta = True
+    _fixed_theta = 0.25
+    _norm_target = 0.0
+    _norm_rate = 0.0
+    _safeguard_thr = -1.0
+    _theta_eps = 1e-6
+    def __init__(
+            self,
+            name : str,
+            source_shape : tuple,
+            target_shape : tuple,
+            tau_weights : float = _tau_weights,
+            tau_theta : float = _tau_theta,
+            learning_rate : float = _learning_rate,
+            min_theta : float = _min_theta,
+            use_fixed_theta : bool = _use_fixed_theta,
+            fixed_theta : float = _fixed_theta,
+            norm_target : float = _norm_target,
+            norm_rate : float = _norm_rate,
+            safeguard_thr : float = _safeguard_thr,
+            theta_eps : float = _theta_eps):
+        params = locals().copy()
         mandatory = [
-            "shape",
+            "source_shape",
             "target_shape",
-            "tau_weights",
-            "tau_theta",
-            "learning_rate",
-            "min_theta",
-            "use_fixed_theta",
-            "fixed_theta",
-            "norm_target",
-            "norm_rate",
-            "safeguard_thr",
         ]
         super().__init__(name, params, mandatory_params=mandatory, is_dynamic=True)
-        sx, sy, sf = self._params["shape"]
+        sx, sy, sf = self._params["source_shape"]
         tx, ty, td = self._params["target_shape"]
         if (sx, sy) != (tx, ty):
-            raise ValueError("BCMConnection requires source and target to match in first two dims (X,Y).")
+            raise JuniperUserError(f"BCMConnection requires source and target to match in first two dims (X,Y) ({self.get_path_str()}).")
         self._params["wheight_shape"] = (sx, sy, sf, td)
         self._params["scalar_shape"] = (1,)
         self._params["theta_eps"] = float(self._params.get("theta_eps", 1e-6))
         self._delta_t = float(util_jax.get_config()["delta_t"])
-        self.register_input("in1")  
-        self.register_input("in2")  
-        self.register_buffer("wheights", "wheight_shape", save=True)
-        self.register_buffer("theta", "target_shape", save=True)
-        self.cpu_buffer = {}
+        self.register_input_slot("in1")  
+        self.register_input_slot("in2")  
+        self.register_buffer("wheights", self._params["wheight_shape"], permanent=True)
+        self.register_buffer("theta", self._params["target_shape"], permanent=True)
 
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
 
-        self.reset()
-
-    def reset(self):
-        self.buffer["wheights"] = util_jax.zeros(self._params["wheight_shape"])
-        init_theta = jnp.float32(self._params["fixed_theta"])
-        self.buffer["theta"] = util_jax.ones(self._params["target_shape"]) * init_theta
-        self.reset_buffer(util.DEFAULT_OUTPUT_SLOT, slot_shape="target_shape")
-        self.reset_buffer("out1", slot_shape="shape")
-        self.cpu_buffer["wheights"] = np.array(self.buffer["wheights"])
-        self.cpu_buffer["theta"] = np.array(self.buffer["theta"])
-        reset_state = {}
-        reset_state["wheights"] = self.buffer["wheights"]
-        reset_state["theta"] = self.buffer["theta"]
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        return reset_state
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["target_shape"])}

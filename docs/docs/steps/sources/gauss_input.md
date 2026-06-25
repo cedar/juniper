@@ -1,34 +1,25 @@
 # GaussInput
 
-Generates a static Gaussian bump as input. The kernel is computed once at initialization and does not change during simulation.
+```python
+GaussInput(name: str, shape: tuple, sigma: tuple, amplitude: float, center=_center)
+```
 
-**Type:** Static (Source)
-
-**Import:** `from juniper import GaussInput`
+## Description
+Gaussian Input.
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `shape` | `tuple` | Yes | Shape of the output field |
-| `sigma` | `tuple` | Yes | Gaussian width per dimension (must match `shape` dimensionality) |
-| `amplitude` | `float` | Yes | Gaussian peak amplitude |
-| `center` | `tuple` | No | Center position. Default: center of `shape` |
+- shape : tuple((Nx,Ny,...))
+- sigma : tuple((sx,sy,...))
+- amplitude : float
+- center(optional) : tuple((cx,cy,...))
+    - Center of the gaussian. (Default: (Nx/2,Ny/2,...))
 
 ## Slots
+- in0: jnp.array(shape)
+- out0: jnp.array(shape)
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `out0` | Output | `shape` | Gaussian bump (constant) |
-
-## Example
+## Import
 
 ```python
-gi = GaussInput("gi", {
-    "shape": (50,),
-    "sigma": (3,),
-    "amplitude": 5,
-    "center": (25,),
-})
-gi >> field
+from juniper import GaussInput
 ```

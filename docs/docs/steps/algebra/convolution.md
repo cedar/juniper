@@ -1,38 +1,31 @@
 # Convolution
 
-Convolves the input array with a kernel. The kernel can be a static object (e.g., a `Gaussian` or `LateralKernel`) passed as a parameter, or a dynamic kernel received via the `kernel` input slot.
+```python
+Convolution(name: str, kernel=_kernel, mode: str=_mode)
+```
 
-**Type:** Static
-
-**Import:** `from juniper import Convolution`
+## Description
+Convolution of incoming step with kernel. The kernel can be given directly as a static kernel object (ie. Gaussian) or via an input connection as a dynamic kernel.
 
 ## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `kernel` | `LateralKernel` or `Gaussian` | No | Static kernel object. If omitted, a dynamic kernel is expected via the `kernel` input slot. |
-| `mode` | `str` | No | Convolution mode. Default: `"same"`. |
+- kernel (optional) : LateralKernel
+    - A dynamic kernel via input is used if this kernel is unspecified.
+- mode (optional) : str(same)
+    - Default = same
 
 ## Slots
+- in0 : jnp.array()
+- out0 : jnp.array()
 
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(...)` | Input array to convolve |
-| `kernel` | Input | `(...)` | Dynamic kernel (only used if no static `kernel` parameter is set) |
-| `out0` | Output | `(...)` | Convolved output |
+## Import
+
+```python
+from juniper import Convolution
+```
 
 ## Example
 
 ```python
-from juniper import Convolution, Gaussian
-
-# Static kernel
-conv = Convolution("conv", {
-    "kernel": Gaussian({"sigma": (3,), "amplitude": 1, "normalized": True})
-})
-
-# Dynamic kernel (from another step)
-conv_dyn = Convolution("conv_dyn", {})
-kernel_source >> "conv_dyn.kernel"
-data_source >> conv_dyn
+conv = Convolution("conv", kernel=Gaussian({"shape": (21,), "sigma": (3,), "amplitude": 1.0, "normalized": True}))
+# or omit kernel and connect a dynamic kernel to conv.in1
 ```

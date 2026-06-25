@@ -1,29 +1,26 @@
 # ScalarsToVector
 
-Combines N separate scalar inputs into a single 1D vector of length N. Each scalar is received on a separate input slot (`in0`, `in1`, ..., `in{N-1}`).
+```python
+ScalarsToVector(name: str, N_scalars: int)
+```
 
-**Type:** Static
+## Description
+Turns a number of scalars into a 1d-Array (vector).
 
-**Import:** `from juniper import ScalarsToVector`
+Note: Make it possible to have incomplete incoming connections.
 
-## Parameters
+## Parameters-
+- N_scalars: int 
+    - Number of scalars (length of output Vector)
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `N_scalars` | `int` | Yes | Number of scalar inputs (and length of output vector) |
+## Slots-
+- [in0, in1, ..., in{N_scalars-1}] : jnp.ndarray 
+    - N_scalars separate inputs indexed by 'in{i}'
+- out0 : jnp.ndarray 
+    - Vector of length N_scalars
 
-## Slots
-
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` ... `in{N-1}` | Input | scalar | N separate scalar input slots |
-| `out0` | Output | `(N_scalars,)` | Combined vector |
-
-## Example
+## Import
 
 ```python
-s2v = ScalarsToVector("s2v", {"N_scalars": 3})
-x_source >> s2v           # connects to in0
-y_source >> "s2v.in1"     # connects to in1
-z_source >> "s2v.in2"     # connects to in2
+from juniper import ScalarsToVector
 ```

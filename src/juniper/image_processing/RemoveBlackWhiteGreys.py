@@ -1,10 +1,13 @@
 
 
 
+import logging
 import jax.numpy as jnp
-from ..configurables.Step import Step
+from ..core.frontend.Step import Step
 from ..util import util
 
+
+logger = logging.getLogger(__name__)
 def rgb_to_hsv(rgb):
     """Convert RGB image (H,W,3) in [0,1] to HSV in [0,1] using JAX."""
     r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
@@ -65,7 +68,7 @@ def compute_kernel_factory(params):
             jnp.clip(out01 * 255.0, 0.0, 255.0),
             out01
         )
-        out = out.astype(rgb_in.dtype)  # keep uint8 if input was uint8
+        out = out.astype(params["jdtype"])  
 
         return {util.DEFAULT_OUTPUT_SLOT: out}
 
@@ -79,14 +82,15 @@ class RemoveBlackWhiteGreys(Step):
     (based on value + saturation thresholds) and replaces them with white.
     """
 
-    def __init__(self, name, params):
+    _saturation_threshold = 0.2
+    _value_threshold = 0.2
+    def __init__(
+            self,
+            name : str,
+            saturation_threshold : float = _saturation_threshold,
+            value_threshold : float = _value_threshold):
+        params = locals().copy()
         mandatory_params = []
         super().__init__(name, params, mandatory_params)
-
-        # Default threshold values if not provided
-        if "saturation_threshold" not in self._params:
-            self._params["saturation_threshold"] = 0.2
-        if "value_threshold" not in self._params:
-            self._params["value_threshold"] = 0.2
 
         self.compute_kernel = compute_kernel_factory(self._params)

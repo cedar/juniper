@@ -1,11 +1,13 @@
-from ..configurables.Step import Step
+import logging
+from ..core.frontend.Step import Step
 from ..util import util, util_jax
 
-import numpy as np
 import jax.numpy as jnp
 from jax import lax
 
 
+
+logger = logging.getLogger(__name__)
 def _argmax_center_jax(activation: jnp.ndarray):
     """
     Returns (cx, cy, peak) all as JAX scalars (no Python int/float conversion).
@@ -303,65 +305,95 @@ def compute_kernel_factory(params, delta_t):
 
 
 class ViewportCamera(Step):
+    """
+    Description
+    ---------
+    Selects a viewport-sized RGB crop from an input image based on an activation
+    map. The step tracks fixation state, emits a one-hot fixation kernel and a
+    center-of-saccade signal, and can optionally apply learning-mode crop
+    offsets.
+
+    Parameters
+    ---------
+    - input_shape : tuple(H,W)
+        - Spatial shape of the input image.
+    - kernel_shape : tuple(H,W)
+        - Shape of the activation map and fixation kernel.
+    - viewport_size : tuple(H,W)
+        - Spatial shape of the output crop.
+    - simplified (optional) : bool
+        - If True, directly crops around the activation peak without the full
+          saccade state sequence.
+        - Default = False
+    - threshold (optional) : float
+        - Activation threshold for selecting a fixation.
+        - Default = 0.5
+    - move_eps (optional) : float
+        - Minimum normalized fixation change required to start a new saccade.
+        - Default = 0.05
+    - saccade_duration_s (optional) : float
+        - Duration of start/end saccade state phases.
+        - Default = 0.020
+    - learn_interval_s (optional) : float
+        - Time between successive learning crop offsets.
+        - Default = 0.025
+    - learn_total_s (optional) : float
+        - Total duration of the learning crop sequence.
+        - Default = 0.325
+
+    Step Input/Output slots
+    ---------
+    - in0: jnp.array(input_shape + (3,))
+    - viewport_center: jnp.array(kernel_shape)
+    - learn_mode: jnp.array((1,))
+    - out0: jnp.array(viewport_size + (3,))
+    - kernel: jnp.array(kernel_shape)
+    - CoS: jnp.array((1,))
+    """
  
-    def __init__(self, name, params):
+    _simplified = False
+    _threshold = 0.5
+    _move_eps = 0.05
+    _saccade_duration_s = 0.020
+    _learn_interval_s = 0.025
+    _learn_total_s = 0.325
+    def __init__(
+            self,
+            name : str,
+            input_shape : tuple,
+            kernel_shape : tuple,
+            viewport_size : tuple,
+            simplified : bool = _simplified,
+            threshold : float = _threshold,
+            move_eps : float = _move_eps,
+            saccade_duration_s : float = _saccade_duration_s,
+            learn_interval_s : float = _learn_interval_s,
+            learn_total_s : float = _learn_total_s):
+        params = locals().copy()
         mandatory_params = ["input_shape", "kernel_shape", "viewport_size"]
-        params["shape"] = params["viewport_size"] + (3,)
+        params["shape"] = viewport_size + (3,)
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self._params["CoS_shape"] = (1,)
         self._params["output_shape"] = self._params["viewport_size"] + (3,)
         self._delta_t = float(util_jax.get_config()["delta_t"])
 
-        if "simplified" not in self._params.keys():
-            self._params["simplified"] = False
-        if "threshold"  not in self._params.keys():
-            self._params["threshold"] = 0.5
-        if "move_eps" not in self._params.keys():
-            self._params["move_eps"] = 0.05
-        if "saccade_duration_s"  not in self._params.keys():
-            self._params["saccade_duration_s"] = 0.020
-        if "learn_interval_s" not in self._params.keys():
-            self._params["learn_interval_s"] = 0.025
-        if "learn_total_s"  not in self._params.keys():
-            self._params["learn_total_s"] = 0.325
-
-        self.register_input("viewport_center")
-        self.register_input("learn_mode")
-        self.register_output("kernel")
-        self.register_output("CoS")
+        self.register_input_slot("viewport_center")
+        self.register_input_slot("learn_mode")
+        self.register_output_slot("kernel")
+        self.register_output_slot("CoS")
         
-        self.register_buffer("startSC")
-        self.register_buffer("endSC")
-        self.register_buffer("elapsed_time")
-        self.register_buffer("elapsed_learn_time")
-        self.register_buffer("lastX")
-        self.register_buffer("lastY")
+        self.register_buffer("startSC", shape=())
+        self.register_buffer("endSC", shape=())
+        self.register_buffer("elapsed_time", shape=())
+        self.register_buffer("elapsed_learn_time", shape=())
+        self.register_buffer("lastX", shape=())
+        self.register_buffer("lastY", shape=())
 
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
 
-        self.reset()
-
-    def reset(self): # Override default reset, to handle shapes of buffer explicitly.
-        self.buffer["startSC"] = jnp.int32(0) #util_jax.zeros((1,))
-        self.buffer["endSC"] = jnp.int32(0)
-        self.buffer["elapsed_time"] = jnp.float32(0)
-        self.buffer["elapsed_learn_time"] =  jnp.float32(0)
-        self.buffer["lastX"] = jnp.float32(0)
-        self.buffer["lastY"] = jnp.float32(0)
-        self.reset_buffer(util.DEFAULT_OUTPUT_SLOT, slot_shape="output_shape")
-        self.reset_buffer("kernel", slot_shape="kernel_shape")
-        self.reset_buffer("CoS", slot_shape="CoS_shape")
-        reset_state = {}
-        reset_state["startSC"] = self.buffer["startSC"]
-        reset_state["endSC"] = self.buffer["endSC"]
-        reset_state["elapsed_time"] = self.buffer["elapsed_time"]
-        reset_state["elapsed_learn_time"] = self.buffer["elapsed_learn_time"]
-        reset_state["lastX"] = self.buffer["lastX"]
-        reset_state["lastY"] = self.buffer["lastY"]
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        reset_state["kernel"] = self.buffer["kernel"]
-        reset_state["CoS"] = self.buffer["CoS"]
-        return reset_state
-
-    
-    
+    def infer_output_shapes(self, input_specs):
+        return {
+            util.DEFAULT_OUTPUT_SLOT: tuple(self._params["output_shape"]),
+            "kernel": tuple(self._params["kernel_shape"]),
+            "CoS": tuple(self._params["CoS_shape"]),
+        }

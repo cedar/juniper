@@ -1,201 +1,119 @@
 # Building Architectures
 
-An **architecture** in JUNIPER is a directed computational graph of **steps** connected through **slots**. Each step performs a computation on its inputs and writes the result to its outputs. JUNIPER distinguishes between **static steps** (feed-forward, computed once per tick) and **dynamic steps** (time-evolving, e.g. neural fields).
+A JUNIPER architecture is a top-level `Architecture`, which is also a `Circuit`: a directed graph of elements connected through named slots. Steps perform computation, sources push external data into the runtime state, sinks pull data out, and nested circuits package reusable subgraphs.
 
-## Creating an Architecture
+## Top-Level Architecture
 
-Architecture files are Python scripts that define a `get_architecture(args)` function. This function creates steps, connects them, and the architecture is returned implicitly via the global singleton.
+Use the singleton helpers from `juniper` for the usual workflow:
 
 ```python
-from juniper import GaussInput, StaticGain, NeuralField, Gaussian
-from juniper.Architecture import get_arch
+from juniper import get_arch, delete_arch
 
-def get_architecture(args):
-    # 1. Instantiate steps
-    gi = GaussInput("input", {"shape": (50,), "sigma": (3,), "amplitude": 5})
-    gain = StaticGain("gain", {"factor": 0.8})
-    nf = NeuralField("field", {
-        "shape": (50,),
-        "resting_level": -5,
-        "global_inhibition": -0.01,
-        "tau": 0.1,
-        "input_noise_gain": 0.1,
-        "sigmoid": "AbsSigmoid",
-        "beta": 100,
-        "theta": 0.5,
-        "LateralKernel": Gaussian({
-            "sigma": (3,),
-            "amplitude": 5,
-            "normalized": True,
-            "max_shape": (50,),
-        }),
-    })
-
-    # 2. Connect steps
-    gi >> gain >> nf
-
-    # 3. Return the architecture
-    return get_arch()
+delete_arch()          # useful in tests or notebooks
+arch = get_arch("demo")
 ```
 
-## Instantiating Steps
+When an `Architecture` exists, newly created steps are registered in the current circuit automatically. The top-level architecture cannot have dangling input or output slots; use sources and sinks for external communication.
 
-Every step takes two arguments:
+## Creating Steps
 
-1. **`name`** (`str`) -- A unique identifier. Must not contain dots.
-2. **`params`** (`dict`) -- A dictionary of parameters specific to that step.
+Most steps now take explicit constructor parameters:
 
 ```python
-gain = StaticGain("my_gain", {"factor": 2.5})
+from juniper import CustomInput, StaticGain, Sum
+
+signal = CustomInput("signal", shape=(32,))
+gain = StaticGain("gain", factor=2.0)
+merge = Sum("merge")
 ```
 
-Steps are automatically registered in the global architecture singleton upon creation.
+Every element name must be unique in its parent circuit and must not contain dots. Configurable helper objects such as `Gaussian` and `LateralKernel` still take dictionaries because they are not graph elements.
 
-## Connecting Steps
+## Connecting Elements
 
-JUNIPER provides several equivalent ways to connect steps. All create a directed edge from an output slot to an input slot.
-
-### The `>>` Operator (Recommended)
-
-The right-shift operator connects the default output of the left step to the default input of the right step. It returns the right-hand operand, allowing chaining.
+Every regular step has default slots `in0` and `out0`. Additional slots are exposed as attributes with their slot names. The `>>` operator connects output to input and returns the right-hand object, enabling chains.
 
 ```python
-# Single connection
-step_a >> step_b
+signal >> gain >> merge
 
-# Chained connections: A -> B -> C -> D
-step_a >> step_b >> step_c >> step_d
+# Equivalent reverse connection.
+gain << signal
+
+# Explicit slots.
+step_a.out0 >> step_b.in1
+
+# String paths in the current circuit.
+step_a >> "step_b.in0"
 ```
 
-### The `<<` Operator
+Multiple incoming connections are summed by default. `Sum` allows unlimited inputs on `in0`; `ComponentMultiply` also allows unlimited inputs but aggregates by product. Slots enforce their maximum incoming connection count and duplicate connections raise `CircuitConnectionError`.
 
-The left-shift operator connects in reverse -- the right step's output flows into the left step's input.
+## Nested Circuits
 
-```python
-# step_b receives output from step_a
-step_b << step_a
-```
-
-### Named Slots
-
-Steps can have multiple input and output slots. Use the slot accessors `o0`, `o1`, ... (outputs) and `i0`, `i1`, ... (inputs) to target specific slots.
+Use `Circuit` as a context manager to define reusable subgraphs. Register circuit input/output slots, connect internals, and then connect the circuit like any other element.
 
 ```python
-# Connect output slot 1 of step_a to input slot 2 of step_b
-step_a.o1 >> step_b.i2
-```
+from juniper import Circuit, StaticGain, get_arch
 
-You can also use string identifiers with the `>>` operator:
-
-```python
-step_a >> "step_b.in1"
-```
-
-### Explicit `connect_to`
-
-The Architecture class provides a direct method:
-
-```python
-from juniper.Architecture import get_arch
 arch = get_arch()
-arch.connect_to("step_a.out0", "step_b.in0")
+with Circuit("double") as double:
+    double.register_input_slot("in0")
+    double.register_output_slot("out0")
+    gain = StaticGain("gain", factor=2.0)
+    double.in0 >> gain >> double.out0
+
+# double can now be connected in the parent circuit.
 ```
 
-### Multiple Inputs
+Nested element paths use dots, for example `double.gain`. Recordings and compile errors use those paths.
 
-Some steps accept multiple incoming connections on the same input slot (e.g., `Sum`, `NeuralField`). When multiple connections arrive at the same slot, their values are **summed** automatically.
+## Circuit Subclasses
 
-```python
-step_a >> nf
-step_b >> nf
-step_c >> nf  # All three are summed into nf's input
-```
+Reusable circuits can also be packaged as subclasses and imported like normal step classes. See [Circuit Subclasses](circuit-subclasses.md) for the full pattern.
 
-## Static vs. Dynamic Steps
+## Compile And Run
 
-| | Static Steps | Dynamic Steps |
-|---|---|---|
-| **Behavior** | Feed-forward computation | Time-evolving state (e.g., differential equations) |
-| **Examples** | `StaticGain`, `Sum`, `Convolution` | `NeuralField`, `HebbianConnection`, `SpaceToRateCode` |
-| **`is_dynamic`** | `False` (default) | `True` |
-| **Requires `shape`** | No | Yes |
-| **Execution** | Computed in topological order before dynamic steps | Updated via euler integration each tick |
-
-## Compiling and Running
-
-After all steps are created and connected, the architecture must be **compiled** before it can be run.
+Compile after the graph is complete. Compilation gathers graph metadata, infers shapes and dtypes, builds runtime state, opens source/sink connections, traces the JAX tick, and optionally performs warmup steps.
 
 ```python
-arch = get_arch()
-
-# Compile (includes warmup JIT pass)
-arch.compile()
-
-# Run the simulation tick by tick
-for _ in range(1000):
-    arch.tick()
-```
-
-### Using `run_simulation`
-
-For convenience, use `run_simulation` which handles the loop, timing, and buffer recording:
-
-```python
-history, ms_per_tick, timing = arch.run_simulation(
-    tick_func=arch.tick,
-    steps_to_plot=["field.out0"],
-    num_steps=1000,
+arch.compile(warmup=1, print_compile_info=True, load_buffer=False)
+recording, timing = arch.run_simulation(
+    num_steps=100,
+    steps_to_record=["field", "field.out0"],
+    print_timing=True,
+    save_buffer=False,
 )
 ```
 
-## Running from the Command Line
+`run_simulation` returns `(Recording, TimingInfo)`. `TimingInfo` contains total time plus per-tick `prng`, `gpu_push`, `tick`, `gpu_pull`, and optional `buffer` timings.
 
-```bash
-python run.py my_architecture.py --num_ticks 500 --recording field
-```
+There is no public `arch.tick()` method in the current API; run fixed numbers of ticks through `run_simulation`.
 
-See the [Command-Line Reference](cli.md) for all options.
+## Recording Data
 
-## Complete Example
+Record targets may be strings, elements, slots, or buffers. The returned `Recording` object supports filtering and persistence:
 
 ```python
-from juniper import GaussInput, NeuralField, Gaussian, Normalization, Sum
-from juniper.Architecture import get_arch
-
-def get_architecture(args):
-    shape = (50,)
-
-    # Sources
-    gi1 = GaussInput("gi1", {"shape": shape, "sigma": (2,), "amplitude": 3})
-    gi2 = GaussInput("gi2", {"shape": shape, "sigma": (4,), "amplitude": 1,
-                              "center": (10,)})
-
-    # Processing
-    norm = Normalization("norm", {"function": "L2Norm"})
-    add  = Sum("add", {})
-
-    # Neural field
-    nf = NeuralField("nf", {
-        "shape": shape,
-        "resting_level": -5,
-        "global_inhibition": -0.01,
-        "tau": 0.1,
-        "input_noise_gain": 0.1,
-        "sigmoid": "AbsSigmoid",
-        "beta": 100,
-        "theta": 0.5,
-        "LateralKernel": Gaussian({
-            "sigma": (3,),
-            "amplitude": 5,
-            "normalized": True,
-            "max_shape": shape,
-        }),
-    })
-
-    # Wire it up
-    gi1 >> norm >> add
-    gi2 >> add
-    add >> nf
-
-    return get_arch()
+rec, timing = arch.run_simulation(50, steps_to_record=["field.out0"])
+field_only = rec.get_at_element("field.out0")
+first_ten = rec.get_in_step_interval((0, 10))
+run_dir = rec.save_to_file("recordings")
+loaded = type(rec).load_from_file(run_dir)
+rec.plot(keys=["field.out0"], idx_interval=(0, 50))
 ```
+
+Saved recordings use one pickle file per time step plus a `manifest.json`, so additional batches can append to the same run directory when the recorded keys match.
+
+## Sources And Sinks
+
+Sources write CPU-side or external data into the runtime state before each tick. `CustomInput` can be updated with `set_data`; `TCPReader` uses a shared-memory worker process. Sinks receive data after each tick. `TCPWriter` sends data through the TCP worker and `StaticDebug` is useful to force static branches to be computed.
+
+Call `arch.close_connections()` if a long-running process needs explicit cleanup after TCP runs.
+
+## Buffers
+
+Steps can register internal buffers with `register_buffer(buf_id, shape, permanent=False)`. Dynamic steps use buffers for evolving state such as activation, weights, local timers, or fixation state. Permanent buffers are loaded during `compile(load_buffer=True)` and saved after `run_simulation(save_buffer=True)`.
+
+## Extending JUNIPER
+
+Subclass `Step`, `Source`, or `Sink`, define a JAX-compatible `compute_kernel`, and override `infer_output_shapes` or `infer_output_dtypes` whenever the default “mirror input slot shape and default dtype” behavior is not enough. Kernel outputs must return exactly the compiled state keys with stable shapes; mismatches raise `EngineError`.

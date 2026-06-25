@@ -1,10 +1,11 @@
-import jax
+import logging
 import jax.numpy as jnp
-from functools import partial
-from ..configurables.Step import Step
+from ..core.frontend.Step import Step
 from ..util import util
 
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, min, max):
     def compute_kernel(input_mats, buffer, **kwargs):
         input = input_mats[util.DEFAULT_INPUT_SLOT]
@@ -29,7 +30,8 @@ class Clamp(Step):
     - in0 : jnp.array()
     - out0 : jnp.array()
     """
-    def __init__(self, name : str, params : dict):
+    def __init__(self, name : str, limits : tuple):
+        params = locals().copy()
         mandatory_params = ["limits"]
         super().__init__(name, params, mandatory_params)
         

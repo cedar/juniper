@@ -1,35 +1,31 @@
 # SpaceToRateCode
 
-Extracts the peak position from a field-like array and outputs it as a rate-coded vector. Assumes at most one peak in the input field. Values above the threshold are averaged to determine the peak location.
+```python
+SpaceToRateCode(name: str, shape: tuple, limits: tuple, tau: float=_tau, cyclic: bool=_cyclic, threshold: float=_threshold)
+```
 
-**Type:** Dynamic
+## Description
+Takes field like array and produces a vector centered at field peak position coordinates. Assumes at most one peak in the input field.
 
-**Import:** `from juniper import SpaceToRateCode`
+Note: make multiple peaks possible? Make cyclic possible? Implement expoential convergance to attractor
 
-## Parameters
+## Parameters-
+- shape : tuple(Nx,Ny,...)
+- limits : tuple((lx,ux), (ly,uy), ...)
+- tau (optional) : float
+    - If set, the output vector will exponentially converge to the peak position. If not, the vector jumps to the attractor in one time-step
+    - Default = 0
+- cyclic (optional) : bool
+    - Default = False
+- threshold (optional) : float
+    - Default = 0.9
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `shape` | `tuple` | Yes | Shape of the input field |
-| `limits` | `tuple((low, high), ...)` | Yes | Metric range per dimension |
-| `tau` | `float` | No | If set, output converges exponentially to the peak. If `0`, jumps instantly. Default: `0` |
-| `cyclic` | `bool` | No | Cyclic mode (not yet implemented). Default: `False` |
-| `threshold` | `float` | No | Minimum activation to count as a peak. Default: `0.9` |
+## Slots--
+- in0 : jnp.array((Nx,Ny,...))
+- out0 : jnp.array(len(Nx,Ny,...))
 
-## Slots
-
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `shape` | Input field |
-| `out0` | Output | `(len(shape),)` | Peak position as a vector |
-
-## Example
+## Import
 
 ```python
-s2r = SpaceToRateCode("s2r", {
-    "shape": (50, 50),
-    "limits": ((0, 50), (0, 50)),
-    "threshold": 0.9,
-})
-neural_field >> s2r
+from juniper import SpaceToRateCode
 ```

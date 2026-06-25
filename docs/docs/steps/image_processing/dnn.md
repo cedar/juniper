@@ -1,29 +1,30 @@
 # DNN
 
-Runs a pre-trained VGG16 network (ImageNet weights) on the input image and outputs the activations of a specified layer. The network is only re-evaluated when the input image changes (detected by checksum). Requires the `flaxmodels` package.
-
-**Type:** Static
-
-**Import:** `from juniper.image_processing.DNN import DNN`
-
-## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `layer` | `str` | Yes | Name of the VGG16 layer whose activations to output |
-
-## Slots
-
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `(H, W, 3)` | RGB image (values 0-255) |
-| `out0` | Output | varies | Activation tensor of the specified layer |
-
-## Example
-
 ```python
-dnn = DNN("dnn", {"layer": "block3_conv3"})
-image_source >> dnn
+DNN(name: str, layer: str, model_dir: str=_model_dir)
 ```
 
-**Note:** This step is not JIT-compiled due to the conditional re-evaluation logic.
+## Description
+Applies a pretrained VGG16 model to an RGB image and returns the activation
+map of a selected convolutional layer. The input image is resized to
+(224,224,3) and normalized to [0,1] before it is passed through the model.
+
+## Parameters
+- layer : str("4_3", "5_3")
+    - VGG16 ReLU layer suffix to read out. The full layer name is built as
+      "relu" + layer.
+- model_dir (optional) : str
+    - Directory used by flaxmodels to find or store VGG16 weights.
+    - Default = ".flaxmodels"
+
+## Slots
+- in0: jnp.array((H,W,3))
+- out0: jnp.array(layer_shape)
+    - relu4_3: (28,28,512)
+    - relu5_3: (7,7,512)
+
+## Import
+
+```python
+from juniper import DNN
+```

@@ -1,4 +1,32 @@
+import logging
+from ..core.frontend.Configurable import Configurable
 import jax.numpy as jnp
+from ..core.backend.Exceptions import JuniperConfigurationError
+
+
+logger = logging.getLogger(__name__)
+class Sigmoid(Configurable):
+    """
+    Description
+    ---------
+    A wrapper for sigmoid objects. Not intended to be used directly
+
+    Parameters
+    ----------
+    - type : str(AbsSigmoid, HeavySideSigmoid, ExpSigmoid, LinearSigmoid, SemiLinearSigmoid, LogarithmicSigmoid)
+    """
+    def __init__(self, params : dict):
+        mandatory_params = ["sigmoid"]
+        self._name = "simgoid"
+        super().__init__(name="simoid", params=params, mandatory_params=mandatory_params)
+        try:
+            self.sigmoid = SIGMOID_MAP[self._params["sigmoid"]]
+        except KeyError:
+            raise JuniperConfigurationError(
+                f'Unknown sigmoid parameter: {self._params["sigmoid"]}.'
+                f"Supported non-linearities are: {', '.join(SIGMOID_MAP)}"
+                )
+        
 
 def AbsSigmoid(x, beta, theta):
     return 0.5 * (1.0 + beta * (x - theta) / (1.0 + beta * jnp.abs(x - theta)))

@@ -1,10 +1,13 @@
-from ..configurables.Step import Step
+import logging
+from ..core.frontend.Step import Step
 from ..util import util, util_jax
 
 import jax.numpy as jnp
 import jax
 import numpy as np
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, delta_t):
     # static (Python) values captured in closure
     H, W = params["input_shape"]
@@ -85,43 +88,71 @@ def compute_kernel_factory(params, delta_t):
             choicelist=[determine_slices_and_crop(input, elapsed_learn_time), input[H0-hvh:H0+hvh, W0-hvw:W0+hvw, :]]
         )
         
-        return {util.DEFAULT_OUTPUT_SLOT: output,
-                "elapsed_learn_time": elapsed_learn_time,
-                "learn_onset": learn_onset}
+        return {util.DEFAULT_OUTPUT_SLOT: output.astype(params["jdtype"]),
+                "elapsed_learn_time": elapsed_learn_time.astype(params["jdtype"]),
+                "learn_onset": learn_onset.astype(params["jdtype"])}
     return compute_kernel
 
 
 class ShuffleImage(Step):
+    """
+    Description
+    ---------
+    Crops a viewport-sized RGB image patch from the center of an input image.
+    During learning, the crop position is shifted through a deterministic
+    sequence of move the image center accross the viewport.
 
-    def __init__(self, name, params):
+    Parameters
+    ---------
+    - input_shape : tuple(H,W)
+        - Spatial shape of the input image.
+    - viewport_size : tuple(H,W)
+        - Spatial shape of the output crop.
+    - threshold (optional) : float
+        - Learn-node activation threshold.
+        - Default = 0.9
+    - learn_interval_s (optional) : float
+        - Time between successive learning crop offsets.
+        - Default = 0.025
+    - learn_total_s (optional) : float
+        - Total duration of the learning crop sequence.
+        - Default = 0.325
+
+    Step Input/Output slots
+    ---------
+    - in0: jnp.array(input_shape + (3,))
+    - learn_node: jnp.array((1,))
+    - out0: jnp.array(viewport_size + (3,))
+    """
+
+    _threshold = 0.9
+    _learn_interval_s = 0.025
+    _learn_total_s = 0.325
+    def __init__(
+            self,
+            name : str,
+            input_shape : tuple,
+            viewport_size : tuple,
+            threshold : float = _threshold,
+            learn_interval_s : float = _learn_interval_s,
+            learn_total_s : float = _learn_total_s):
+        params = locals().copy()
         mandatory_params = ["input_shape", "viewport_size"]
-        params["shape"] = params["viewport_size"] + (3,)
+        params["shape"] = viewport_size + (3,)
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self._params["CoS_shape"] = (1,)
         self._params["output_shape"] = self._params["viewport_size"] + (3,)
         self._delta_t = float(util_jax.get_config()["delta_t"])
 
-        if "threshold"  not in self._params.keys():
-            self._params["threshold"] = 0.9
-        if "learn_interval_s" not in self._params.keys():
-            self._params["learn_interval_s"] = 0.025
-        if "learn_total_s"  not in self._params.keys():
-            self._params["learn_total_s"] = 0.325
-
-        self.register_input("learn_node")
+        self.register_input_slot("learn_node")
         
-        self.register_buffer("elapsed_learn_time")
-        self.register_buffer("learn_onset")
+        self.register_buffer("elapsed_learn_time", shape=(1,))
+        self.register_buffer("learn_onset", shape=(1,))
 
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
-        self.reset()
 
-    def reset(self): # Override default reset, to handle shapes of buffer explicitly.
-        self.buffer["elapsed_learn_time"] =  jnp.float32(0)
-        self.buffer["learn_onset"] = jnp.float32(0)
-        self.reset_buffer(util.DEFAULT_OUTPUT_SLOT, slot_shape="output_shape")
-        reset_state = {}
-        reset_state["elapsed_learn_time"] = self.buffer["elapsed_learn_time"]
-        reset_state["learn_onset"] = self.buffer["learn_onset"]
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        return reset_state
+    def infer_output_dtypes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: input_specs["learn_node"][1], "elapsed_learn_time": util_jax.cfg["jdtype"], "learn_onset": util_jax.cfg["jdtype"]}
+
+    def infer_output_shapes(self, input_specs):
+        return {util.DEFAULT_OUTPUT_SLOT: tuple(self._params["output_shape"])}

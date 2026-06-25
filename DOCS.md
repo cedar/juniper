@@ -154,7 +154,7 @@ Some other particularities of dynamic steps:
 Currently the only one being set (in the Architecture::tick() function) is `prng_key`, a JAX compatible random key.
 - (optional) `self.needs_input_connections = False`\
 This setting can be turned off for dynamic steps to allow this step to be used "standalone", not requiring inputs.
-- (optional) `self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = jnp.inf`\
+- (optional) `self.get_max_incoming_connections(util.DEFAULT_INPUT_SLOT) = jnp.inf`\
 If multiple input connections for one input slot are allowed, this setting can be set to `jnp.inf`.
 The individual inputs will automatically be summed up when retrieving them in the compute() function.
 

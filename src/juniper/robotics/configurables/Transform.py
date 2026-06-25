@@ -1,6 +1,9 @@
-from ...configurables.Configurable import Configurable
+import logging
+from ...core.frontend.Configurable import Configurable
 import jax.numpy as jnp
 
+
+logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, M_func):
     def compute_kernel(input_mats, joint_state):
         # input_mats shape [N,3]
@@ -36,8 +39,7 @@ class Transform(Configurable):
     """
     def __init__(self, params):
         mandatory_params = ["M_func"]
-        self._name = "Transform"
-        super().__init__(params, mandatory_params)
+        super().__init__("Transform", params, mandatory_params)
 
         self.M_func = params["M_func"]
 

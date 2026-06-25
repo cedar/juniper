@@ -1,42 +1,37 @@
 # Projection
 
-A combined expansion/compression and axis reordering step. Depending on whether the input has fewer, more, or equal dimensions compared to the output, it will expand, compress, or just reorder axes.
+```python
+Projection(name: str, input_shape: tuple, output_shape: tuple, axis: tuple, order: tuple, compression_type: str)
+```
 
-- **Expansion** (input dims < output dims): New axes are inserted at positions given by `axis`, sized according to `output_shape`, then axes are reordered by `order`.
-- **Compression** (input dims > output dims): Axes specified by `axis` are reduced using `compression_type`, then remaining axes are reordered by `order`.
-- **Reorder only** (input dims == output dims): Axes are permuted by `order`.
+## Description
+The projection step is a combination of an expansion/contraction followed by a reordering of axes. If the input dimensionality is greater than the output a contraction is used.
+Other wise the input is expanded to match the shape of the output. If input and output have the same shape, the axes are only reordered.
 
-**Type:** Static
-
-**Import:** `from juniper import Projection`
-
-## Parameters
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `input_shape` | `tuple` | Yes | Shape of the input |
-| `output_shape` | `tuple` | Yes | Desired output shape |
-| `axis` | `tuple` | Yes | Axes to expand into or compress from |
-| `order` | `tuple` | Yes | Permutation order for the final reorder |
-| `compression_type` | `str` | Yes | Aggregation for compression: `"Sum"`, `"Average"`, `"Maximum"`, `"Minimum"` |
-
-## Slots
-
-| Slot | Direction | Shape | Description |
-|------|-----------|-------|-------------|
-| `in0` | Input | `input_shape` | Input array |
-| `out0` | Output | `output_shape` | Projected array |
+The semantics of the axis parameter changes depending if the input in expanded or contracted. In the contraction case, the axis parameter specifies which of the axes of the input tensor should
+be summed over. In the case of an expansion, the axis parameter specifies the position of the added axis (before reorder). The shape of the added axis will be chosen according to the output_shape.
 
 ## Example
+- input_shape = (12,11)
+- output_shape = (10,11,12)
+- axis = (2,)
+- order = (2,1,0)
+- The axis parameter says that a new axis will be added to the input array at position 2. The size of this axis is chosen from the output shape. Here the pos 2 axis maps
+onto the 0th axis in the output array. So the new axis will have size 10. After expansion the axis of the expanded input array are reordered to match the output.
+
+## Parameters    
+- input_shape : tuple(Nx,Ny,...)
+- output_shape : tuple(Nx,Ny,Nz, ...)
+- axis : tuple(axi,axj,...)
+- order : tuple(axj,axi,...)
+- compression_type : str(Sum,Average,Maximum,Minimum)
+
+## Slots
+- in0: jnp.array(input_shape)
+- out0: jnp.ndarray(output_shape)
+
+## Import
 
 ```python
-# Compress 3D (50,50,25) to 1D (50,) by summing axes 1 and 2
-proj = Projection("proj", {
-    "input_shape": (50, 50, 25),
-    "output_shape": (50,),
-    "axis": (1, 2),
-    "order": (0,),
-    "compression_type": "Sum",
-})
-source >> proj
+from juniper import Projection
 ```

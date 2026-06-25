@@ -1,11 +1,12 @@
-from ..configurables.Step import Step
+import logging
+from ..core.frontend.Step import Step
 from ..util import util
 from ..util import util_jax
 import jax.numpy as jnp
-import jax
-from functools import partial
-import numpy as np
+from ..core.backend.Exceptions import JuniperConfigurationError
 
+
+logger = logging.getLogger(__name__)
 def no_reward_gating(passedTime, reward_signal, reward_onset, reward_timer, reward_duration):
     return util_jax.ones((1,)), util_jax.ones((1,)), util_jax.zeros((1,))
 
@@ -58,28 +59,21 @@ BIDIR_MAP = {
 }
 
 def make_reward_func(params, static):
-    static_argnames_rew = []
-    if static:
-        static_argnames_rew = ['reward_duration']
     try:
         _reward_func = REWARD_MAP[params["reward_type"]]
     except KeyError:
-        raise ValueError(
+        raise JuniperConfigurationError(
             f"Unknown reward setting: {params['reward_type']}. "
-            f"Supported settings are: {', '.join(REWARD_MAP)}"
+            f"Supported settings are: {', '.join(REWARD_MAP)} "
             )
-    return partial(jax.jit, static_argnames=static_argnames_rew)(_reward_func)
+    return _reward_func
 
 def make_euler_func(params, static):
-    static_argnames_euler = []
-    if static:
-        static_argnames_euler = ["tau", "tau_decay", "learning_rate"]
-
     # Choose update term based on learning rule
     try:
         learning_rule = LEARNING_RULE_MAP[params["learning_rule"]]
     except KeyError:
-        raise ValueError(
+        raise JuniperConfigurationError(
             f"Unknown learning rule: {params['learning_rule']}. "
             f"Supported learning rules are: {', '.join(LEARNING_RULE_MAP)}"
             )
@@ -88,7 +82,7 @@ def make_euler_func(params, static):
     try:
         output_rev_func = BIDIR_MAP[params["bidirectional"]]
     except KeyError:
-        raise ValueError(
+        raise JuniperConfigurationError(
             f"Invalid setting for bidirectionality: {params['bidirectional']}. "
             f"Supported functions are: {', '.join(BIDIR_MAP)}"
             )
@@ -113,7 +107,7 @@ def make_euler_func(params, static):
         
         return output, output_rev, wheight_mat
 
-    return partial(jax.jit, static_argnames=static_argnames_euler)(eulerStep)
+    return eulerStep
 
 euler_func = None
 reward_func = None
@@ -131,9 +125,6 @@ def euler_func_singleton(static, params):
 def compute_kernel_factory(params, delta_t):
     _euler_func, _reward_func = euler_func_singleton(util_jax.cfg['euler_step_static_precompile'], params)
     def compute_kernel(input_mats, buffer, **kwargs):
-        if "prng_key" not in kwargs:
-            raise Exception("prng_key is a mandatory kwarg to dynamic compute()")
-
         prng_key = kwargs["prng_key"]
         source_mat = input_mats[util.DEFAULT_INPUT_SLOT]
         target_mat = input_mats["in1"]
@@ -163,7 +154,7 @@ class HebbianConnection(Step):
 
     Parameters
     ---------
-    - shape : tuple((Nx,Ny,...))
+    - source_shape : tuple((Nx,Ny,...))
     - target_shape : tuple((Nx,...))
     - tau (optional) : float
         - Default = 0.01
@@ -182,89 +173,62 @@ class HebbianConnection(Step):
 
     Step Input/Output slots
     ---------
-    - in0: jnp.array(shape)
+    - in0: jnp.array(source_shape)
     - in1: jnp.array(target_shape)
     - in2: jnp.array((1,))
     - in3 (optional): jnp.array((1,))
     - out0: jnp.array(target_shape)
-    - out1: jnp.array(shape)
+    - out1: jnp.array(source_shape)
     """
-    def __init__(self, name : str, params : dict):
-        mandatory_params = ["shape", "target_shape"]
-        super().__init__(name, params, mandatory_params=mandatory_params, is_dynamic=True)
+    _tau = util_jax.get_config()["delta_t"] * 10
+    _tau_decay = _tau * 10
+    _learning_rate = 0.1
+    _learning_rule = "instar"
+    _bidirectional = True
+    _reward_type = "no_reward"
+    _reward_duration = (0,1)
+    _wheight_reset_slot = False
+    def __init__(self, 
+                 name : str,
+                 source_shape : tuple[int,...],
+                 target_shape : tuple[int,...],
+                 tau : float = _tau,
+                 tau_decay : float = _tau_decay,
+                 learning_rate : float = _learning_rate,
+                 learning_rule : float = _learning_rule,
+                 bidirectional : bool = _bidirectional,
+                 reward_type : str = _reward_type,
+                 reward_duration : tuple[int,int] = _reward_duration,
+                 wheight_reset_slot : bool = _wheight_reset_slot):
+        params = locals().copy()
+        mandatory_params = ["source_shape", "target_shape"]
+        super().__init__(name, params, mandatory_params, is_dynamic=True)
 
-        if "tau" not in self._params.keys():
-            self._params["tau"] = 0.01
-        if "tau_decay" not in self._params.keys():
-            self._params["tau_decay"] = 0.1
-        if "learning_rate" not in self._params.keys():
-            self._params["learnig_rate"] = 0.1
-        if "learning_rule" not in self._params.keys():
-            self._params["learning_rule"] = "instar"
-        if "bidirectional" not in self._params.keys():
-            self._params["bidirectional"] = True
-        if "reward_type" not in self._params.keys():
-            self._params["reward_type"] = "no_reward"
-        if "reward_duration" not in self._params.keys():
-            self._params["reward_duration"] = [0,1]
-        if "wheight_reset_slot" not in self._params.keys():
-            self._params["wheight_reset_slot"] = False
-
-
-        self._params["wheight_shape"] = self._params["shape"] + self._params["target_shape"]
+        self._params["wheight_shape"] = source_shape + target_shape
         self._params["scalar_shape"] = (1,)
-        self._params["reward_duration"] = tuple(self._params["reward_duration"]) 
+        self._params["reward_duration"] = tuple(reward_duration) 
 
         self.needs_input_connections = True
-        self._max_incoming_connections[util.DEFAULT_INPUT_SLOT] = 3
+        self.set_max_incoming_connections(util.DEFAULT_INPUT_SLOT, 3)
         self._delta_t = util_jax.get_config()["delta_t"]
         self.compute_kernel = compute_kernel_factory(self._params, self._delta_t)
 
-        #self.register_input(util.DEFAULT_INPUT_SLOT) # source activation
-        self.register_input("in1") # target activaiton
-        self.register_input("in2") # reward signal
-        if self._params["wheight_reset_slot"]: self.register_input("in3") # weight reset signal: should be a binary scalar signal. Gets multiplied with weights each step.
-        self.register_output("out1") # rev_output
+        #self.register_input_slot(util.DEFAULT_INPUT_SLOT) # source activation
+        self.register_input_slot("in1") # target activaiton
+        self.register_input_slot("in2") # reward signal
+        if self._params["wheight_reset_slot"]: 
+            self.register_input_slot("in3") # weight reset signal: should be a binary scalar signal. Gets multiplied with weights each step.
+        self.register_output_slot("out1") # rev_output
 
-        self.register_buffer("wheights", "wheight_shape", save=True) # dynamic wheight parameter
-        self.register_buffer("reward_timer", "scalar_shape") # time since reward onset
-        self.register_buffer("reward_onset", "scalar_shape") # reward onset
+        self.register_buffer("wheights", self._params["wheight_shape"], permanent=True) # dynamic wheight parameter
+        self.register_buffer("reward_timer", self._params["scalar_shape"]) # time since reward onset
+        self.register_buffer("reward_onset", self._params["scalar_shape"]) # reward onset
+        if self._params["reward_type"] == "reward_gated":
+            self.buffer_map["reward_onset"].dtype = jnp.bool
 
-        self.buffer_to_save = ["wheights"]
-        self.cpu_buffer = {}
-
-        self.reset()
-        
-
-    def compute(self, input_mats, **kwargs):
-        if "prng_key" not in kwargs:
-            raise Exception("prng_key is a mandatory kwarg to dynamic compute()")
-
-        prng_key = kwargs["prng_key"]
-        source_mat = input_mats[util.DEFAULT_INPUT_SLOT]
-        target_mat = input_mats["in1"]
-        reward_signal = input_mats["in2"]
-        
-        # Computation
-        reward, onset, timer = self._reward_func(self._delta_t, reward_signal, self.buffer["reward_onset"], self.buffer["reward_timer"], self._params["reward_duration"])
-        output, output_rev, wheights = self._euler_func(self._delta_t, prng_key, self.buffer["wheights"], source_mat, target_mat, reward, self._params["learning_rate"], self._params["tau"], self._params["tau_decay"])
-
-        # Return output and buffer update
-        return {util.DEFAULT_OUTPUT_SLOT: output, "out1": output_rev, 
-                "wheights": wheights, "reward_timer": timer, "reward_onset": onset}
-    
-    def reset(self): # Override default reset, to handle shapes of buffer explicitly.
-        self.buffer["wheights"] = util_jax.zeros(self._params["shape"]+self._params["target_shape"])
-        self.buffer["reward_timer"] = util_jax.zeros((1,))
-        self.buffer["reward_onset"] = util_jax.zeros((1,))
-        self.reset_buffer(util.DEFAULT_OUTPUT_SLOT, slot_shape="target_shape")
-        self.reset_buffer("out1", slot_shape="shape")
-        self.cpu_buffer["wheights"] = np.array(self.buffer["wheights"])
-        reset_state = {}
-        reset_state["wheights"] = self.buffer["wheights"]
-        reset_state["reward_timer"] = self.buffer["reward_timer"]
-        reset_state["reward_onset"] = self.buffer["reward_onset"]
-        reset_state[util.DEFAULT_OUTPUT_SLOT] = self.buffer[util.DEFAULT_OUTPUT_SLOT]
-        reset_state["out1"] = self.buffer["out1"]
-        return reset_state
-
+    def infer_output_shapes(self, input_specs):
+        out1_shape = tuple(self._params["source_shape"]) if self._params["bidirectional"] else tuple(self._params["target_shape"])
+        return {
+            util.DEFAULT_OUTPUT_SLOT: tuple(self._params["target_shape"]),
+            "out1": out1_shape,
+        }
