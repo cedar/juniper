@@ -141,6 +141,7 @@ class Engine:
             t_trace, _ = timer(self._tick)(self.state.state_tree, self. prng_tree)
             JAXTRACECOUNTER += 1
 
+            t_warmup = 0
             if warmup > 0:
                 t_warmup, _ = timer(self.run_simulation)(num_steps=warmup, steps_to_record=[], print_timing=False)
                 self.reset_state()
