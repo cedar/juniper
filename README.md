@@ -35,14 +35,7 @@ For development from a local checkout:
 ```bash
 git clone https://github.com/cedar/juniper.git
 cd juniper
-pip install -e .
-```
-
-Development and documentation extras are available:
-
-```bash
-pip install -e ".[dev]"
-pip install -e ".[docs]"
+pip install -e .[cudaXX]
 ```
 
 The documentation uses Material for MkDocs:

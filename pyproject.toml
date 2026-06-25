@@ -13,8 +13,6 @@ dependencies = ["jax", "jaxlib", "matplotlib", "flax", "flaxmodels"]
 [project.optional-dependencies]
 cpu = []
 dev = ["pytest", "ruff", "mypy"]
-docs = ["mkdocs", "mkdocs-material"]
-vis = ["flaxmodels", "pillow"]
 
 cuda12 = [
   "jax[cuda12]"
