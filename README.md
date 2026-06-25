@@ -1,8 +1,19 @@
 # JUNIPER
 
-JUNIPER is a GPU-accelerated Python framework for building and simulating CEDAR-style Dynamic Field Theory architectures with JAX.
+Welcome to JUNIPER, the GPU Accelerated Python Implementation of CEDAR
 
-It provides a graph-based API for composing sources, processing steps, nested circuits, sinks, and reusable configurables. Architectures are compiled into JAX kernels and run through a fixed-step simulation engine with recording, plotting, persistent buffers, TCP I/O, and structured error types.
+## Requirements
+
+- Python >= 3.9
+- JAX and jaxlib
+- A CUDA-capable GPU is recommended for accelerated runs, but CPU execution is supported by JAX.
+
+Check available JAX devices with:
+
+```python
+import jax
+print(jax.devices())
+```
 
 ## Installation
 
@@ -93,31 +104,3 @@ JUNIPER also includes `run.py` for running architecture files from the command l
 ```bash
 python run.py path/to/architecture.py --num_ticks 500 --recording field
 ```
-
-The MkDocs pages under `docs/docs` contain the current architecture guide, step reference, backend/frontend API notes, error hierarchy, and changelog.
-
-## Logging
-
-JUNIPER uses Python's standard logging system. Optional setup helpers are exported from `juniper`:
-
-```python
-import logging
-from juniper import init_logging, init_logging_to_file
-
-init_logging(level=logging.INFO)
-init_logging_to_file("juniper.log", level=logging.DEBUG)
-```
-
-## Requirements
-
-- Python >= 3.9
-- JAX and jaxlib
-- A CUDA-capable GPU is recommended for accelerated runs, but CPU execution is supported by JAX.
-
-Check available JAX devices with:
-
-```python
-import jax
-print(jax.devices())
-```
-
