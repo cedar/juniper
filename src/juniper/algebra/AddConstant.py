@@ -10,8 +10,6 @@ def compute_kernel_factory(params):
         input = input_mats[util.DEFAULT_INPUT_SLOT]
         output = input + params["constant"]
         return {util.DEFAULT_OUTPUT_SLOT: output}
-    
-    some_ruff_trigger = 0
     return compute_kernel
 
 
