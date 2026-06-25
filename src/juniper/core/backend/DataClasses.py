@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Any
 from typing import Callable
 from typing import Union
-from typing import TypeAlias
 
 
 from ..frontend.Element import Element
@@ -38,7 +37,7 @@ StateTree = dict[ElementPath, dict[str, Any]]
 
 
 TimingInfo = dict[str, Any]
-RecKey : TypeAlias = Union[str, Element, Buffer, Slot]
+RecKey = Union[str, Element, Buffer, Slot]
 
 """DataClasses"""
 @dataclass(frozen=True)
