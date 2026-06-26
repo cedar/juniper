@@ -14,7 +14,7 @@
 - `Circuit` can be used as a context manager for reusable nested graphs.
 - Connections support element objects, slot objects, and string paths.
 - Nested paths use dot notation, such as `controller.field.activation`.
-- Connection validation reports duplicate connections, missing endpoints, and exceeded fan-in limits.
+- Connection validation reports duplicate connections, missing endpoints, and exceeded connection limits.
 
 ### Compilation And Simulation
 

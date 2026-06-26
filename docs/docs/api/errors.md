@@ -10,7 +10,7 @@ JUNIPER exposes domain-specific exception and warning classes. The common classe
 | `JuniperUserError` | User-facing API misuse, such as invalid element names. |
 | `JuniperConfigurationError` | Invalid constructor or configurable parameters. |
 | `CircuitError` | Invalid element, slot, or circuit structure. |
-| `CircuitConnectionError` | Invalid connection, duplicate connection, or exceeded fan-in. |
+| `CircuitConnectionError` | Invalid connection, duplicate connection, or exceeded connection limits. |
 | `CompilerError` | General compilation failure. |
 | `ShapeInferenceError` | A step cannot infer an output shape. |
 | `TypeInferenceError` | A step cannot infer an output dtype. |
