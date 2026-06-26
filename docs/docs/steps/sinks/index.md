@@ -1,6 +1,6 @@
-# Sink Steps
+# Sinks
 
-Runtime outputs and debugging sinks.
+Sinks consume simulation output after each tick. They are used for debugging or external communication.
 
 | Step | Reference |
 |------|-----------|

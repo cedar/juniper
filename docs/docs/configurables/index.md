@@ -1,11 +1,13 @@
 # Configurables
 
-Configurables are parameterizable helper objects used by steps. They do not participate in graph execution by themselves, but they provide kernels, nonlinearities, or transformation logic during step construction. Unlike most steps, configurables currently take parameter dictionaries.
+Configurables are helper objects used when constructing steps. They are not graph elements and do not run as separate nodes during simulation.
 
-| Configurable | Reference |
-|--------------|-----------|
-| `Gaussian` | [Gaussian](gaussian.md) |
-| `LateralKernel` | [LateralKernel](lateral_kernel.md) |
-| `Sigmoid` | [Sigmoid](sigmoid.md) |
-| `FrameGraph` | [FrameGraph](frame_graph.md) |
-| `Transform` | [Transform](transform.md) |
+Unlike most steps, configurables take parameter dictionaries.
+
+| Configurable | Purpose |
+|--------------|---------|
+| `Gaussian` | Builds Gaussian kernels for inputs, convolutions, and neural fields. |
+| `LateralKernel` | Combines multiple kernel objects into one lateral interaction kernel. |
+| `Sigmoid` | Selects one of JUNIPER's built-in transfer functions. |
+| `Transform` | Wraps a function that returns a 4x4 coordinate transform matrix. |
+| `FrameGraph` | Stores named coordinate frames and transform edges. |

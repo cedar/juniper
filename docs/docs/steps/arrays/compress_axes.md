@@ -1,24 +1,25 @@
 # CompressAxes
 
 ```python
-CompressAxes(name: str, axis: tuple, compression_type: str, compress_all: bool=_compress_all)
+CompressAxes(name: str, axis: tuple, compression_type: str, compress_all: bool = False)
 ```
 
-## Description
-Compress incoming step along specified dimension.
-
-## Parameters
-- axis : tuple(ax0,ax1,...)
-- compression_type : str(Sum,Average,Maximum,Minimum)
-- compress_all (optional) : bool
-    - flag to indicate that all input axes will be supressed. This is needed to establish valid output shape.
+Reduces selected axes using a reduction function.
 
 ## Slots
-- in0 : jnp.array()
-- out0 : jnp.array()
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` array |
+| Outputs | `out0` reduced array |
 
 ## Import
 
 ```python
 from juniper import CompressAxes
 ```
+
+## Notes
+
+- Supported reductions are `Sum`, `Average`, `Maximum`, and `Minimum`.
+- Set `compress_all=True` when all input axes are reduced and a length-one output is required.

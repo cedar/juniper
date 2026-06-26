@@ -4,20 +4,21 @@
 TransferFunction(name: str, threshold: float, beta: float, function: str)
 ```
 
-## Description
-Applies a non-linearity.
+Applies a named sigmoid or transfer function to `in0`.
 
-## Parameters-
-- threshold : float
-- beta : float
-- function : str(AbsSigmoid, HeavySideSigmoid, ExpSigmoid, LinearSigmoid, SemiLinearSigmoid, LogarithmicSigmoid)
+## Slots
 
-## Slots-
-- in0 : jnp.ndarray 
-- out0 : jnp.ndarray
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` array |
+| Outputs | `out0` transformed array |
 
 ## Import
 
 ```python
 from juniper import TransferFunction
 ```
+
+## Notes
+
+- Supported functions are listed in the `Sigmoid` configurable page.

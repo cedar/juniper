@@ -1,6 +1,6 @@
-# Algebra Steps
+# Algebra
 
-Mathematical operations on arrays and fields.
+Algebra steps perform scalar and array-valued arithmetic. They are useful for gains, sums, normalization, nonlinearities, and convolution.
 
 | Step | Reference |
 |------|-----------|

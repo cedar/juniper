@@ -4,18 +4,21 @@
 Normalization(name: str, function: str)
 ```
 
-## Description
-Normalizes incoming step using specified norm function.
-
-## Parameters    
-- function : str(InfinityNorm, L1Norm, L2Norm)
+Normalizes `in0` by its norm.
 
 ## Slots
-- Input: jnp.ndarray
-- output: jnp.ndarray
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` array |
+| Outputs | `out0` normalized array |
 
 ## Import
 
 ```python
 from juniper import Normalization
 ```
+
+## Notes
+
+- Supported functions are `InfinityNorm`, `L1Norm`, and `L2Norm`.

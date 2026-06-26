@@ -1,28 +1,24 @@
 # Resize
 
 ```python
-Resize(name: str, output_shape: tuple, interpolation: int=_interpolation)
+Resize(name: str, output_shape: tuple, interpolation: int = 1)
 ```
 
-## Description
-Resizes a Matrix to a new shape. Pixel values are interpolated using linear interpolation.
-
-Note: Interpolation modes are currently limited to linear and nearest neighbor by jax. 
-Note: Currently there is a bug where certain static input will initialize with shape [], leading to an error...
-
-## Parameters
-- output_shape : tuple(Nx,Ny,...)
-- interpolation (optional) : int
-    - Default = 0
-    - 0 -> nearest neighbor
-    - 1 -> linear
+Resizes an array to `output_shape`.
 
 ## Slots
-- in0 : jnp.ndarray 
-- out0 : jnp.ndarray
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` array |
+| Outputs | `out0` resized array |
 
 ## Import
 
 ```python
 from juniper import Resize
 ```
+
+## Notes
+
+- Uses JAX image resize behavior through the step implementation.

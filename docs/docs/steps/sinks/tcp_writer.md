@@ -1,31 +1,29 @@
 # TCPWriter
 
 ```python
-TCPWriter(name: str, ip: str, port: int, shape: tuple, dtype=_dtype, timeout: float=_timeout, buffer_size: int=_buffer_size, time_step: float=_time_step, connect_retry_delay=_connect_retry_delay, max_missed_heartbeats: int=_max_missed_heartbeats, send_on_change_only: bool=_send_on_change_only)
+TCPWriter(
+    name: str,
+    ip: str,
+    port: int,
+    shape: tuple,
+    dtype=numpy.float32,
+    timeout: float = 3,
+    buffer_size: int = 32768,
+    time_step: float = 1 / 30,
+    connect_retry_delay=None,
+    max_missed_heartbeats: int = 3,
+    send_on_change_only: bool = True,
+)
 ```
 
-## Description
-Launches a TCP write communication thread.
+Sends input arrays over TCP through a worker process.
 
-## Parameters-
-- ip :
-- port : 
-- shape (optional) : (Nx,Ny,...)
-    - Default = (0,)
-- timeout [s] (optional) : float
-    - Time until connection times out
-    - Default = 1.0
-- buffer_size [byte] (optional) : int
-    - size of send packets
-    - Default = 32768
-- time_step [s] (optional) : float
-    - wait time between send calls
-    - Default = 1.0
+## Slots
 
-## Slots-
-- in0 : jnp.ndarray
-- out0 : jnp.ndarray
-    - this output is mostly for debugging. May be removed in the future.
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` array with configured `shape` and `dtype` |
+| Outputs | `out0` pass-through output |
 
 ## Import
 
@@ -33,9 +31,7 @@ Launches a TCP write communication thread.
 from juniper import TCPWriter
 ```
 
-## Example
+## Notes
 
-```python
-writer = TCPWriter("writer", ip="127.0.0.1", port=5001, shape=(32,))
-field >> writer
-```
+- Call `arch.close_connections()` after TCP runs in long-lived Python processes.
+- If `connect_retry_delay` is omitted, JUNIPER uses at least the configured `time_step`.

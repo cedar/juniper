@@ -4,14 +4,14 @@
 ComponentMultiply(name: str)
 ```
 
-## Description
-Componentwise multiplication of incoming steps.
-
-## Parameters
+Multiplies all incoming values on `in0` componentwise.
 
 ## Slots
-- in0 : jnp.array()
-- out0 : jnp.array()
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` accepts multiple arrays with compatible shapes |
+| Outputs | `out0` product array |
 
 ## Import
 
@@ -19,9 +19,6 @@ Componentwise multiplication of incoming steps.
 from juniper import ComponentMultiply
 ```
 
-## Example
+## Notes
 
-```python
-a >> product
-b >> product  # inputs are multiplied componentwise
-```
+- Unlike most steps, incoming values are aggregated by product instead of sum.

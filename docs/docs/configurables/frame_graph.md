@@ -1,17 +1,24 @@
 # FrameGraph
 
 ```python
-FrameGraph(params)
+FrameGraph(params={})
 ```
 
-## Description
-A wrapper object to construct a frame graph. The frame graph is a directed graph with coordinate frames as vertices and transformations between frames as edges.
-New frames and transformations can be added by calling the add_edge() function. Once all frames are specified the frame graph can be used to find a 'path' from 
-a source frame to a target frame. Individual transformations will automatically be chained (and inverted if necessary) to produce the transformation from any 
-source to any reachable target frame.
+Stores named coordinate frames and directed transform edges. `CoordinateTransformation` looks up the transform from a source frame to a target frame and applies it during simulation.
 
-## Import
+## Methods
+
+| Method | Description |
+|--------|-------------|
+| `add_edge(source, target, transform)` | Register a transform between two named frames. |
+| `lookup(source, target)` | Return a direct, inverse, or composed transform between frames. |
+
+## Example
 
 ```python
-from juniper.robotics import FrameGraph
+import jax.numpy as jnp
+from juniper.robotics import FrameGraph, Transform
+
+frames = FrameGraph({})
+frames.add_edge("camera", "world", Transform({"M_func": lambda q: jnp.eye(4)}))
 ```

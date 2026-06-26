@@ -1,35 +1,54 @@
 # Backend API
 
-The backend compiles frontend circuits into a runtime representation and executes them through JAX. Most applications use it indirectly through `Architecture.compile()` and `Architecture.run_simulation()`.
+Most applications use the backend through `Architecture.compile()` and `Architecture.run_simulation()`. The backend is responsible for turning a graph into a JAX-executable simulation.
 
 ## Compiler
 
-`Compiler` traverses circuits, resolves connectivity, infers output shapes and dtypes, and builds a `CompileInfo` object which holds meta data information regardings the steps dynamic/static/sink/source properties and its kernels. Compile failures include traced upstream causes when possible, including unresolved inputs, unresolved buffers, cycles, shape inference failures, and dtype inference failures.
+The compiler traverses the architecture, including nested circuits, and builds a `CompileInfo` object. During compilation it validates connections, resolves element paths, infers shapes and dtypes, collects sources and sinks, identifies dynamic elements, and stores the execution order and compute kernels.
 
 `CompileInfo` contains:
 
-| Field | Purpose |
-|-------|---------|
-| `circuit` | Compiled root circuit. |
-| `compiled_elements` | Mapping from element path tuple to `ElementRef`. |
-| `dynamic` / `static` | Ordered refs for dynamic and static computation. |
+| Field | Description |
+|-------|-------------|
+| `circuit` | Root circuit that was compiled. |
+| `compiled_elements` | Mapping from path tuples to `ElementRef` objects. |
+| `dynamic` / `static` | Elements with and without evolving runtime state. |
 | `sources` / `sinks` | Runtime I/O endpoints. |
-| `kernel_map` | Compiled path-to-kernel execution order. |
+| `kernel_map` | Ordered path-to-kernel mapping used by the engine. |
 
 ## Engine
 
-`Engine` owns runtime execution. It allocates `RuntimeState`, manages PRNG keys, opens and closes source/sink connections, jits `_tick`, pushes source data before each tick, pulls sink and recording data after each tick, and saves/loads permanent buffers.
+`Engine` owns the simulation loop. It allocates runtime state, manages PRNG keys, opens and closes runtime I/O, executes the JAX-jitted tick, records requested values, and saves or loads permanent buffers.
+
+A simulation tick does this work:
+
+1. Copy source data into runtime state.
+2. Generate PRNG keys for dynamic elements.
+3. Execute the compiled JAX tick.
+4. Copy sink outputs and recordings back to Python.
 
 `run_simulation` returns a `Recording` and a timing dictionary with `total`, `prng`, `gpu_push`, `gpu_pull`, `tick`, `buffer`, and `num_steps`.
 
-## RuntimeState
+## Runtime State
 
-`RuntimeState` wraps the flat state tree keyed by element path. It can read slots, write source outputs, trace nested state, record targets, and copy the initialized state. Runtime kernels must preserve compiled keys and shapes; returned arrays are converted back to the compiled dtype.
+Runtime state is a flat tree keyed by element path. Each entry stores output slots and buffers for one compiled element. Kernels must return exactly the state entries they own, with stable shapes and compatible dtypes.
 
 ## Recording
 
-`Recording(recording, keys)` stores a list of time-step rows. Useful methods include `get_at_element`, `get_at_elements`, `get_at_step`, `get_in_step_interval`, `slice`, `append`, `save_to_file`, `load_from_file`, and `plot`.
+`Recording(recording, keys)` stores a time-major list of recorded arrays. Useful methods are:
 
-## TCP Backend
+| Method | Description |
+|--------|-------------|
+| `get_at_element(key)` | Keep one recording target. |
+| `get_at_elements(keys)` | Keep several targets. |
+| `get_at_step(step_idx)` | Keep one simulation time step. |
+| `get_in_step_interval((start, stop))` | Keep a time interval. |
+| `slice(keys, interval)` | Filter targets and time interval together. |
+| `append(recording)` | Append compatible recordings. |
+| `save_to_file(path, run_dir=None)` | Save as manifest plus per-step pickle files. |
+| `load_from_file(run_dir)` | Load a saved recording. |
+| `plot(...)` | Plot scalar tikme courses and array snapshots. |
 
-`TCPReader` and `TCPWriter` launch a `TCPWorker` process and communicate through shared memory. Data is serialized in an OpenCV-compatible matrix format with CRC checks, heartbeat handling, retry delays, and shape/dtype validation.
+## TCP Runtime
+
+`TCPReader` and `TCPWriter` use a worker process and shared memory. The worker handles socket setup, retry delays, heartbeat state, data serialization, CRC checks, and shape/dtype validation. Call `arch.close_connections()` after TCP simulations when your process continues running.

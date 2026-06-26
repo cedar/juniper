@@ -1,59 +1,38 @@
 # JUNIPER
 
-**GPU-accelerated neural dynamics and signal-processing architectures in Python.**
 
-JUNIPER builds directed computation graphs from small processing elements, compiles the graph into JAX kernels, and runs fixed-step simulations on CPU/GPU/TPU backends supported by JAX. The library is centered on Dynamic Field Theory, but the step library also covers array operations, image processing, robotics transformations, TCP I/O, recording, and reusable nested circuits.
+Welcome to JUNIPER, the GPU Accelerated Python Implementation of CEDAR.
+JUNIPER is a simulation library for neural dynamic architectures. It combines a small frontend for connecting processing elements with a JAX backend that compiles the graph into simulation kernels.
 
-## Current API Shape
+The library is centered on Dynamic Field Theory, where continuous activation fields evolve over time under input, recurrent interaction, resting dynamics, and noise. JUNIPER also includes general array operations, algebraic transforms, image-processing steps, robotics coordinate transforms, TCP I/O, recording, plotting, and reusable nested circuits.
 
-Most step constructors now use explicit parameters instead of a single parameter dictionary:
+## Minimal Example
 
 ```python
-from juniper import GaussInput, NeuralField, StaticGain, Gaussian, get_arch
+import numpy as np
+import juniper as jp
 
-arch = get_arch()
-source = GaussInput("input", shape=(50,), sigma=(3,), amplitude=5.0)
-gain = StaticGain("gain", factor=0.8)
-field = NeuralField(
-    "field",
-    shape=(50,),
-    resting_level=-5.0,
-    global_inhibition=-0.01,
-    tau=0.1,
-    input_noise_gain=0.1,
-    lateral_kernel=Gaussian({
-        "shape": (50,),
-        "sigma": (3,),
-        "amplitude": 5.0,
-        "normalized": True,
-        "factorized": False,
-    }),
-)
+arch = jp.get_arch("example")
 
-source >> gain >> field
+inp = jp.CustomInput("inp", shape=(50,))
+inp.set_data(np.ones((50,), dtype=np.float32))
+
+field = jp.NeuralField("field", shape=(50,), resting_level=-5.0)
+inp >> field
+
 arch.compile(warmup=1)
-recording, timing = arch.run_simulation(100, steps_to_record=[field])
+recording, timing = arch.run_simulation(
+    num_steps=100,
+    steps_to_record=["field", "field.activation"],
+)
+recording.plot(keys=["field.activation"])
 ```
 
-Configurables such as `Gaussian`, `LateralKernel`, `Sigmoid`, `FrameGraph`, and `Transform` still take parameter dictionaries.
+## Recommended Reading Order
 
-## Highlights
-
-- Explicit constructor API for steps and sources.
-- `Circuit` context managers for reusable nested circuits.
-- Frontend connection syntax with `>>`, `<<`, slot objects, and string paths.
-- Backend compiler with shape/dtype inference and traceable compile-failure reports.
-- JAX-jitted engine with runtime state, PRNG tree management, source/sink I/O, and persistent buffers.
-- `Recording` utilities for slicing, plotting, saving, and loading simulation output.
-- Expanded DFT, image-processing, robotics, TCP, and error/warning APIs.
-
-## Documentation Overview
-
-| Section | Description |
-|---------|-------------|
-| [Installation](guide/installation.md) | Installation and runtime dependencies. |
-| [Building Architectures](guide/architecture.md) | Creating steps, circuits, connections, compilation, recording, and simulation. |
-| [Command-Line Reference](guide/cli.md) | `run.py` command-line usage. |
-| [Steps Reference](steps/index.md) | Built-in source, sink, DFT, array, image, robotics, and algebra steps. |
-| [Configurables](configurables/index.md) | Kernels, sigmoid functions, and robotics frame helpers. |
-| [API Reference](api/frontend.md) | Frontend, backend, recording, errors, and warnings. |
+1. [Installation](guide/installation.md)
+2. [Building Architectures](guide/architecture.md)
+3. [Steps Reference](steps/index.md)
+4. [Configurables](configurables/index.md)
+5. [API Reference](api/index.md)
+6. [Changelog](changelog.md)

@@ -4,18 +4,21 @@
 TimedBoost(name: str, amplitude: float, duration: tuple)
 ```
 
-## Description
-Applies a homogenous boost to connected steps. Start and end of the boost can be specified.
+Outputs a scalar boost during a configured time interval.
 
-## Parameters-
-- amplitude : float
-- duration [ms] : [start,stop]
+## Slots
 
-## Slots-
-- out0 : jnp.ndarray((1,))
+| Slot | Description |
+|------|-------------|
+| Inputs | No input slots |
+| Outputs | `out0` scalar-like boost signal |
 
 ## Import
 
 ```python
 from juniper import TimedBoost
 ```
+
+## Notes
+
+- Uses buffer `local_time` to track elapsed simulation time.

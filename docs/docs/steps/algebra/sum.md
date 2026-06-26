@@ -4,14 +4,14 @@
 Sum(name: str)
 ```
 
-## Description
-Adds incoming steps component wise.
+Sums all incoming values on `in0` componentwise.
 
-## Parameters-
+## Slots
 
-## Slots-
-- in0 : jnp.ndarray 
-- out0 : jnp.ndarray
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` accepts multiple arrays with compatible shapes |
+| Outputs | `out0` sum array |
 
 ## Import
 
@@ -19,10 +19,6 @@ Adds incoming steps component wise.
 from juniper import Sum
 ```
 
-## Example
+## Notes
 
-```python
-a >> total
-b >> total
-c >> total  # inputs are summed on total.in0
-```
+- Use `Sum` to merge branches with the same shape.

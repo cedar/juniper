@@ -1,11 +1,21 @@
 # RemoveBlackWhiteGreys
 
 ```python
-RemoveBlackWhiteGreys(name: str, saturation_threshold: float=_saturation_threshold, value_threshold: float=_value_threshold)
+RemoveBlackWhiteGreys(
+    name: str,
+    saturation_threshold: float = 0.2,
+    value_threshold: float = 0.2,
+)
 ```
 
-A step that removes black, white, and grey pixels 
-(based on value + saturation thresholds) and replaces them with white.
+Suppresses black, white, and grey pixels based on saturation and value thresholds.
+
+## Slots
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` image or HSV-like data |
+| Outputs | `out0` filtered image data |
 
 ## Import
 

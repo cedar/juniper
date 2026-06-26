@@ -1,31 +1,31 @@
 # SpaceToRateCode
 
 ```python
-SpaceToRateCode(name: str, shape: tuple, limits: tuple, tau: float=_tau, cyclic: bool=_cyclic, threshold: float=_threshold)
+SpaceToRateCode(
+    name: str,
+    shape: tuple,
+    limits: tuple,
+    tau: float = 0,
+    cyclic: bool = False,
+    threshold: float = 0.9,
+)
 ```
 
-## Description
-Takes field like array and produces a vector centered at field peak position coordinates. Assumes at most one peak in the input field.
+Converts a spatial activation pattern into a scalar rate code, typically by estimating a peak position within `limits`.
 
-Note: make multiple peaks possible? Make cyclic possible? Implement expoential convergance to attractor
+## Slots
 
-## Parameters-
-- shape : tuple(Nx,Ny,...)
-- limits : tuple((lx,ux), (ly,uy), ...)
-- tau (optional) : float
-    - If set, the output vector will exponentially converge to the peak position. If not, the vector jumps to the attractor in one time-step
-    - Default = 0
-- cyclic (optional) : bool
-    - Default = False
-- threshold (optional) : float
-    - Default = 0.9
-
-## Slots--
-- in0 : jnp.array((Nx,Ny,...))
-- out0 : jnp.array(len(Nx,Ny,...))
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` spatial activation |
+| Outputs | `out0` rate-coded value; buffer `peak_pos` stores the peak estimate |
 
 ## Import
 
 ```python
 from juniper import SpaceToRateCode
 ```
+
+## Notes
+
+- Useful when a field represents a continuous variable and another component needs a compact value.

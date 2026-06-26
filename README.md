@@ -4,96 +4,80 @@ Welcome to JUNIPER, the GPU Accelerated Python Implementation of CEDAR
 
 ## Requirements
 
-- Python >= 3.9
+- Python 3.9 or newer
 - JAX and jaxlib
-- A CUDA-capable GPU is recommended for accelerated runs, but CPU execution is supported by JAX.
+- matplotlib for plotting
+- flax and flaxmodels for the `DNN` step
 
-Check available JAX devices with:
+JAX can run on CPU. A CUDA-capable GPU is recommended for larger simulations.
+
+Check the devices visible to JAX with:
 
 ```python
 import jax
 print(jax.devices())
 ```
 
-## Installation
+## Installation From Source
 
-Once JUNIPER is published to PyPI, install it directly:
+From a local checkout:
 
 ```bash
-pip install juniper
+pip install -e /path/to/juniper
 ```
 
-For CUDA-enabled JAX builds, install the matching extra:
+For CUDA-enabled JAX builds, install the matching optional dependency:
 
 ```bash
-pip install "juniper[cuda12]"
-pip install "juniper[cuda13]"
-```
-
-For development from a local checkout:
-
-```bash
-git clone https://github.com/cedar/juniper.git
-cd juniper
-pip install -e .[cudaXX]
-```
-
-The documentation uses Material for MkDocs:
-
-```bash
-mkdocs build --config-file docs/mkdocs.yml
+pip install -e "/path/to/juniper[cuda12]"
+pip install -e "/path/to/juniper[cuda13]"
 ```
 
 ## Quick Start
 
 ```python
 import numpy as np
-from juniper import CustomInput, Gaussian, NeuralField, StaticGain, get_arch
+import juniper as jp
 
-arch = get_arch("demo")
+arch = jp.get_arch("demo")
 
-source = CustomInput("source", shape=(50,))
+source = jp.CustomInput("source", shape=(50,))
 source.set_data(np.ones((50,), dtype=np.float32))
 
-gain = StaticGain("gain", factor=0.8)
-field = NeuralField(
+field = jp.NeuralField(
     "field",
     shape=(50,),
     resting_level=-5.0,
     global_inhibition=-0.01,
     tau=0.1,
-    input_noise_gain=0.1,
-    lateral_kernel=Gaussian({
-        "shape": (50,),
-        "sigma": (3,),
-        "amplitude": 5.0,
-        "normalized": True,
-        "factorized": False,
-    }),
+    input_noise_gain=0.0,
 )
 
-source >> gain >> field
+source >> field
 
 arch.compile(warmup=1)
 recording, timing = arch.run_simulation(
     num_steps=100,
-    steps_to_record=[field, "field.activation"],
+    steps_to_record=["field", "field.activation"],
 )
+
+fig = recording.plot(keys=["field.activation"])
 ```
 
 ## Core Concepts
 
 - **Architecture**: the top-level circuit returned by `get_arch()`.
-- **Steps**: computation nodes with named input/output slots, such as `StaticGain`, `NeuralField`, `Sum`, `ColorConversion`, and robotics conversion steps.
-- **Sources and sinks**: runtime I/O endpoints such as `CustomInput`, `TCPReader`, `TCPWriter`, and `StaticDebug`.
-- **Circuits**: reusable nested graphs. You can create them inline or subclass `Circuit` and instantiate them like normal steps.
+- **Steps**: computation nodes with named input and output slots.
+- **Sources**: nodes that provide external data to the simulation, such as `CustomInput`, `ImageLoader`, and `TCPReader`.
+- **Sinks**: nodes that receive data from the simulation, such as `TCPWriter`.
+- **Circuits**: reusable nested graphs built from steps and slots.
 - **Configurables**: helper objects such as `Gaussian`, `LateralKernel`, `FrameGraph`, and `Transform`.
-- **Recording**: `run_simulation` returns a `Recording` object with slicing, plotting, save, and load helpers.
+- **Recording**: the result object returned by `run_simulation`, with access, plotting, save, and load helpers.
 
-## Command-Line Usage
+## CLI
 
-JUNIPER also includes `run.py` for running architecture files from the command line:
+The command-line tool can execute architecture files that define `get_architecture()` or `get_architecture(args)`:
 
 ```bash
-python run.py path/to/architecture.py --num_ticks 500 --recording field
+python run.py path/to/architecture.py --num_ticks 500 --recording field field.activation
 ```

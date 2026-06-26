@@ -4,18 +4,21 @@
 ReorderAxes(name: str, order: tuple)
 ```
 
-## Description
-Permutation of the axis of the incoming step.
+Permutes axes of `in0`.
 
-## Parameters-
-- order : tuple(axi,axj,...)
+## Slots
 
-## Slots--
-- in0 : jnp.ndarray
-- out0 : jnp.ndarray
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` array |
+| Outputs | `out0` transposed array |
 
 ## Import
 
 ```python
 from juniper import ReorderAxes
 ```
+
+## Notes
+
+- `order` is passed as the target axis order.

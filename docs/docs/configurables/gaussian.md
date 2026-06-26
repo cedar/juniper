@@ -4,23 +4,32 @@
 Gaussian(params)
 ```
 
-## Description
-A wrapper object for production of nd-gaussians. Can be used as a kernel for neural fields or convolutions. This class is also used by GaussianInput and other steps
-to construct their output. If the Gaussian should be of a specific shape the 'max_shape' and 'shape' parameters should be specified otherwise the shape of the Gaussian
-will be infered from the sigma parameter. Per default the Gaussian will be factorized per dimension, to be used for efficiant convolution. To materialize the full kernel,
-set the factorized parameter to False.
+Creates an n-dimensional Gaussian kernel. Gaussian kernels are used by `GaussInput`, `Convolution`, and `NeuralField`.
 
-## Parameters-
-- sigma : tuple(s1,s2,...)
-- amplitude : float
-- normalized : bool
-- shape (optional) : tuple(Nx,Ny,...)
-- max_shape (optional) : tuple(Mx,My,...)
-- factorized (optional) : bool
-    - Default = True
+## Parameters
 
-## Import
+| Parameter | Description |
+|-----------|-------------|
+| `sigma` | Tuple of standard deviations, one per dimension. |
+| `amplitude` | Kernel amplitude. Negative amplitudes create inhibitory kernels. |
+| `normalized` | If `True`, normalize each component before applying amplitude. |
+| `shape` | Optional explicit kernel shape. If omitted, a size is estimated from `sigma`. |
+| `center` | Optional center index. Defaults to the center of `shape`. |
+| `max_shape` | Optional maximum shape. Oversized kernels are cropped. |
+| `factorized` | If `True`, store separable one-dimensional factors. Defaults to `True`. |
+
+## Example
 
 ```python
-from juniper import Gaussian
+import juniper as jp
+
+kernel = jp.Gaussian({
+    "shape": (50,),
+    "sigma": (3,),
+    "amplitude": 5.0,
+    "normalized": True,
+    "factorized": True,
+})
 ```
+
+Use `factorized=False` when a full materialized kernel is required.

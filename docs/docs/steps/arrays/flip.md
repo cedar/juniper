@@ -4,16 +4,14 @@
 Flip(name: str, axis: tuple)
 ```
 
-## Description
-Flips an input array along specified axes.
-
-## Parameters
-- axis: tuple((ax0,ax1,...))
-    - List of dimensions that should be flipped.
+Reverses `in0` along one or more axes.
 
 ## Slots
-- in0: jnp.array()
-- out0: jnp.array()
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` array |
+| Outputs | `out0` flipped array |
 
 ## Import
 

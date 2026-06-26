@@ -1,46 +1,58 @@
 # Command-Line Reference
 
-JUNIPER can be run via `run.py`, which takes a Python architecture file and simulates it.
+`run.py` executes a Python architecture file from the command line.
 
 ```bash
 python run.py <architecture_file> [options]
 ```
 
-## Mandatory Argument
+The architecture file must define `get_architecture()` or `get_architecture(args)`. The function should build the graph and return the top-level architecture. Returning `None` is also accepted; in that case the current `get_arch()` architecture is used.
 
-| Argument | Description |
-|----------|-------------|
-| `arch` | Path to a `.py` architecture file implementing `get_architecture(args)` or `get_architecture()`. |
+## Example Architecture File
 
-## Optional Arguments
+```python title="my_arch.py"
+import numpy as np
+import juniper as jp
 
-| Argument | Description | Default |
-|----------|-------------|---------|
-| `--cpu` | Force JAX to use CPU instead of GPU. | GPU if available |
-| `--num_ticks N` | Number of simulation time steps. | 10 |
-| `--num_runs N` | Number of full simulation runs. Steps are reset between runs. Useful for benchmarking. | 1 |
-| `--warmup N` | Number of warmup ticks during compilation. | 3 |
-| `--recording name [name ...]` | Record buffers for plotting. Accepts step names (`field1`), slot names (`field1.out0`), or internal buffer names (`field1.activation`). Automatically shows a plot after simulation. | - |
-| `--save_plot` | Save the recording plot to `output/recording_plot.png` instead of displaying it. Only effective with `--recording`. | Off |
-| `--cache_jitted_funcs` | Cache JIT-compiled functions to disk. Reduces compile time on subsequent runs of the same architecture at the cost of disk space. | Off |
-| `--static_euler_compilation` | Pre-compile each NeuralField's euler function individually with fixed parameters. Improves simulation performance at the cost of increased compilation time. Best for tuned architectures running many time steps. | Off |
-| `--arch_args val [val ...]` | Pass arguments to the architecture's `get_architecture(args)` function as a list of strings. | `[]` |
 
-## Examples
+def get_architecture(args=None):
+    arch = jp.get_arch("cli_demo")
+
+    source = jp.CustomInput("source", shape=(1,))
+    source.set_data(np.array([1.0], dtype=np.float32))
+    gain = jp.StaticGain("gain", factor=2.0)
+    source >> gain
+
+    return arch
+```
+
+Run it:
 
 ```bash
-# Basic run
-python run.py architectures/my_arch.py
+python run.py my_arch.py --num_ticks 100 --recording gain
+```
 
-# Run 500 ticks on CPU, record two fields
-python run.py my_arch.py --cpu --num_ticks 500 --recording field1 field2
+## Options
 
-# Save plot and use cached compilation
-python run.py my_arch.py --num_ticks 1000 --recording field1 --save_plot --cache_jitted_funcs
+| Option | Description | Default |
+|--------|-------------|---------|
+| `arch` | Python file containing `get_architecture()`. | Required |
+| `--cpu` | Force JAX to use CPU. | Off |
+| `--num_ticks N` | Number of ticks per run. | `10` |
+| `--num_runs N` | Number of simulation runs. The state is reset between runs. | `1` |
+| `--warmup N` | Warmup ticks during compilation. | `3` |
+| `--recording name [name ...]` | Recording targets, such as `field`, `field.out0`, or `field.activation`. | None |
+| `--save_plot` | Save the recording plot to `output/recording_plot.png`. | Off |
+| `--cache_jitted_funcs` | Enable JAX persistent compilation cache in the repository cache folder. | Off |
+| `--static_euler_compilation` | Precompile individual neural-field Euler functions. | Off |
+| `--arch_args val [val ...]` | Strings passed to `get_architecture(args)`. | `[]` |
 
-# Pass arguments to the architecture script
-python run.py my_arch.py --arch_args 3 5x5 1x1
+## Common Commands
 
-# Optimized long run
-python run.py my_arch.py --num_ticks 10000 --static_euler_compilation
+```bash
+python run.py my_arch.py
+python run.py my_arch.py --cpu --num_ticks 500
+python run.py my_arch.py --num_ticks 1000 --recording field field.activation
+python run.py my_arch.py --recording field --save_plot
+python run.py my_arch.py --arch_args 3 50x50
 ```

@@ -1,20 +1,24 @@
 # StaticDebug
 
 ```python
-StaticDebug(name: str, shape: tuple=_shape)
+StaticDebug(name: str, shape: tuple = (1,))
 ```
 
-## Description
-An empty dynamic step to be used as a sink for static steps to force their computation even when not connected to any field.
-
-Parameters
+A sink that stores its latest input for inspection and can force a branch to be evaluated.
 
 ## Slots
-- Input: any
-- output: any
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` array |
+| Outputs | `out0` pass-through/debug output |
 
 ## Import
 
 ```python
 from juniper import StaticDebug
 ```
+
+## Notes
+
+- Primarily useful when checking static branches or runtime data movement.

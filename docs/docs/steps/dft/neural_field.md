@@ -1,26 +1,17 @@
 # NeuralField
 
 ```python
-NeuralField(name: str, shape: tuple[int, ...], sigmoid: str=_sigmoid, beta: int=_beta, theta: float=_theta, resting_level: float=_resting_level, global_inhibition: float=_global_inhibition, input_noise_gain: float=0, tau: float=_tau, lateral_kernel: LateralKernel | None=_lateral_kernel)
+NeuralField(name: str, shape: tuple, sigmoid="AbsSigmoid", beta=100, theta=0, resting_level=-5, global_inhibition=0, input_noise_gain=0, tau=0.02, lateral_kernel=None)
 ```
 
-## Description
-Neural Field step. 
-
-## Parameters    
-- shape : tuple(Nx,Ny,...)
-- sigmoid (optional) : str(AbsSigmoid, HeavySideSigmoid, ExpSigmoid, LinearSigmoid, SemiLinearSigmoid, LogarithmicSigmoid)
-- beta (optional) : float
-- theta (optional) : float
-- resting_level (optional) : float
-- global_inhibition (optional) : float
-- input_noise_gain (optional) : float
-- tau (optional) [ms] : float
-- LateralKernel (optional) : LateralKernel or Gaussian
+Simulates a dynamic neural field with activation state, input drive, optional lateral interaction, global inhibition, resting level, and noise.
 
 ## Slots
-- Input: jnp.ndarray(shape)
-- output: jnp.ndarray(shape)
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` field input |
+| Outputs | `out0` transfer-function output; buffer `activation` stores the field state |
 
 ## Import
 
@@ -28,8 +19,7 @@ Neural Field step.
 from juniper import NeuralField
 ```
 
-## Example
+## Notes
 
-```python
-field = NeuralField("field", shape=(50,), lateral_kernel=Gaussian({"shape": (50,), "sigma": (3,), "amplitude": 5.0}))
-```
+- The activation update is integrated with the configured simulation time step.
+- Use `lateral_kernel` for recurrent interaction.

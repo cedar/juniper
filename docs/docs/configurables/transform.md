@@ -1,28 +1,18 @@
 # Transform
 
 ```python
-Transform(params)
+Transform({"M_func": callable})
 ```
 
-## Description
-A wrapper object for a rigid coordinate transformation. The coordinate transformation is given as a function that 
-parametarizes the transformation according to the kinematics of the space (i.e. joint states). The function should 
-return a 4x4 rigid transformation matrix for any given joint state. The compute function takes a set of vectors and
-a joint state to transform the vectors into a new coordinate frame.
+Wraps a function that maps a joint state to a 4x4 homogeneous transformation matrix. `CoordinateTransformation` uses `Transform` objects through a `FrameGraph`.
 
-This object is used to construct a frame graph, which can be used by the CoordinateTransformation step.
-
-## Parameters-
-- M_func: function object 
-    - eg. lambda joint_state: jnp.eye(4) (identity)
-
-## Compute
-- input_vec : jnp.ndarray((N,3))
-- joint_state : jnp.ndarray
-- out : jnp.ndarray((N,3))
-
-## Import
+## Example
 
 ```python
+import jax.numpy as jnp
 from juniper.robotics import Transform
+
+identity = Transform({"M_func": lambda joint_state: jnp.eye(4)})
 ```
+
+The transform kernel expects points with shape `(N, 3)` and returns transformed points with shape `(N, 3)`.

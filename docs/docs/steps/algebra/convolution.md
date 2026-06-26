@@ -1,21 +1,17 @@
 # Convolution
 
 ```python
-Convolution(name: str, kernel=_kernel, mode: str=_mode)
+Convolution(name: str, kernel=None, mode: str = "same")
 ```
 
-## Description
-Convolution of incoming step with kernel. The kernel can be given directly as a static kernel object (ie. Gaussian) or via an input connection as a dynamic kernel.
-
-## Parameters
-- kernel (optional) : LateralKernel
-    - A dynamic kernel via input is used if this kernel is unspecified.
-- mode (optional) : str(same)
-    - Default = same
+Convolves `in0` with a static or dynamic kernel using JAX FFT convolution.
 
 ## Slots
-- in0 : jnp.array()
-- out0 : jnp.array()
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` input array; `in1` kernel array when `kernel=None` |
+| Outputs | `out0` convolved array |
 
 ## Import
 
@@ -23,9 +19,7 @@ Convolution of incoming step with kernel. The kernel can be given directly as a 
 from juniper import Convolution
 ```
 
-## Example
+## Notes
 
-```python
-conv = Convolution("conv", kernel=Gaussian({"shape": (21,), "sigma": (3,), "amplitude": 1.0, "normalized": True}))
-# or omit kernel and connect a dynamic kernel to conv.in1
-```
+- `kernel` can be a configurable object such as `Gaussian` or `LateralKernel`.
+- `mode` follows `jax.scipy.signal.fftconvolve`: `same`, `full`, or `valid`.

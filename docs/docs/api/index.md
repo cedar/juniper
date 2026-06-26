@@ -1,9 +1,9 @@
 # API Reference
 
-Use these pages when you need the library architecture rather than a single step:
+The API reference explains the core objects behind architecture construction and execution. For individual processing elements, use the [Steps Reference](../steps/index.md).
 
 | Page | Contents |
 |------|----------|
-| [Frontend](frontend.md) | `Architecture`, `Circuit`, `Element`, `Step`, slots, connections, and configurables. |
-| [Backend](backend.md) | `Compiler`, `Engine`, `RuntimeState`, `CompileInfo`, recording, and TCP backend. |
-| [Errors And Warnings](errors.md) | Exception and warning hierarchy. |
+| [Frontend](frontend.md) | Architecture, circuits, elements, slots, connections, sources, sinks, and configurables. |
+| [Backend](backend.md) | Compilation, runtime state, simulation loop, recording, buffers, timing, and TCP execution. |
+| [Errors And Warnings](errors.md) | Public exception and warning classes. |

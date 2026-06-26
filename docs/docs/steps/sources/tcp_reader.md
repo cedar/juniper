@@ -1,29 +1,29 @@
 # TCPReader
 
 ```python
-TCPReader(name: str, ip: str, port: int, shape: tuple, dtype=_dtype, timeout: float=_timeout, buffer_size: int=_buffer_size, time_step: float=_time_step, connect_retry_delay=_connect_retry_delay, max_missed_heartbeats: int=_max_missed_heartbeats, send_on_change_only: bool=_send_on_change_only)
+TCPReader(
+    name: str,
+    ip: str,
+    port: int,
+    shape: tuple,
+    dtype=numpy.float32,
+    timeout: float = 3,
+    buffer_size: int = 32768,
+    time_step: float = 1 / 30,
+    connect_retry_delay=None,
+    max_missed_heartbeats: int = 3,
+    send_on_change_only: bool = True,
+)
 ```
 
-## Description
-Launches a TCP read communication thread.
+Receives arrays from a TCP connection through a worker process.
 
-## Parameters-
-- ip :
-- port : 
-- shape (optional) : (Nx,Ny,...)
-- Default = (0,)
-- timeout [s] (optional) : float
-    - Time until connection times out
-    - Default = 1.0
-- buffer_size [byte] (optional) : int
-    - size of send packets
-    - Default = 32768
-- time_step [s] (optional) : float
-    - wait time between send calls
-    - Default = 1.0
+## Slots
 
-## Slots-
-- out0 : jnp.ndarray
+| Slot | Description |
+|------|-------------|
+| Inputs | No input slots |
+| Outputs | `out0` array with configured `shape` and `dtype` |
 
 ## Import
 
@@ -31,8 +31,7 @@ Launches a TCP read communication thread.
 from juniper import TCPReader
 ```
 
-## Example
+## Notes
 
-```python
-reader = TCPReader("camera", ip="127.0.0.1", port=5000, shape=(480, 640, 3))
-```
+- Call `arch.close_connections()` after TCP runs in long-lived Python processes.
+- If `connect_retry_delay` is omitted, JUNIPER uses at least the configured `time_step`.

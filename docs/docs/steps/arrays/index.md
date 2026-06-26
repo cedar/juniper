@@ -1,6 +1,6 @@
-# Array Steps
+# Arrays
 
-Shape, axis, slicing, projection, and value transformations.
+Array steps change array values, dimensions, axis order, shape, or representation while preserving JAX-compatible execution.
 
 | Step | Reference |
 |------|-----------|

@@ -1,32 +1,34 @@
 # RateToSpaceCode
 
 ```python
-RateToSpaceCode(name: str, shape: tuple[int, ...], limits: tuple[int, ...], center: tuple[int, ...]=_center, amplitude: float=_amplitude, sigma: tuple[int, ...]=_sigma, cyclic: bool=_cyclic)
+RateToSpaceCode(
+    name: str,
+    shape: tuple,
+    limits: tuple,
+    center: tuple | None = None,
+    amplitude: float = 1.0,
+    sigma: tuple | None = None,
+    cyclic: bool = False,
+)
 ```
 
-## Description
-Takes a vector and produces a Gaussian centered at corresponding field coordinates.
+Converts a scalar or low-dimensional rate code into a spatial Gaussian activation pattern.
 
-Note: Implement cyclic mode.
+## Slots
 
-## Parameters-
-- shape : tuple(Nx,Ny,...)
-- limits : tuple((lx,ux), (ly,uy), ...)
-- center (optional): tuple(x,y,z)
-    - Default = tuple((ux+lx)/2, (uy+ly)/2, ...)
-- amplitude (optional) : float
-    - Default = 1.0
-- sigma (optional) : tuple(sx,sy,...)
-    - Default = (1.0,1.0,...)
-- cyclic (optional) : bool
-    - Default = False
-
-## Slots--
-- in0 : jnp.ndarray(len(shape))
-- out0 : jnp.ndarray(shape)
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` rate-coded value |
+| Outputs | `out0` spatial activation with `shape` |
 
 ## Import
 
 ```python
 from juniper import RateToSpaceCode
 ```
+
+## Notes
+
+- `limits` define the represented value range.
+- If `center` is omitted, the midpoint of each limit interval is used.
+- If `sigma` is omitted, a width of `1.0` is used in each dimension.

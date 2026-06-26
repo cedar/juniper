@@ -4,17 +4,14 @@
 PointCloudToRangeImage(name: str, image_shape: tuple, pan_range: tuple, tilt_range: tuple)
 ```
 
-## Description
-Converts a point cloud into a range image.
-
-## Parameters--
-  - pan (azimuth) : [pan_low, pan_high]
-  - tilt (polar) :  [tilt_low, tilt_high]
-  - image_shape : (n_tilt, n_pan)  [Y, X]
+Projects a point cloud into a range image.
 
 ## Slots
-- in0: jnp.ndarray(H*W,3)
-- out0: jnp.ndarray(image_shape)
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` point cloud with shape `(N, 3)` |
+| Outputs | `out0` range image with `image_shape` |
 
 ## Import
 

@@ -4,15 +4,14 @@
 StaticGain(name: str, factor: float)
 ```
 
-## Description
-Multiplies input with constant factor.
+Multiplies `in0` by a constant factor.
 
-## Parameters-
-- factor : float
+## Slots
 
-## Slots-
-- in0 : jnp.ndarray 
-- out0 : jnp.ndarray
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` array |
+| Outputs | `out0` array with the same shape as `in0` |
 
 ## Import
 

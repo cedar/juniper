@@ -1,22 +1,24 @@
 # DemoInput
 
 ```python
-DemoInput(name: str, shape: tuple, sigma: tuple, amplitude: float, center=_center)
+DemoInput(name: str, shape: tuple, sigma: tuple, amplitude: float, center=None)
 ```
 
-## Description
-DemoInput is a GaussInput that can be customized during runtime.
-
-## Parameters
-- shape : tuple((Nx,Ny,...))
-- sigma : float
-- amplitude : amplitude
+Provides a generated demonstration input pattern.
 
 ## Slots
-- out0 : jnp.array(shape)
+
+| Slot | Description |
+|------|-------------|
+| Inputs | No input slots |
+| Outputs | `out0` generated array with `shape` |
 
 ## Import
 
 ```python
 from juniper import DemoInput
 ```
+
+## Notes
+
+- Use `GaussInput` or `CustomInput` for most explicit input definitions.

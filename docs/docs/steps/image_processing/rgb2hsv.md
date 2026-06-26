@@ -4,16 +4,14 @@
 RGB2HSV(name: str)
 ```
 
-## Description
-Converts an RGB image into 3 HSV channels.
-
-## Parameters
+Converts RGB image data to HSV-like channel outputs.
 
 ## Slots
-- in0: jnp.array()
-- out0: jnp.array()
-- out1: jnp.array()
-- out2: jnp.array()
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` RGB image array |
+| Outputs | `out0`, `out1`, `out2` channel outputs |
 
 ## Import
 

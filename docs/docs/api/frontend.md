@@ -1,50 +1,68 @@
 # Frontend API
 
-The frontend is the user-facing graph-building layer. It lives under `juniper.core.frontend` and is re-exported through `juniper` where appropriate.
+The frontend is the graph-building layer. Most user code interacts with the classes re-exported from `juniper`.
 
 ## Architecture
 
-`get_arch(name: str | None = None)` returns the singleton top-level `Architecture`. `delete_arch()` clears it, which is useful in tests and notebooks.
+`get_arch(name=None)` returns the singleton top-level `Architecture`. `delete_arch()` clears the singleton and is useful in notebooks and tests.
 
-`Architecture` inherits from `Circuit` and adds:
+`Architecture` adds runtime methods to `Circuit`:
 
-| Method | Purpose |
-|--------|---------|
-| `compile(warmup=0, print_compile_info=False, load_buffer=False)` | Compile the graph and initialize runtime state. |
+| Method | Description |
+|--------|-------------|
+| `compile(warmup=0, print_compile_info=False, load_buffer=False)` | Compile the graph, allocate runtime state, optionally load permanent buffers, and trace the JAX tick. |
 | `run_simulation(num_steps, steps_to_record=[], print_timing=True, save_buffer=False)` | Run fixed-step simulation and return `(Recording, TimingInfo)`. |
-| `reset_state()` | Restore runtime state to post-compilation initial state. |
-| `close_connections()` | Close source/sink connections and worker processes. |
+| `reset_state()` | Restore runtime state to the post-compilation initial state. |
+| `close_connections()` | Close runtime I/O endpoints such as TCP workers. |
+| `set_arch_name(name)` | Change the architecture name used in paths and buffer files. |
 
-## Logging
+## Elements And Steps
 
-JUNIPER uses Python's standard `logging` module throughout the frontend, backend, TCP workers, and step library. This version exposes small setup helpers from `juniper`:
+`Element` is the base class for graph nodes. It owns input and output slots, stores parameters, and carries compiler metadata.
 
-```python
-import logging
-from juniper import init_logging, init_logging_to_file
+`Step` is the base class for computation nodes. A regular step registers default `in0` and `out0` slots. Steps can register additional slots and buffers.
 
-init_logging(level=logging.INFO)
-init_logging_to_file("juniper.log", level=logging.DEBUG)
-```
-
-`init_logging(...)` adds a console handler. `init_logging_to_file(...)` appends logs to a file. These helpers are optional; applications can also configure Python logging directly.
-
-## Element Model
-
-`Element` is the base for graph nodes. It validates names, stores parameters, owns input/output slot maps, and carries compiler metadata: `is_dynamic`, `is_source`, `is_sink`, `needs_input_connections`, `input_aggregation`, and `is_compiled`.
-
-`Step` registers default `in0` and `out0` slots and can register internal buffers. `Source` and `Sink` specialize step behavior for external data exchange.
+`Source` is a step without input slots. It provides data to the runtime before each tick. `Sink` receives data after each tick.
 
 ## Slots And Connections
 
-`Slot` objects belong to elements and are named with strings such as `in0`, `out0`, `learn_node`, or `in1`. Connections are created through `>>`, `<<`, or `Circuit.connect_to(source, dest)`. Connectables can be elements, slots, or strings like `"field.in0"`.
+Slots are named endpoints on elements. Default slots are `in0` and `out0`.
 
-Input aggregation defaults to sum. Steps can change this; `ComponentMultiply` sets aggregation to product. `max_incoming_connections` prevents invalid fan-in unless a step explicitly raises the limit.
+```python
+source >> step
+source.out0 >> step.in0
+step_b << step_a
+source >> "field.in0"
+```
+
+The connection operators accept elements, slot objects, or string paths in the current circuit. Input aggregation is sum by default. A step may define a different aggregation rule, such as product aggregation in `ComponentMultiply`.
 
 ## Circuits
 
-`Circuit` is both an element and a container. Use it as a context manager to set the current parent circuit while declaring internal elements. On exit, `define_circuit_structure()` generates the pass-through kernel and registers the circuit in its parent. Circuit slots bridge parent connections into and out of the nested graph.
+`Circuit` is an element that contains other elements. Use it as a context manager to build nested graphs:
+
+```python
+with jp.Circuit("preprocess") as preprocess:
+    preprocess.register_input_slot("in0")
+    preprocess.register_output_slot("out0")
+    gain = jp.StaticGain("gain", 0.5)
+    preprocess.in0 >> gain >> preprocess.out0
+```
+
+Circuit paths are represented with dots, for example `preprocess.gain.out0`.
 
 ## Configurable
 
-`Configurable` stores `_params`, adds `name`, and validates mandatory parameters. It is used by elements and by helper objects such as `Gaussian`, `LateralKernel`, `Sigmoid`, `FrameGraph`, and `Transform`.
+`Configurable` stores validated parameter dictionaries for helper objects and elements. Public configurable helpers include `Gaussian`, `LateralKernel`, `Sigmoid`, `FrameGraph`, and `Transform`.
+
+## Logging
+
+JUNIPER uses Python logging. Optional setup helpers are available:
+
+```python
+import logging
+import juniper as jp
+
+jp.init_logging(level=logging.INFO)
+jp.init_logging_to_file("juniper.log", level=logging.DEBUG)
+```

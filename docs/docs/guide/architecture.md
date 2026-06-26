@@ -1,119 +1,169 @@
 # Building Architectures
 
-A JUNIPER architecture is a top-level `Architecture`, which is also a `Circuit`: a directed graph of elements connected through named slots. Steps perform computation, sources push external data into the runtime state, sinks pull data out, and nested circuits package reusable subgraphs.
+A JUNIPER architecture is a directed graph of connected elements. Sources provide data, steps compute outputs, sinks consume outputs, and circuits group elements into reusable subgraphs.
+
+The usual workflow is:
+
+1. Create or retrieve the top-level architecture.
+2. Instantiate sources, steps, sinks, and optional nested circuits.
+3. Connect elements through slots.
+4. Compile the architecture.
+5. Run a fixed number of simulation ticks.
+6. Inspect, plot, or save recordings.
 
 ## Top-Level Architecture
 
-Use the singleton helpers from `juniper` for the usual workflow:
-
 ```python
-from juniper import get_arch, delete_arch
+import juniper as jp
 
-delete_arch()          # useful in tests or notebooks
-arch = get_arch("demo")
+arch = jp.get_arch("demo")
 ```
 
-When an `Architecture` exists, newly created steps are registered in the current circuit automatically. The top-level architecture cannot have dangling input or output slots; use sources and sinks for external communication.
-
-## Creating Steps
-
-Most steps now take explicit constructor parameters:
+`get_arch()` returns a singleton top-level `Architecture`. New elements are registered in the currently active circuit. In scripts and notebooks, use `delete_arch()` before building a separate architecture in the same Python process.
 
 ```python
-from juniper import CustomInput, StaticGain, Sum
-
-signal = CustomInput("signal", shape=(32,))
-gain = StaticGain("gain", factor=2.0)
-merge = Sum("merge")
+jp.delete_arch()
+arch = jp.get_arch("second_demo")
 ```
 
-Every element name must be unique in its parent circuit and must not contain dots. Configurable helper objects such as `Gaussian` and `LateralKernel` still take dictionaries because they are not graph elements.
+The top-level architecture cannot have public input or output slots. Use sources and sinks for communication with Python or external processes.
 
-## Connecting Elements
-
-Every regular step has default slots `in0` and `out0`. Additional slots are exposed as attributes with their slot names. The `>>` operator connects output to input and returns the right-hand object, enabling chains.
+## Steps And Sources
 
 ```python
-signal >> gain >> merge
+import numpy as np
+import juniper as jp
 
-# Equivalent reverse connection.
-gain << signal
+source = jp.CustomInput("source", shape=(32,))
+source.set_data(np.ones((32,), dtype=np.float32))
 
-# Explicit slots.
-step_a.out0 >> step_b.in1
-
-# String paths in the current circuit.
-step_a >> "step_b.in0"
+gain = jp.StaticGain("gain", factor=0.5)
+field = jp.NeuralField("field", shape=(32,), resting_level=-5.0)
 ```
 
-Multiple incoming connections are summed by default. `Sum` allows unlimited inputs on `in0`; `ComponentMultiply` also allows unlimited inputs but aggregates by product. Slots enforce their maximum incoming connection count and duplicate connections raise `CircuitConnectionError`.
+Element names must be unique within their parent circuit and must not contain dots. Dots are reserved for nested paths such as `vision.field.activation`.
+
+Most graph elements have default slots named `in0` and `out0`. Additional slots are exposed as attributes, for example `step.in1`, `step.out1`, or `camera.viewport_center`.
+
+## Connections
+
+Use `>>` to connect an output to an input. The operator returns the right-hand object, so chains are supported.
+
+```python
+source >> gain >> field
+```
+
+Equivalent forms are available when you need explicit slots or string references:
+
+```python
+gain << source
+source.out0 >> field.in0
+source >> "field.in0"
+```
+
+Incoming values are summed by default. Steps can define another aggregation rule; `ComponentMultiply` multiplies all incoming values on `in0`. Slots also enforce their maximum number of incoming connections.
 
 ## Nested Circuits
 
-Use `Circuit` as a context manager to define reusable subgraphs. Register circuit input/output slots, connect internals, and then connect the circuit like any other element.
+A `Circuit` is both a graph element and a container. Use it when several steps should behave as one reusable component.
 
 ```python
-from juniper import Circuit, StaticGain, get_arch
-
-arch = get_arch()
-with Circuit("double") as double:
+with jp.Circuit("double") as double:
     double.register_input_slot("in0")
     double.register_output_slot("out0")
-    gain = StaticGain("gain", factor=2.0)
+
+    gain = jp.StaticGain("gain", factor=2.0)
     double.in0 >> gain >> double.out0
 
-# double can now be connected in the parent circuit.
+source >> double
 ```
 
-Nested element paths use dots, for example `double.gain`. Recordings and compile errors use those paths.
+Nested paths use dot notation. The internal gain above can be recorded as `double.gain` or `double.gain.out0`.
 
-## Circuit Subclasses
+Reusable components can also be written as subclasses. See [Circuit Subclasses](circuit-subclasses.md).
 
-Reusable circuits can also be packaged as subclasses and imported like normal step classes. See [Circuit Subclasses](circuit-subclasses.md) for the full pattern.
+## Compilation
 
-## Compile And Run
-
-Compile after the graph is complete. Compilation gathers graph metadata, infers shapes and dtypes, builds runtime state, opens source/sink connections, traces the JAX tick, and optionally performs warmup steps.
+Compile after the graph is complete:
 
 ```python
 arch.compile(warmup=1, print_compile_info=True, load_buffer=False)
+```
+
+Compilation performs the background work needed for fast simulation:
+
+- traverses the graph and nested circuits,
+- validates connections and input limits,
+- infers output shapes and dtypes,
+- creates the runtime state tree,
+- registers static steps, dynamic steps, sources, sinks, and kernels,
+- loads permanent buffers when requested,
+- opens runtime I/O endpoints,
+- traces the JAX tick function,
+- optionally runs warmup ticks and resets the state afterward.
+
+Keep shapes and dtypes stable after compilation. Changing the shape or dtype of a source can force JAX retracing or raise a runtime error.
+
+## Simulation
+
+Run simulations through `run_simulation`:
+
+```python
 recording, timing = arch.run_simulation(
     num_steps=100,
-    steps_to_record=["field", "field.out0"],
+    steps_to_record=["field", "field.activation"],
     print_timing=True,
     save_buffer=False,
 )
 ```
 
-`run_simulation` returns `(Recording, TimingInfo)`. `TimingInfo` contains total time plus per-tick `prng`, `gpu_push`, `tick`, `gpu_pull`, and optional `buffer` timings.
+Each tick performs the following steps:
 
-There is no public `arch.tick()` method in the current API; run fixed numbers of ticks through `run_simulation`.
+1. Push source data into runtime state.
+2. Update PRNG keys for dynamic elements.
+3. Execute the JAX-jitted tick kernel.
+4. Pull sink data and requested recordings back to Python.
+5. Save permanent buffers at the end when `save_buffer=True`.
 
-## Recording Data
+Use `arch.reset_state()` to return to the post-compilation initial state. Use `arch.close_connections()` to close TCP workers or other runtime connections.
 
-Record targets may be strings, elements, slots, or buffers. The returned `Recording` object supports filtering and persistence:
+## Recording, Plotting, And Saving
+
+Recording targets can be strings, elements, slots, or buffers.
 
 ```python
-rec, timing = arch.run_simulation(50, steps_to_record=["field.out0"])
-field_only = rec.get_at_element("field.out0")
+rec, _ = arch.run_simulation(
+    50,
+    steps_to_record=["field", "field.out0", "field.activation"],
+)
+
+field_rec = rec.get_at_element("field")
 first_ten = rec.get_in_step_interval((0, 10))
+subset = rec.slice(["field.activation"], (10, 30))
+fig = rec.plot(keys=["field.activation"], snapshot_indices=[0, 49])
 run_dir = rec.save_to_file("recordings")
 loaded = type(rec).load_from_file(run_dir)
-rec.plot(keys=["field.out0"], idx_interval=(0, 50))
 ```
 
-Saved recordings use one pickle file per time step plus a `manifest.json`, so additional batches can append to the same run directory when the recorded keys match.
+`Recording.plot` plots scalar recordings as time courses and non-scalar recordings as snapshots. For scalar groups, pass `group_keys=[["loss", "reward"]]`.
 
-## Sources And Sinks
+Saved recordings use a `manifest.json` file plus one pickle file per time step. Additional batches can append to an existing run directory when the recorded keys match.
 
-Sources write CPU-side or external data into the runtime state before each tick. `CustomInput` can be updated with `set_data`; `TCPReader` uses a shared-memory worker process. Sinks receive data after each tick. `TCPWriter` sends data through the TCP worker and `StaticDebug` is useful to force static branches to be computed.
+## Persistent Buffers
 
-Call `arch.close_connections()` if a long-running process needs explicit cleanup after TCP runs.
+Some dynamic steps store internal buffers, such as field activations or learned weights. Buffers marked permanent are saved with `run_simulation(save_buffer=True)` and loaded with `compile(load_buffer=True)`.
 
-## Buffers
-
-Steps can register internal buffers with `register_buffer(buf_id, shape, permanent=False)`. Dynamic steps use buffers for evolving state such as activation, weights, local timers, or fixation state. Permanent buffers are loaded during `compile(load_buffer=True)` and saved after `run_simulation(save_buffer=True)`.
+This is useful for learned connection weights in steps such as `HebbianConnection` and `BCMConnection`.
 
 ## Extending JUNIPER
 
-Subclass `Step`, `Source`, or `Sink`, define a JAX-compatible `compute_kernel`, and override `infer_output_shapes` or `infer_output_dtypes` whenever the default “mirror input slot shape and default dtype” behavior is not enough. Kernel outputs must return exactly the compiled state keys with stable shapes; mismatches raise `EngineError`.
+Custom elements usually subclass `Step`, `Source`, or `Sink`.
+
+A custom step should:
+
+- register any additional slots or buffers in `__init__`,
+- provide a JAX-compatible `compute_kernel(input, state, **kwargs)`,
+- return a dictionary containing all output slots and updated buffers,
+- override `infer_output_shapes` or `infer_output_dtypes` when the default behavior is not sufficient.
+
+Kernel outputs must keep the compiled state keys, shapes, and dtypes stable.

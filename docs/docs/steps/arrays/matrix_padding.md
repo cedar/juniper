@@ -1,32 +1,25 @@
 # MatrixPadding
 
 ```python
-MatrixPadding(name: str, border_size, mode: str=_mode)
+MatrixPadding(name: str, border_size, mode: str = "constant")
 ```
 
-## Description
-Padds a Matrix by a number of elements in each dimension.
-
-Note: Add ability to pad to specified size.
-
-## Parameters
-- border_size : [int | Array | jnp.ndarray])
-    - Size of border for each dimension.
-    - int or (int,): pad each array dimension with the same number of values both before and after.
-    - (before, after): pad each array with before elements before, and after elements after.
-    - ((before_1, after_1), (before_2, after_2), ... (before_N, after_N)): specify distinct before and after values for each array dimension.
-    - See jax.numpy.pad documentation for reference
-- mode (optional) : str
-    - Specifies by what mode the padded values are chosen.
-    - See available modes in jax.numpy.pad documentation.
-    - Default = "constant"
+Pads an array using `jax.numpy.pad`.
 
 ## Slots
-- Input: jnp.ndarray 
-- output: jnp.ndarray
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` array |
+| Outputs | `out0` padded array |
 
 ## Import
 
 ```python
 from juniper import MatrixPadding
 ```
+
+## Notes
+
+- `border_size` follows the `pad_width` convention of `jnp.pad`.
+- `mode` is passed to `jnp.pad`.

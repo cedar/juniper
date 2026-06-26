@@ -4,17 +4,14 @@
 PinHoleBackProjector(name: str, img_shape: tuple, focal_length: float, frustrum_angles: tuple)
 ```
 
-## Description
-Takes the depth image of a pinhole camera as input and transforms the image into a point cloud.
-
-## Parameters    
-- img_shape : tuple(H,W)
-- focal_length : float
-- frustrum_angles : tuple(dphi, dtheta)
+Back-projects image coordinates or range-image data into 3D points.
 
 ## Slots
-- Input: jnp.array(img_shape)
-- output: jnp.ndarray(H*W,3)
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` image/range representation |
+| Outputs | `out0` point cloud representation |
 
 ## Import
 

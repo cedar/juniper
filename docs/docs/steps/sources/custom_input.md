@@ -4,14 +4,14 @@
 CustomInput(name: str, shape: tuple)
 ```
 
-## Description
-Custom Input, can be set from outside by modifying self.output.
-
-## Parameters
-- shape : tuple((Nx,Ny,...))
+Provides Python-side data to the simulation.
 
 ## Slots
-- out0 : jnp.array(shape)
+
+| Slot | Description |
+|------|-------------|
+| Inputs | No input slots |
+| Outputs | `out0` array with `shape` |
 
 ## Import
 
@@ -19,9 +19,6 @@ Custom Input, can be set from outside by modifying self.output.
 from juniper import CustomInput
 ```
 
-## Example
+## Notes
 
-```python
-source = CustomInput("source", shape=(2,))
-source.set_data([1.0, 2.0])
-```
+- Set data with `set_data(array)`. Data is pushed before each tick, so values can be changed between simulation runs.

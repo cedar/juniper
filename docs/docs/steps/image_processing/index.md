@@ -1,13 +1,13 @@
-# Image Processing Steps
+# Image Processing
 
-Vision steps for color conversion, feature maps, neural network features, and viewport control.
+Image-processing steps convert, filter, crop, shuffle, or classify image-like arrays.
 
 | Step | Reference |
 |------|-----------|
 | `ColorConversion` | [ColorConversion](color_conversion.md) |
-| `ColorFMap` | [ColorFMap](color_f_map.md) |
-| `DNN` | [DNN](dnn.md) |
 | `RGB2HSV` | [RGB2HSV](rgb2hsv.md) |
+| `ColorFMap` | [ColorFMap](color_f_map.md) |
 | `RemoveBlackWhiteGreys` | [RemoveBlackWhiteGreys](remove_black_white_greys.md) |
 | `ShuffleImage` | [ShuffleImage](shuffle_image.md) |
 | `ViewportCamera` | [ViewportCamera](viewport_camera.md) |
+| `DNN` | [DNN](dnn.md) |

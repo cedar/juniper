@@ -1,25 +1,24 @@
 # GaussInput
 
 ```python
-GaussInput(name: str, shape: tuple, sigma: tuple, amplitude: float, center=_center)
+GaussInput(name: str, shape: tuple, sigma: tuple, amplitude: float, center=None)
 ```
 
-## Description
-Gaussian Input.
-
-## Parameters
-- shape : tuple((Nx,Ny,...))
-- sigma : tuple((sx,sy,...))
-- amplitude : float
-- center(optional) : tuple((cx,cy,...))
-    - Center of the gaussian. (Default: (Nx/2,Ny/2,...))
+Provides a static Gaussian activation pattern.
 
 ## Slots
-- in0: jnp.array(shape)
-- out0: jnp.array(shape)
+
+| Slot | Description |
+|------|-------------|
+| Inputs | No input slots |
+| Outputs | `out0` Gaussian array with `shape` |
 
 ## Import
 
 ```python
 from juniper import GaussInput
 ```
+
+## Notes
+
+- If `center` is omitted, the Gaussian is centered in the output shape.

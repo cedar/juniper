@@ -4,17 +4,14 @@
 Clamp(name: str, limits: tuple)
 ```
 
-## Description
-Clamps the values in an array into the range specified by min and max limits.
-
-Note: Add ability to replace clipped elements with custom values.
-
-## Parameters
-- limits: tuple(min,max)
+Clips all values in `in0` to `(min, max)`.
 
 ## Slots
-- in0 : jnp.array()
-- out0 : jnp.array()
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` array |
+| Outputs | `out0` clipped array |
 
 ## Import
 

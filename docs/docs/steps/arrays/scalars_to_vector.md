@@ -4,20 +4,14 @@
 ScalarsToVector(name: str, N_scalars: int)
 ```
 
-## Description
-Turns a number of scalars into a 1d-Array (vector).
+Combines scalar inputs into one vector.
 
-Note: Make it possible to have incomplete incoming connections.
+## Slots
 
-## Parameters-
-- N_scalars: int 
-    - Number of scalars (length of output Vector)
-
-## Slots-
-- [in0, in1, ..., in{N_scalars-1}] : jnp.ndarray 
-    - N_scalars separate inputs indexed by 'in{i}'
-- out0 : jnp.ndarray 
-    - Vector of length N_scalars
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0`, `in1`, ... `in{N-1}` scalar inputs |
+| Outputs | `out0` vector of length `N_scalars` |
 
 ## Import
 

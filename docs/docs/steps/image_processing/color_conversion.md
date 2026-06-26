@@ -1,22 +1,24 @@
 # ColorConversion
 
 ```python
-ColorConversion(name: str, channels: str=_channels)
+ColorConversion(name: str, channels: str = "RGB")
 ```
 
-## Description
-Converts an RGB image into a HSV image
-
-## Parameters
+Splits or converts color channels according to the configured channel mode.
 
 ## Slots
-- in0 : jnp.array((H,W,3))
-- out0 : jnp.array((H,W))
-- out1 : jnp.array((H,W))
-- out2 : jnp.array((H,W))
+
+| Slot | Description |
+|------|-------------|
+| Inputs | `in0` image-like array |
+| Outputs | `out0`, `out1`, `out2` channel outputs |
 
 ## Import
 
 ```python
 from juniper import ColorConversion
 ```
+
+## Notes
+
+- Use `RGB2HSV` when a direct RGB-to-HSV conversion is needed.

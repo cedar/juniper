@@ -2,47 +2,36 @@
 
 ## Requirements
 
-- Python >= 3.9
-- A CUDA-capable GPU is recommended but not required (CPU fallback is available)
+JUNIPER requires Python 3.9 or newer. It depends on JAX for array computation and JIT compilation, matplotlib for plotting, and flax/flaxmodels for the `DNN` step.
 
-## Install from Source
+JAX can run on CPU. For larger fields and image-processing pipelines, use a CUDA-capable GPU with a compatible JAX installation.
 
-Clone the repository and install in editable mode:
+## Install From A Local Checkout
 
 ```bash
 pip install -e /path/to/juniper
 ```
 
-### GPU Support (CUDA)
-
-For GPU acceleration, install with the CUDA extra. Make sure your system has a compatible NVIDIA driver.
+Optional CUDA dependency groups are available:
 
 ```bash
-# CUDA 12
-pip install -e /path/to/juniper[cuda12]
+pip install -e "/path/to/juniper[cuda12]"
+pip install -e "/path/to/juniper[cuda13]"
 ```
 
-Refer to the [JAX installation guide](https://github.com/google/jax#installation) to verify GPU support for your platform.
+Use the CUDA extra that matches the JAX version and NVIDIA driver available on your machine.
 
-## Dependencies
-
-JUNIPER depends on:
-
-- **jax** / **jaxlib** -- GPU computation and JIT compilation
-- **matplotlib** -- plotting and visualization
-- **flax** / **flaxmodels** -- neural network support (used by the DNN step)
-
-All dependencies are installed automatically via `pip`.
-
-## Verify Installation
+## Verify The Installation
 
 ```bash
-python -c "import juniper; print('JUNIPER installed successfully')"
+python -c "import juniper; print('JUNIPER import successful')"
 ```
 
-To confirm GPU availability:
+Check JAX devices:
 
 ```python
 import jax
-print(jax.devices())  # Should list GPU device(s)
+print(jax.devices())
 ```
+
+If no GPU is listed, JUNIPER still works on CPU. GPU availability is controlled by the installed JAX build and local driver setup.
