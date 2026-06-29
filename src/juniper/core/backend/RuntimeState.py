@@ -101,7 +101,7 @@ class RuntimeState:
                 path_str, slot_id = target.rsplit(".", 1) if "." in target else (target, util.DEFAULT_OUTPUT_SLOT)
                 ref = compile_info.ref_at(tuple(path_str.split(".")))
         elif isinstance(target, Connectable):
-            slot = target.get_slot_from_connectable(target)
+            slot = target.get_slot_from_identifier(target)
             ref = ElementRef(slot.parent)
             slot_id = slot.get_slot_id()
 

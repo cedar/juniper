@@ -14,6 +14,7 @@ from ..frontend.Buffer import Buffer
 from .Exceptions import RecordingError
 from .Exceptions import LoadRecordingError
 from .Exceptions import SaveRecordingError
+from .Exceptions import JuniperUserError
 
 import numpy as np
 import time
@@ -98,7 +99,11 @@ class CompileInfo:
 
     def ref_at(self, path: ElementPath) -> ElementRef:
         """Look up the compiled element ref for a path."""
-        return self.compiled_elements[path]
+        try:
+            element = self.compiled_elements[path]
+        except Exception as e:
+            raise JuniperUserError(f"No element matching the given path {path} exists.") from e
+        return element
 
     def dynamic_step_paths(self) -> set[ElementPath]:
         """Return paths to dynamic steps that need fresh PRNG keys."""
@@ -149,7 +154,11 @@ class Recording:
             key_str = key
         else:
             key_str = key.get_path_str()
-        return self.key_strings.index(key_str)
+        try:
+            key_idx = self.key_strings.index(key_str)
+        except Exception as e:
+            raise JuniperUserError(f"The recording has no element '{key_str}'") from e
+        return key_idx
             
     def get_at_element(self, key : RecKey) -> Recording:
         """Get the recording of a specific element."""

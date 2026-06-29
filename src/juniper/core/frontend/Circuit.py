@@ -98,28 +98,15 @@ class Circuit(Element):
         else:
             setattr(self, element.get_local_circuit_id(), element)
     
-    def get_elements(self) -> dict[str,Element]:
-        return self.element_map
-    
     def get_element(self, name : str) -> Element:
         if name not in self.element_map:
             raise CircuitError(f"Circuit::get_element(): Element {name} not found in circuit {self.get_path_str()}")
         return self.element_map[name]
     
-    def get_incoming_elements(self, dest : Element) -> list[Slot]:
-        incoming_steps = []
-        if isinstance(dest, Slot):
-            incoming_steps = self.connection_map_reversed[dest.get_local_circuit_id()]
-        else:
-            for slot in dest.input_slot_map.values():
-                incoming_steps += self.connection_map_reversed[slot.get_local_circuit_id()]
-        return incoming_steps
-    
-    def connect_to(self, source : Slot, dest : Slot):
+    def connect_to(self, source : Slot | Element | str, dest : Slot | Element | str):
         """Connect 2 slots."""
-        if not isinstance(source, Slot) or not isinstance(dest, Slot):
-            source = self.get_slot_from_connectable(source)
-            dest = self.get_slot_from_connectable(dest)
+        source = self.get_slot_from_identifier(source)
+        dest = self.get_slot_from_identifier(dest)
         source_name = source.get_local_circuit_id()
         dest_name = dest.get_local_circuit_id()
 

@@ -18,3 +18,5 @@ class Slot(Connectable):
     def get_slot_id(self) -> str:
         return self.slot_id
         
+    def get_slot(self, slot_id : str) -> Connectable:
+        return self
