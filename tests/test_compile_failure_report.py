@@ -53,9 +53,9 @@ def test_compile_failure_report_traces_all_branches(arch):
         Compiler.compile(arch)
 
     report = str(error.value)
-    assert "BrokenOutputStep(broken) [OUTPUT_SLOT_DTYPE_UNRESOLVED:out0, OUTPUT_SLOT_SHAPE_UNRESOLVED:out0]" in report
-    assert "BrokenOutputStep(broken) -> Sum(left)" in report
-    assert "BrokenOutputStep(broken) -> Sum(right)" in report
+    assert "BrokenOutputStep('broken') [OUTPUT_SLOT_DTYPE_UNRESOLVED:out0, OUTPUT_SLOT_SHAPE_UNRESOLVED:out0]" in report
+    assert "BrokenOutputStep('broken') -> Sum('left')" in report
+    assert "BrokenOutputStep('broken') -> Sum('right')" in report
     assert "UPSTREAM_ELEMENT_UNCOMPILED" in report
 
 
@@ -72,7 +72,7 @@ def test_compile_failure_report_identifies_dependency_cycles(arch):
     report = str(error.value)
     assert "CYCLIC_FAILURE_DEPENDENCY" in report
     assert "Failure dependency cycles:" in report
-    assert "BrokenOutputStep(first) -> BrokenOutputStep(second) -> BrokenOutputStep(first)" in report
+    assert "BrokenOutputStep('first') -> BrokenOutputStep('second') -> BrokenOutputStep('first')" in report
 
 
 def test_compile_failure_report_traces_multiple_upstream_sources(arch):
@@ -89,8 +89,8 @@ def test_compile_failure_report_traces_multiple_upstream_sources(arch):
         Compiler.compile(arch)
 
     report = str(error.value)
-    assert "BrokenOutputStep(first) -> Sum(joined)" in report
-    assert "BrokenOutputStep(second) -> Sum(joined)" in report
+    assert "BrokenOutputStep('first') -> Sum('joined')" in report
+    assert "BrokenOutputStep('second') -> Sum('joined')" in report
 
 
 def test_compile_failure_report_identifies_unresolved_buffers(arch):
@@ -102,4 +102,4 @@ def test_compile_failure_report_identifies_unresolved_buffers(arch):
         Compiler.compile(arch)
 
     report = str(error.value)
-    assert "BrokenBufferStep(broken) [BUFFER_SHAPE_UNRESOLVED:state]" in report
+    assert "BrokenBufferStep('broken') [BUFFER_SHAPE_UNRESOLVED:state]" in report
