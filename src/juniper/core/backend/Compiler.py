@@ -498,28 +498,29 @@ def _check_direct_failure_source(
 def _format_compile_failure_report(circuit: Circuit, failed_elements: list[Element]) -> str:
     """Build the user-facing compilation failure report."""
     traces, sources, failures, cycles = _trace_compile_failure_sources(failed_elements)
-    lines = [f"The circuit '{circuit.get_local_circuit_id()}' could not be compiled."]
+    lines = [f"\n!!!!!!!!!!! The circuit '{circuit.get_local_circuit_id()}' could not be compiled !!!!!!!!!!!"]
+
+    lines.append("\nFailure code traceback:")
+    for element in sorted(_unique_elements(failed_elements), key=_element_path):
+        codes = ", ".join(sorted(failures[element].codes))
+        source_location = f"File {element._frame_info.filename}, line {element._frame_info.lineno}, in {element._frame_info.function}"
+        lines.append(f"{source_location} \n\t{_element_label(element)} [{codes}]")
 
     lines.append("\nLikely failure sources:")
     for source in sources:
         codes = ", ".join(sorted(failures[source].codes))
-        lines.append(f"- {_element_label(source)} [{codes}]")
-
-    lines.append("\nUncompiled elements:")
-    for element in sorted(_unique_elements(failed_elements), key=_element_path):
-        codes = ", ".join(sorted(failures[element].codes))
-        lines.append(f"- {_element_label(element)} [{codes}]")
+        lines.append(f"\t{_element_label(source)}")
 
     if traces:
         lines.append("\nFailure propagation:")
         for trace in traces:
-            lines.append(f"- {' -> '.join(_element_label(element) for element in trace)}")
+            lines.append(f"\t{' -> '.join(_element_label(element) for element in trace)}")
 
     if cycles:
         lines.append("\nFailure dependency cycles:")
         for cycle in cycles:
             lines.append(
-                f"- {' -> '.join(_element_label(element) for element in _cycle_trace(cycle, failures))}"
+                f"\t{' -> '.join(_element_label(element) for element in _cycle_trace(cycle, failures))}"
             )
 
     return "\n".join(lines)
@@ -656,4 +657,4 @@ def _element_path(element: Element) -> str:
 
 
 def _element_label(element: Element) -> str:
-    return f"{type(element).__name__}({_element_path(element)})"
+    return f"{type(element).__name__}('{_element_path(element)}')"

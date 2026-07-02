@@ -192,7 +192,7 @@ class Recording:
         if not self.key_strings == key_strings:
             raise RecordingError(f"Can't append recording when recorded steps do not match. {self.key_strings}")
 
-        self.recording.append(recording.recording)
+        self.recording.extend(recording.recording)
 
     @classmethod
     def load_from_file(cls, run_dir: str) -> Recording:

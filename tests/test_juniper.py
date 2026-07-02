@@ -138,6 +138,26 @@ class TestJuniper:
             plt.close(fig)
 
     @function_test
+    def test_recording_append_extends_time_axis(self):
+        """Appending recordings should add time steps, not nest a batch as one step."""
+        recording = Recording(
+            recording=[[np.array([0.0], dtype=np.float32)]],
+            keys=["scalar"],
+        )
+        recording.append(
+            Recording(
+                recording=[
+                    [np.array([1.0], dtype=np.float32)],
+                    [np.array([2.0], dtype=np.float32)],
+                ],
+                keys=["scalar"],
+            )
+        )
+
+        assert len(recording.recording) == 3
+        assert np.isclose(recorded_array(recording, "scalar", 2), 2.0)
+
+    @function_test
     def test_custom_input_updates_after_compile(self):
         """Sources should push new CPU-side data into runtime state each tick."""
         in1 = jp.CustomInput("in1", (2,))

@@ -1,6 +1,7 @@
 # Used for parameterizable objects such as steps or kernels.
 from ..backend.Exceptions import JuniperConfigurationError
 import copy
+import inspect
 
 import logging
 logger = logging.getLogger(__name__)
@@ -19,6 +20,19 @@ class Configurable:
                     path_str = self.get_path_str()
                 raise JuniperConfigurationError(f"Parameter {param} is mandatory for objects of type {self.__class__} ({path_str})")
             
+        # get the line of where this object was initialized. Used later for error logging
+        frame = inspect.currentframe()
+        found_outer = False
+        while not found_outer:
+            func_name = frame.f_code.co_name
+            obj = frame.f_locals.get("self", None)
+            if func_name == "__init__" and isinstance(obj, Configurable):
+                frame = frame.f_back
+            else:
+                found_outer = True
+        self._frame_info = inspect.getframeinfo(frame)
+
+
     def get_params(self) -> dict:
         return self._params
 
