@@ -67,6 +67,7 @@ class TCPReader(Source):
             max_missed_heartbeats : int = _max_missed_heartbeats,
             send_on_change_only : bool = _send_on_change_only):
         params = locals().copy()
+        params.pop("self")
         mandatory_params = ['ip', 'port', 'shape']
         super().__init__(name, params, mandatory_params, is_dynamic=True)
         self.needs_input_connections = False
