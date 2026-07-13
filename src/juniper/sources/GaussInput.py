@@ -1,4 +1,5 @@
 import logging
+from typing import Union
 from ..core.frontend.Source import Source
 from ..math.Gaussian import Gaussian
 from ..util import util
@@ -34,7 +35,7 @@ class GaussInput(Source):
     - out0: jnp.array(shape)
     """
     _center = None
-    def __init__(self, name : str, shape : tuple, sigma : tuple, amplitude : float, center : tuple | None = _center):
+    def __init__(self, name : str, shape : tuple, sigma : tuple, amplitude : float, center : Union[tuple, None] = _center):
         params = locals().copy()
         mandatory_params = ["shape", "sigma", "amplitude"]
         super().__init__(name, params, mandatory_params)
