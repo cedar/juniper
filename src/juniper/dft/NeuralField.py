@@ -81,7 +81,7 @@ class NeuralField(Step):
                  theta : float = _theta,
                  resting_level : float = _resting_level,
                  global_inhibition : float = _global_inhibition,
-                 input_noise_gain : float = 0,
+                 input_noise_gain : float = _input_noise_gain,
                  tau : float = _tau,
                  lateral_kernel : LateralKernel | None = _lateral_kernel
                  ):

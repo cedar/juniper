@@ -157,7 +157,7 @@ class Recording:
         try:
             key_idx = self.key_strings.index(key_str)
         except Exception as e:
-            raise JuniperUserError(f"The recording has no element '{key_str}'") from e
+            raise JuniperUserError(f"'{key_str}' Could not be retreived from the recording keys") from e
         return key_idx
             
     def get_at_element(self, key : RecKey) -> Recording:

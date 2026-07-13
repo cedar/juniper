@@ -24,8 +24,7 @@ class Gaussian(Configurable):
     - normalized : bool
     - shape (optional) : tuple(Nx,Ny,...)
     - max_shape (optional) : tuple(Mx,My,...)
-    - factorized (optional) : bool
-        - Default = True
+    - factorized (optional) : bool (Default = True)
 
     """
     def __init__(self, params):

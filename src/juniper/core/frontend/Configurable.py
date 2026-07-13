@@ -1,5 +1,6 @@
 # Used for parameterizable objects such as steps or kernels.
 from ..backend.Exceptions import JuniperConfigurationError
+from ..backend.Exceptions import JuniperUserError
 import copy
 import inspect
 
@@ -9,10 +10,13 @@ logger = logging.getLogger(__name__)
 class Configurable:
 
     def __init__(self, name : str, params : dict = {}, mandatory_params : dict = {}):
+        if not isinstance(params, dict):
+            raise JuniperUserError(f"The params argument has to be of type dict but is of type {type(params)} ({name})")
+
         self._params = copy.copy(params)
         self._params["name"] = name
         self._local_id = name
-        
+
         for param in mandatory_params:
             if param not in params.keys():
                 path_str = self.get_local_circuit_id()

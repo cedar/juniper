@@ -47,7 +47,7 @@ class Circuit(Element):
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.define_circuit_structure()
+        self.generate_kernel()
         if self.parent is not self:
             self.parent.add_element(self)
         Circuit._current = self._previous_circuit
