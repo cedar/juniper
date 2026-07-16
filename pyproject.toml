@@ -26,6 +26,7 @@ where = ["src"]
 
 # Include non-.py files inside the package (config.json, misc/, some_folder/)
 [tool.setuptools.package-data]
+juniper = ["py.typed"]
 package = [
   "run_config.json",
   "misc/**",
