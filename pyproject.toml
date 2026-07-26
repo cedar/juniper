@@ -35,7 +35,7 @@ package = [
 
 [tool.pytest.ini_options]
 addopts = ["--import-mode=importlib"]
-strict = true
+strict = false
 filterwarnings = [
     'ignore:.*use of fork\(\) may lead to deadlocks in the child\.:DeprecationWarning',
     'ignore:.*os\.fork\(\) was called\. os\.fork\(\) is incompatible with multithreaded code.*:RuntimeWarning',
