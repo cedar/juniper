@@ -150,7 +150,6 @@ def _print_compile_info(circuit: Circuit, timing: TimingInfo) -> None:
     n_total = timing["N_total"]
     t_compile = timing["t_compile"]
     t_trace = timing["t_trace"]
-    n_warmup = timing["N_warmup"]
     print(f"Compiled circuit '{circuit.get_local_circuit_id()}' with:")
     print(f"{n_static} static steps,")
     print(f"{n_dynamic} dynamic steps,")
