@@ -1,7 +1,16 @@
 # Expose Juniper api
 # api
 from .core.frontend.Circuit import Circuit
-from .core.backend.Engine import Engine
+from .core.backend.Simulation import SimulationRuntime
+from .core.backend.Simulation import close_connections
+from .core.backend.Simulation import init_prng
+from .core.backend.Simulation import load_buffers
+from .core.backend.Simulation import open_connections
+from .core.backend.Simulation import refresh_prng
+from .core.backend.Simulation import reset_state
+from .core.backend.Simulation import run_simulation
+from .core.backend.Simulation import save_buffers
+from .core.backend.Simulation import trace
 
 # architecture
 from .core.Architecture import delete_arch
@@ -66,45 +75,22 @@ from .sources.TimedBoost import TimedBoost
 # robotics
 from . import robotics
 
-# error types
-from .core.backend.Exceptions import JuniperError
-from .core.backend.Exceptions import CompilerError
-from .core.backend.Exceptions import ShapeInferenceError
-from .core.backend.Exceptions import TypeInferenceError
-from .core.backend.Exceptions import LoadBufferError
-from .core.backend.Exceptions import SaveBufferError
-from .core.backend.Exceptions import EngineError
-from .core.backend.Exceptions import NotCompiledError
-from .core.backend.Exceptions import CircuitError
-from .core.backend.Exceptions import CircuitConnectionError
-from .core.backend.Exceptions import TCPError
-from .core.backend.Exceptions import RecordingError
-from .core.backend.Exceptions import JuniperConfigurationError
-from .core.backend.Exceptions import JuniperUserError
-
-# warnings
-from .core.backend.Warnings import JuniperWarning
-from .core.backend.Warnings import CompilerWarning
-from .core.backend.Warnings import ShapeInferenceWarning
-from .core.backend.Warnings import TypeInferenceWarning
-from .core.backend.Warnings import LoadBufferWarning
-from .core.backend.Warnings import SaveBufferWarning
-from .core.backend.Warnings import EngineWarning
-from .core.backend.Warnings import NotCompiledWarning
-from .core.backend.Warnings import CircuitWarning
-from .core.backend.Warnings import CircuitConnectionWarning
-from .core.backend.Warnings import TCPWarning
-from .core.backend.Warnings import RecordingWarning
-from .core.backend.Warnings import JuniperConfigurationWarning
-from .core.backend.Warnings import JuniperUserWarning
-
 # loggingimport logging
 import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 __all__ =[
-    "Engine",
+    "SimulationRuntime",
+    "trace",
+    "init_prng",
+    "refresh_prng",
+    "load_buffers",
+    "save_buffers",
+    "reset_state",
+    "run_simulation",
+    "close_connections",
+    "open_connections",
     "Circuit",
     "AddConstant",
     "ComponentMultiply",
@@ -150,33 +136,5 @@ __all__ =[
     "init_logging",
     "init_logging_to_file",
     "VectorToScalars",
-    "ScalarsToVector",
-    "JuniperError",
-    "CompilerError",
-    "ShapeInferenceError",
-    "TypeInferenceError",
-    "LoadBufferError",
-    "SaveBufferError",
-    "EngineError",
-    "NotCompiledError",
-    "CircuitError",
-    "CircuitConnectionError",
-    "TCPError",
-    "RecordingError",
-    "JuniperConfigurationError",
-    "JuniperUserError",
-    "JuniperWarning",
-    "CompilerWarning",
-    "ShapeInferenceWarning",
-    "TypeInferenceWarning",
-    "LoadBufferWarning",
-    "SaveBufferWarning",
-    "EngineWarning",
-    "NotCompiledWarning",
-    "CircuitWarning",
-    "CircuitConnectionWarning",
-    "TCPWarning",
-    "RecordingWarning",
-    "JuniperConfigurationWarning",
-    "JuniperUserWarning"
+    "ScalarsToVector"
 ]

@@ -3,10 +3,22 @@ import logging
 import sys
 from .frontend.Circuit import Circuit
 from .frontend import CircuitContext
-from .backend.Engine import Engine
-from .backend.Engine import Recording
-from .backend.Engine import TimingInfo
+from .backend.Compiler import compile as compile_circuit
+from .backend.DataClasses import Recording
+from .backend.DataClasses import RecKey
+from .backend.DataClasses import TimingInfo
+from .backend.Exceptions import CompilerError
+from .backend.Exceptions import EngineError
+from .backend.Exceptions import NotCompiledError
 from .backend.Exceptions import CircuitError
+from .backend.Simulation import SimulationRuntime
+from .backend.Simulation import close_connections
+from .backend.Simulation import load_buffers
+from .backend.Simulation import open_connections
+from .backend.Simulation import reset_state
+from .backend.Simulation import run_simulation
+from .backend.Simulation import trace
+from ..util.util import timer
 
 
 logger = logging.getLogger(__name__)
@@ -60,32 +72,89 @@ class Architecture(Circuit):
             Circuit._current = self
             CircuitContext.set_current(self)
         super().__init__(name = name)
-        self.engine = Engine()
+        self.runtime: SimulationRuntime | None = None
 
     def set_arch_name(self, name : str):
         self._name = name
 
     def compile(self, warmup : int = 0, print_compile_info : bool = False, load_buffer : bool = False) -> None:
-        self.engine.compile(circuit=self, warmup=warmup, print_compile_info=print_compile_info, load_buffer=load_buffer)
+        if self.is_compiled:
+            raise CompilerError(f"The circuit {self.get_local_circuit_id()} is already compiled.")
+
+        t_compile, (runtime_state, compile_info) = timer(compile_circuit)(self)
+        self.runtime = SimulationRuntime.from_compiled_circuit(runtime_state, compile_info)
+
+        if load_buffer:
+            load_buffers(self.runtime)
+            self.runtime.init_state = self.runtime.state.copy()
+        open_connections(self.runtime)
+
+        try:
+            t_trace, _ = timer(trace)(self.runtime, warmup)
+            reset_state(self.runtime)
+
+            if print_compile_info:
+                _print_compile_info(
+                    self,
+                    {
+                        "t_compile": t_compile,
+                        "t_trace": t_trace,
+                        "N_static": len(compile_info.static),
+                        "N_dynamic": len(compile_info.dynamic),
+                        "N_total": len(compile_info.compiled_elements),
+                        "N_warmup": warmup,
+                    },
+                )
+        except Exception as e:
+            logger.info((self.runtime.state.get_specs()))
+            raise EngineError(
+                "During Jax tracing and warmup an exception occured. "
+                "The full state tree specs are written to logging.info:"
+            ) from e
 
     def run_simulation(
             self,
             num_steps: int,
-            steps_to_record: list[str] = [],
+            steps_to_record: list[RecKey] = [],
             print_timing: bool = True,
             save_buffer: bool = False,
         )-> tuple[Recording, TimingInfo]:
-        return self.engine.run_simulation(num_steps=num_steps, steps_to_record=steps_to_record, print_timing=print_timing, save_buffer=save_buffer)
+        if self.runtime is None:
+            raise NotCompiledError("Can't run simulation before compilation.")
+        return run_simulation(runtime=self.runtime, num_steps=num_steps, steps_to_record=steps_to_record, print_timing=print_timing, save_buffer=save_buffer)
 
     def reset_state(self):
-        self.engine.reset_state()
+        if self.runtime is None:
+            raise NotCompiledError("Can't reset state before compilation.")
+        reset_state(self.runtime)
 
     def close_connections(self):
-        self.engine._close_connections()
+        if self.runtime is None:
+            raise NotCompiledError("Can't close connections before compilation.")
+        close_connections(self.runtime)
+
+    def clean(self) -> None:
+        super().clean()
+        self.runtime = None
 
     def register_input_slot(self, input_slot_id, max_incoming_connections = 1):
         raise CircuitError("The top-level architecture singleton should not have danglin input slots. Use Sinks and Sources for external communication.")
     
     def register_output_slot(self, output_slot_id):
         raise CircuitError("The top-level architecture singleton should not have danglin output slots. Use Sinks and Sources for external communication.")
-    
+
+
+def _print_compile_info(circuit: Circuit, timing: TimingInfo) -> None:
+    n_static = timing["N_static"]
+    n_dynamic = timing["N_dynamic"]
+    n_total = timing["N_total"]
+    t_compile = timing["t_compile"]
+    t_trace = timing["t_trace"]
+    n_warmup = timing["N_warmup"]
+    print(f"Compiled circuit '{circuit.get_local_circuit_id()}' with:")
+    print(f"{n_static} static steps,")
+    print(f"{n_dynamic} dynamic steps,")
+    print(f"making a total of {n_total} steps.")
+    print(f"{t_compile:6.2f} s for compilaton of initial state shapes and dtypes")
+    print(f"{t_trace:6.2f} s for jax tracing of state and compute kernels")
+    print("\n")

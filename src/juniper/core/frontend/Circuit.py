@@ -136,4 +136,11 @@ class Circuit(Element):
         slot.max_incoming_connections = max_incoming_connections
         self.connection_map_reversed.setdefault(slot.get_local_circuit_id(), [])
         return slot
+    
+    def __getattr__(self, name: str) -> Element | Slot:
+        # Fallback to look up the dynamic attribute in the object dictionary
+        try:
+            return self.__dict__[name]
+        except KeyError:
+            raise AttributeError(f"{self.get_path_str()} has no attribute '{name}'")
         

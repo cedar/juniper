@@ -11,11 +11,9 @@ from juniper.util import util_jax
 def arch():
     architecture = jp.get_arch()
     architecture.clean()
-    architecture.engine.clean()
     CircuitContext.set_current(architecture)
     yield architecture
     architecture.clean()
-    architecture.engine.clean()
     CircuitContext.set_current(architecture)
 
 

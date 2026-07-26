@@ -21,7 +21,12 @@ class Step(Element):
     def register_buffer(self, buf_id : str, shape : tuple, permanent : bool  = False):
         if buf_id in self.buffer_map.keys():
             raise CircuitError(f"Buffer {buf_id} already registered in step {self.get_path_str()}")
-        self.buffer_map[buf_id] = Buffer(self, buf_id, shape, permanent)
+        buffer = Buffer(self, buf_id, shape, permanent)
+        self.buffer_map[buf_id] = buffer
+        if getattr(self, f"{buf_id}", None) is None:
+            setattr(self, f"{buf_id}", buffer)
+        else:
+            raise CircuitError(f"Element::register_buffer: {buffer} is already registered as an attribute in {self.get_path_str()}")
 
     def infer_output_shapes(self, input_specs):
         shape = {}

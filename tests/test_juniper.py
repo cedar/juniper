@@ -13,6 +13,7 @@ import sys
 
 from juniper.core.backend.Exceptions import JuniperError
 from juniper.core.backend.DataClasses import Recording
+from juniper.core.backend.Simulation import _tick
 from juniper.core.frontend import CircuitContext
 from juniper.util import util_jax
 
@@ -20,7 +21,6 @@ from juniper.util import util_jax
 def clean_arch(arch):
     """Clean architecture test state, including dynamic element attributes."""
     arch.clean()
-    arch.engine.clean()
     CircuitContext.set_current(arch)
 
 def function_test(func):
@@ -292,7 +292,7 @@ class TestJuniper:
 
         self.arch.compile(warmup=0, print_compile_info=False, load_buffer=False)
 
-        compile_info = self.arch.engine.compile_info
+        compile_info = self.arch.runtime.compile_info
         assert ("circ",) in compile_info.compiled_elements
         assert ("circ", "summed_inputs") in compile_info.compiled_elements
         assert compile_info.compiled_elements[("circ", "summed_inputs")].element.get_local_circuit_id() == "summed_inputs"
@@ -350,7 +350,7 @@ class TestJuniper:
         compile_recording, _ = self.arch.run_simulation(num_steps=1, steps_to_record=["nf1"], print_timing=False, save_buffer=False)
         t_comp = time.time() - t_comp
         compile_recording, _ = self.arch.run_simulation(num_steps=5, steps_to_record=["nf1"], print_timing=False, save_buffer=False)
-        cache_size = getattr(self.arch.engine._tick, "_cache_size", None)
+        cache_size = getattr(_tick, "_cache_size", None)
         cache_after_compile = cache_size() if cache_size is not None else None
 
         self.arch.reset_state()
@@ -430,8 +430,8 @@ class TestJuniper:
             build_bcm_buffer_circuit()
             self.arch.compile(warmup=1, print_compile_info=False, load_buffer=True)
 
-            bcm_ref = self.arch.engine.compile_info.ref_at(("bcm",))
-            bcm_state = self.arch.engine.state.get(bcm_ref)
+            bcm_ref = self.arch.runtime.compile_info.ref_at(("bcm",))
+            bcm_state = self.arch.runtime.state.get(bcm_ref)
             assert np.allclose(np.array(bcm_state["wheights"]), np.array([[[[0.75]]]], dtype=np.float32))
             assert np.allclose(np.array(bcm_state["theta"]), np.array([[[0.25]]], dtype=np.float32))
         finally:

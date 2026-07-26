@@ -19,6 +19,7 @@ import numpy as np
 
 from ..frontend.Circuit import Circuit
 from ..frontend.Element import Element
+from ..frontend.Buffer import Buffer
 from ..frontend.Connectable import Connectable
 from ...dft.NeuralField import NeuralField
 from ...util import util
@@ -104,6 +105,9 @@ class RuntimeState:
             slot = target.get_slot_from_identifier(target)
             ref = ElementRef(slot.parent)
             slot_id = slot.get_slot_id()
+        elif isinstance(target, Buffer):
+            ref = ElementRef(target.parent)
+            slot_id = target.get_buffer_id()
 
         return self.read_slot(ref, slot_id)
 

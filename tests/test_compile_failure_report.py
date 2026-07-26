@@ -1,7 +1,7 @@
 import pytest
 
 import juniper as jp
-from juniper.core.backend.Compiler import Compiler
+from juniper.core.backend.Compiler import compile
 from juniper.core.backend.Exceptions import CompilerError
 from juniper.core.frontend import CircuitContext
 from juniper.core.frontend.Step import Step
@@ -31,11 +31,9 @@ class BrokenBufferStep(Step):
 def arch():
     architecture = jp.get_arch()
     architecture.clean()
-    architecture.engine.clean()
     CircuitContext.set_current(architecture)
     yield architecture
     architecture.clean()
-    architecture.engine.clean()
     CircuitContext.set_current(architecture)
 
 
@@ -50,7 +48,7 @@ def test_compile_failure_report_traces_all_branches(arch):
     broken >> right
 
     with pytest.raises(CompilerError) as error:
-        Compiler.compile(arch)
+        compile(arch)
 
     report = str(error.value)
     assert "BrokenOutputStep('broken') [OUTPUT_SLOT_DTYPE_UNRESOLVED:out0, OUTPUT_SLOT_SHAPE_UNRESOLVED:out0]" in report
@@ -67,7 +65,7 @@ def test_compile_failure_report_identifies_dependency_cycles(arch):
     second >> first
 
     with pytest.raises(CompilerError) as error:
-        Compiler.compile(arch)
+        compile(arch)
 
     report = str(error.value)
     assert "CYCLIC_FAILURE_DEPENDENCY" in report
@@ -86,7 +84,7 @@ def test_compile_failure_report_traces_multiple_upstream_sources(arch):
     second_input >> second >> joined
 
     with pytest.raises(CompilerError) as error:
-        Compiler.compile(arch)
+        compile(arch)
 
     report = str(error.value)
     assert "BrokenOutputStep('first') -> Sum('joined')" in report
@@ -99,7 +97,7 @@ def test_compile_failure_report_identifies_unresolved_buffers(arch):
     source >> broken
 
     with pytest.raises(CompilerError) as error:
-        Compiler.compile(arch)
+        compile(arch)
 
     report = str(error.value)
     assert "BrokenBufferStep('broken') [BUFFER_SHAPE_UNRESOLVED:state]" in report
