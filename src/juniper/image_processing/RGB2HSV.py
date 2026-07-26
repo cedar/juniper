@@ -1,8 +1,8 @@
 import logging
+
 from ..core.frontend.Step import Step
 from ..util import util
 from .ColorConversion import rgb_to_hsv_jax
-
 
 logger = logging.getLogger(__name__)
 def compute_kernel_factory():

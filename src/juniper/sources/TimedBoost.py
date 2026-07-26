@@ -1,9 +1,8 @@
 import logging
-from ..core.frontend.Source import Source
-from ..util import util
-from ..util import util_jax
-from ..core.backend.Exceptions import JuniperConfigurationError
 
+from ..core.backend.Exceptions import JuniperConfigurationError
+from ..core.frontend.Source import Source
+from ..util import util, util_jax
 
 logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, start, end, delta_t):

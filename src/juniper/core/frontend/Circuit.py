@@ -1,26 +1,25 @@
 from __future__ import annotations
+
 import logging
 from typing import Callable
-from typing import Optional
 
-from ..backend.Exceptions import CircuitError
-from ..backend.Exceptions import CircuitConnectionError
+from typing_extensions import Self
 
-from .Slot import Slot
-from .Element import Element
+from ..backend.Exceptions import CircuitConnectionError, CircuitError
 from . import CircuitContext
-
+from .Element import Element
+from .Slot import Slot
 
 logger = logging.getLogger(__name__)
-def compute_kernel_factory(output_slot_map : dict[str,Slot]) -> Callable[[dict, dict, Optional[dict]], dict]:
-    def compute_kernel(input : dict, state : dict, **kwargs : Optional[dict]) -> dict:
+def compute_kernel_factory(output_slot_map : dict[str,Slot]) -> Callable[[dict, dict, dict | None], dict]:
+    def compute_kernel(input : dict, state : dict, **kwargs : dict | None) -> dict:
         """
             - input: {"out0":jax_array, "ou1":jax_array, ...}
             - state: {"out0":jax_array, "ou1":jax_array, ...}
 """
 
         out = state.copy()
-        for slot_id in output_slot_map.keys():
+        for slot_id in output_slot_map:
             out[slot_id] = input[slot_id]
         return out
 
@@ -29,7 +28,11 @@ def compute_kernel_factory(output_slot_map : dict[str,Slot]) -> Callable[[dict, 
 class Circuit(Element):
     _current : Circuit | None = None
 
-    def __init__(self, name : str, params : dict = {}, mandatory_params : dict = {}):
+    def __init__(self, name : str, params : dict | None = None, mandatory_params : dict | None = None):
+        if mandatory_params is None:
+            mandatory_params = {}
+        if params is None:
+            params = {}
         super().__init__(name=name, params=params, mandatory_params=mandatory_params)
         self.element_map : dict[str,Element] = {}
         self.connection_map_reversed : dict[str, list[Slot]] = {}
@@ -40,7 +43,7 @@ class Circuit(Element):
             raise RuntimeError("No active circuit. This should never happen.")
         return CircuitContext.get_current()
     
-    def __enter__(self) -> Circuit:
+    def __enter__(self) -> Self:
         self._previous_circuit = CircuitContext.get_current()
         Circuit._current = self
         CircuitContext.set_current(self)
@@ -62,15 +65,15 @@ class Circuit(Element):
         for slot_id, slot in self.input_slot_map.items():
             if getattr(self, slot_id, None) is slot:
                 delattr(self, slot_id)
-            if slot.get_local_circuit_id() in self.parent.connection_map_reversed.keys():
+            if slot.get_local_circuit_id() in self.parent.connection_map_reversed:
                 self.parent.connection_map_reversed.pop(slot.get_local_circuit_id())
         for slot_id, slot in self.output_slot_map.items():
             if getattr(self, slot_id, None) is slot:
                 delattr(self, slot_id)
-            if slot.get_local_circuit_id() in self.parent.connection_map_reversed.keys():
+            if slot.get_local_circuit_id() in self.parent.connection_map_reversed:
                 self.parent.connection_map_reversed.pop(slot.get_local_circuit_id())
 
-        if self.get_local_circuit_id() in self.parent.element_map.keys():
+        if self.get_local_circuit_id() in self.parent.element_map:
             self.parent.element_map.pop(self.get_local_circuit_id())
 
         self.element_map = {}
@@ -83,7 +86,7 @@ class Circuit(Element):
 
     def add_element(self, element : Element):
         element_name = element.get_local_circuit_id()
-        if element_name in self.element_map.keys():
+        if element_name in self.element_map:
             raise CircuitError(f"Circuit::add_element(): Element {element_name} already exists in circuit {self.get_path_str()}")
         if self is element:
             raise CircuitError(f"Circuit::add_element(): A circuit can't be added as a sub-element to itself ({self.get_path_str()}).")
@@ -91,7 +94,7 @@ class Circuit(Element):
         for slot in element.input_slot_map.values():
             self.connection_map_reversed[slot.get_local_circuit_id()] = []
 
-        if (element.get_local_circuit_id() in self.input_slot_map.keys()) or (element.get_local_circuit_id() in self.input_slot_map.keys()):
+        if (element.get_local_circuit_id() in self.input_slot_map) or (element.get_local_circuit_id() in self.input_slot_map):
             raise CircuitError(f"A sub-element of a circuit cannot have the same name as its input or output slot ({element.get_path_str()})")
         elif getattr(self, element.get_local_circuit_id(), None) is not None:
             raise CircuitError(f"{element.self.get_local_circuit_id()} is already registed in circuit {element.get_path_str()}")
@@ -117,7 +120,7 @@ class Circuit(Element):
             raise CircuitConnectionError(f"Circuit::connect_to(): Slot {dest_name} already has {dest.max_incoming_connections} incoming connection(s) {self.get_path_str()}")
 
         for parent in [source.parent, dest.parent]:
-            if (parent is not self) and (parent.get_local_circuit_id() not in self.element_map.keys()):
+            if (parent is not self) and (parent.get_local_circuit_id() not in self.element_map):
                 raise CircuitConnectionError(f"Circuit::connect_to(): Element {parent.get_local_circuit_id()} not found in circuit {self.get_path_str()} (source:{source.parent.get_local_circuit_id()},dest:{dest.parent.get_local_circuit_id()})")
             
         self.connection_map_reversed.setdefault(dest_name, [])

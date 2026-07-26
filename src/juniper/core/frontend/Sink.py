@@ -5,8 +5,6 @@ from typing import Any
 
 from .Step import Step
 
-
-
 logger = logging.getLogger(__name__)
 class Sink(Step):
     def __init__(self, name: str, params: dict, mandatory_params: list, is_dynamic: bool = True):

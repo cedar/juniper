@@ -1,12 +1,12 @@
 import logging
-import numpy as np
-from multiprocessing import Process, shared_memory, Queue
 from logging.handlers import QueueListener
+from multiprocessing import Process, Queue, shared_memory
 
-from ..core.frontend.Source import Source
+import numpy as np
+
 from ..core.backend.TCPWorker import TCPWorker
+from ..core.frontend.Source import Source
 from ..util import util
-
 
 logger = logging.getLogger(__name__)
 class ForwardingHandler(logging.Handler):

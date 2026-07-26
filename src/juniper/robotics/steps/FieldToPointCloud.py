@@ -1,10 +1,10 @@
 import logging
-from ...core.frontend.Step import Step
-from ...util import util
+
 import jax.numpy as jnp
 import numpy as np
 
-
+from ...core.frontend.Step import Step
+from ...util import util
 
 logger = logging.getLogger(__name__)
 class FieldToPointCloud(Step):
@@ -64,12 +64,12 @@ def compute_kernel_factory(params):
     def compute_kernel(input_mats, buffer, **kwargs):
 
         field = jnp.asarray(input_mats[util.DEFAULT_INPUT_SLOT], dtype=jnp.float32)
-        Nx, Ny, Nz = field.shape
+        _, _, _ = field.shape
         ox, oy, oz = map(float, params["origin"])
         dx, dy, dz = map(float, params["field_units_per_meter"])
 
         mask = field > params["threshold"]
-        count = jnp.sum(mask, dtype=jnp.int32)        # how many valid voxels  # noqa: F841
+        _ = jnp.sum(mask, dtype=jnp.int32)        # how many valid voxels
 
         # Get ALL indices in a fixed-size (padded) way
         # nonzero(..., size=...) guarantees a static-length result under jit.

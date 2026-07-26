@@ -1,8 +1,8 @@
 import logging
-import jax.numpy as jnp
-from jax import lax
-import jax.scipy as jsp
 
+import jax.numpy as jnp
+import jax.scipy as jsp
+from jax import lax
 
 logger = logging.getLogger(__name__)
 def correlate1d_jax(x, w, axis=-1, mode="constant", cval=0.0, origin=0):

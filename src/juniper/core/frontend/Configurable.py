@@ -1,15 +1,21 @@
 # Used for parameterizable objects such as steps or kernels.
-from ..backend.Exceptions import JuniperConfigurationError
-from ..backend.Exceptions import JuniperUserError
+from __future__ import annotations
+
 import copy
 import inspect
-
 import logging
+
+from ..backend.Exceptions import JuniperConfigurationError, JuniperUserError
+
 logger = logging.getLogger(__name__)
 
 class Configurable:
 
-    def __init__(self, name : str, params : dict = {}, mandatory_params : dict = {}):
+    def __init__(self, name : str, params : dict | None = None, mandatory_params : dict | None = None):
+        if mandatory_params is None:
+            mandatory_params = {}
+        if params is None:
+            params = {}
         if not isinstance(params, dict):
             raise JuniperUserError(f"The params argument has to be of type dict but is of type {type(params)} ({name})")
 
@@ -18,7 +24,7 @@ class Configurable:
         self._local_id = name
 
         for param in mandatory_params:
-            if param not in params.keys():
+            if param not in params:
                 path_str = self.get_local_circuit_id()
                 if hasattr(self, "get_path_str"):
                     path_str = self.get_path_str()

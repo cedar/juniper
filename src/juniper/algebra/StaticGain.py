@@ -1,9 +1,10 @@
 import logging
-from ..core.frontend.Step import Step
-from ..core.backend.Exceptions import EngineError
-from ..util import util
+
 import jax.numpy as jnp
 
+from ..core.backend.Exceptions import EngineError
+from ..core.frontend.Step import Step
+from ..util import util
 
 logger = logging.getLogger(__name__)
 # construction of compute kernel

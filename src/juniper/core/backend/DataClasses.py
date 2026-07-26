@@ -1,27 +1,25 @@
 from __future__ import annotations
+
+import json
 import logging
+import os
+import pickle
+import time
 from dataclasses import dataclass
-
-from typing import Any
-from typing import Callable
-from typing import Union
-
-
-from ..frontend.Element import Element
-from ..frontend.Circuit import Circuit
-from ..frontend.Slot import Slot
-from ..frontend.Buffer import Buffer
-from .Exceptions import RecordingError
-from .Exceptions import LoadRecordingError
-from .Exceptions import SaveRecordingError
-from .Exceptions import JuniperUserError
+from typing import Any, Callable, Union
 
 import numpy as np
-import time
-import os
-import json
-import pickle
 
+from ..frontend.Buffer import Buffer
+from ..frontend.Circuit import Circuit
+from ..frontend.Element import Element
+from ..frontend.Slot import Slot
+from .Exceptions import (
+    JuniperUserError,
+    LoadRecordingError,
+    RecordingError,
+    SaveRecordingError,
+)
 
 logger = logging.getLogger(__name__)
 """
@@ -225,7 +223,7 @@ class Recording:
 
         return cls(recording=recording, keys=key_strings)
 
-    def save_to_file(self, path: str, run_dir: str = None) -> str:
+    def save_to_file(self, path: str, run_dir: str | None = None) -> str:
         """
         Batch writer: 
         - store each timestep of the recording as its own file inside a per-run folder.
@@ -292,11 +290,11 @@ class Recording:
 
     def plot(
         self,
-        keys: list[RecKey] = None,
-        idx_interval: tuple[int, int] = None,
+        keys: list[RecKey] | None = None,
+        idx_interval: tuple[int, int] | None = None,
         time_axis=None,
         snapshot_indices=None,
-        group_keys: list[list[RecKey]] = None,
+        group_keys: list[list[RecKey]] | None = None,
         figsize=(10, 4),
     ):
         """Plot this recording using juniper.util.plotting.plot_steps."""

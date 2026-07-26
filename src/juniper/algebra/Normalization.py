@@ -1,17 +1,19 @@
+from __future__ import annotations
+
 import logging
-from ..core.backend.Exceptions import JuniperConfigurationError
+from collections.abc import Sequence
 
 import jax.numpy as jnp
+
+from ..core.backend.Exceptions import JuniperConfigurationError
 from ..core.frontend.Step import Step
 from ..util import util
-from typing import Union, Sequence
-
 
 logger = logging.getLogger(__name__)
 def nd_norm(
     x: jnp.ndarray,
-    ord: Union[int, float, str] = 2,
-    axis: Union[int, Sequence[int], None] = None,
+    ord: float | str = 2,
+    axis: int | Sequence[int] | None = None,
     keepdims: bool = True,
     eps: float = 1e-12,
 ) -> jnp.ndarray:

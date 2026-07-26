@@ -1,15 +1,14 @@
-from ..frontend.Configurable import Configurable
-from .Exceptions import TCPError
+import logging
+import re
+import socket
+import time
+from logging.handlers import QueueHandler
+from multiprocessing import Queue, shared_memory
 
 import numpy as np
-import re
-import time
-import socket
-from multiprocessing import shared_memory
-from multiprocessing import Queue
-import logging
-from logging.handlers import QueueHandler
 
+from ..frontend.Configurable import Configurable
+from .Exceptions import TCPError
 
 logger = logging.getLogger(__name__)
 def get_tcp_logger(name: str, queue : Queue) -> logging.Logger:
@@ -71,7 +70,7 @@ def serialize_cv_mat(mat: np.ndarray) -> bytes:
 
     # Header construction
     dims = mat.shape[:-1] if (mat.ndim == 3 and mat.shape[-1] == 3) else mat.shape
-    header = f"Mat,{cv_type},{','.join(str(x) for x in dims)},compact\n".encode("utf-8")
+    header = f"Mat,{cv_type},{','.join(str(x) for x in dims)},compact\n".encode()
 
     # Binary data block 
     binary_data = mat.tobytes()  
@@ -81,7 +80,7 @@ def serialize_cv_mat(mat: np.ndarray) -> bytes:
     checksum = cpp_crc32(message_prefix)
 
     # Final message
-    footer = f"CHK-SM{checksum}E-N-D!".encode("utf-8")
+    footer = f"CHK-SM{checksum}E-N-D!".encode()
     return message_prefix + footer
 
 def _parse_cv_header(header_bytes: bytes):
@@ -228,7 +227,7 @@ class TCPWorker(Configurable):
             self.bytes_sent = 0
             self._logged_send_header = False
             return True
-        except Exception as e:
+        except OSError as e:
             self.logger.debug(
                 "Connection attempt to (%s,%s) failed: %r",
                 self.ip,
@@ -261,7 +260,7 @@ class TCPWorker(Configurable):
             self.missed_heartbeats = 0
             self.read_buffer.clear()
             return True
-        except Exception as e:
+        except OSError as e:
             self.logger.debug(
                 "Connection attempt on (%s,%s) failed: %r",
                 self.ip,
@@ -340,12 +339,11 @@ class TCPWorker(Configurable):
                 deadline = time.time() + self.timeout
                 self.read_buffer.extend(newdata)
 
-        except Exception as e:
+        except (ConnectionError, OSError, TCPError, TimeoutError, ValueError):
             self.logger.exception(
-                "Read loop failed on (%s,%s): %r",
+                "Read loop failed on (%s,%s)",
                 self.ip,
                 self.port,
-                e,
             )
             if self._connection_announced:
                 self.logger.info(f"TCP read socket ({self.ip},{self.port}) lost connection!")
@@ -396,12 +394,11 @@ class TCPWorker(Configurable):
             else:
                 self.last_heartbeat = time.time()
                 self.missed_heartbeats = 0
-        except Exception as e:
+        except (ConnectionError, OSError, TCPError, TimeoutError, ValueError):
             self.logger.exception(
-                "Write loop failed on (%s,%s): %r",
+                "Write loop failed on (%s,%s)",
                 self.ip,
                 self.port,
-                e,
             )
             if self._connection_announced:
                 self.logger.info(f"TCP write socket ({self.ip},{self.port}) lost connection!")
@@ -417,12 +414,11 @@ class TCPWorker(Configurable):
     def send_ack(self):
         try:
             self.conn.sendall(b'1')
-        except Exception as e:
+        except OSError:
             self.logger.exception(
-                "Acknowledgement failed on (%s,%s): %r",
+                "Acknowledgement failed on (%s,%s)",
                 self.ip,
                 self.port,
-                e,
             )
             raise
 
@@ -448,11 +444,10 @@ class TCPWorker(Configurable):
                 conn.close()
             if server_sock:
                 server_sock.close()
-        except Exception as e:
+        except OSError:
             self.logger.exception(
-                "Error while closing reader connection on (%s,%s): %r",
+                "Error while closing reader connection on (%s,%s)",
                 self.ip,
                 self.port,
-                e,
             )
    

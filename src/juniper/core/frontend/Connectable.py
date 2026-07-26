@@ -1,22 +1,25 @@
 from __future__ import annotations
+
 import logging
-from typing import TYPE_CHECKING
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
 
-from ..backend.Exceptions import CircuitConnectionError
-
-from .Configurable import Configurable
-from ..frontend import CircuitContext
 from ...util import util
-
+from ..backend.Exceptions import CircuitConnectionError
+from ..frontend import CircuitContext
+from .Configurable import Configurable
 
 logger = logging.getLogger(__name__)
 if TYPE_CHECKING:
-    from .Slot import Slot
     from .Circuit import Circuit
+    from .Slot import Slot
 
 class Connectable(Configurable, ABC):
-    def __init__(self, name : str, params : dict = {}, mandatory_params : dict = {}):
+    def __init__(self, name : str, params : dict | None = None, mandatory_params : dict | None = None):
+        if mandatory_params is None:
+            mandatory_params = {}
+        if params is None:
+            params = {}
         super().__init__(name=name, params=params, mandatory_params=mandatory_params)
         self.parent_circuit : Circuit = CircuitContext.get_current()
 
@@ -53,7 +56,6 @@ class Connectable(Configurable, ABC):
     @abstractmethod
     def get_slot(self, slot_id : str):
         """used to get a slot of a conenctable/element"""
-        pass
 
     def get_path(self) -> tuple[str,...]:
         """returns the global path to the connectable as a tuple of strings. ('circ0', 'field0')"""

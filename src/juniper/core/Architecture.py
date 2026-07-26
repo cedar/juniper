@@ -1,30 +1,33 @@
 from __future__ import annotations
+
 import logging
 import sys
-from .frontend.Circuit import Circuit
-from .frontend import CircuitContext
-from .backend.Compiler import compile as compile_circuit
-from .backend.DataClasses import Recording
-from .backend.DataClasses import RecKey
-from .backend.DataClasses import TimingInfo
-from .backend.Exceptions import CompilerError
-from .backend.Exceptions import EngineError
-from .backend.Exceptions import NotCompiledError
-from .backend.Exceptions import CircuitError
-from .backend.Simulation import SimulationRuntime
-from .backend.Simulation import close_connections
-from .backend.Simulation import load_buffers
-from .backend.Simulation import open_connections
-from .backend.Simulation import reset_state
-from .backend.Simulation import run_simulation
-from .backend.Simulation import trace
-from ..util.util import timer
 
+from ..util.util import timer
+from .backend.Compiler import compile as compile_circuit
+from .backend.DataClasses import RecKey, Recording, TimingInfo
+from .backend.Exceptions import (
+    CircuitError,
+    CompilerError,
+    EngineError,
+    NotCompiledError,
+)
+from .backend.Simulation import (
+    SimulationRuntime,
+    close_connections,
+    load_buffers,
+    open_connections,
+    reset_state,
+    run_simulation,
+    trace,
+)
+from .frontend import CircuitContext
+from .frontend.Circuit import Circuit
 
 logger = logging.getLogger(__name__)
 _architecture_singleton = None
 
-def get_arch(name : str = None) -> Architecture:
+def get_arch(name : str | None = None) -> Architecture:
     global _architecture_singleton
     if _architecture_singleton is None:
         _architecture_singleton = Architecture() if name is None else Architecture(name=name)
@@ -106,7 +109,7 @@ class Architecture(Circuit):
                     },
                 )
         except Exception as e:
-            logger.info((self.runtime.state.get_specs()))
+            logger.info(self.runtime.state.get_specs())
             raise EngineError(
                 "During Jax tracing and warmup an exception occured. "
                 "The full state tree specs are written to logging.info:"
@@ -115,10 +118,12 @@ class Architecture(Circuit):
     def run_simulation(
             self,
             num_steps: int,
-            steps_to_record: list[RecKey] = [],
+            steps_to_record: list[RecKey] | None = None,
             print_timing: bool = True,
             save_buffer: bool = False,
         )-> tuple[Recording, TimingInfo]:
+        if steps_to_record is None:
+            steps_to_record = []
         if self.runtime is None:
             raise NotCompiledError("Can't run simulation before compilation.")
         return run_simulation(runtime=self.runtime, num_steps=num_steps, steps_to_record=steps_to_record, print_timing=print_timing, save_buffer=save_buffer)

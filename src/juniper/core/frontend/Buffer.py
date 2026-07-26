@@ -1,6 +1,6 @@
 import logging
-from .Configurable import Configurable
 
+from .Configurable import Configurable
 
 logger = logging.getLogger(__name__)
 class Buffer(Configurable):

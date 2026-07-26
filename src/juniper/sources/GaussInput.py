@@ -1,14 +1,15 @@
+from __future__ import annotations
+
 import logging
-from typing import Union
-from ..core.frontend.Source import Source
-from ..math.Gaussian import Gaussian
-from ..util import util
-from ..util import util_jax
 import warnings
-from ..core.backend.Exceptions import JuniperConfigurationError
-from ..core.backend.Warnings import JuniperConfigurationWarning
+
 import jax.numpy as jnp
 
+from ..core.backend.Exceptions import JuniperConfigurationError
+from ..core.backend.Warnings import JuniperConfigurationWarning
+from ..core.frontend.Source import Source
+from ..math.Gaussian import Gaussian
+from ..util import util, util_jax
 
 logger = logging.getLogger(__name__)
 def compute_kernel_factory(kernel):
@@ -35,7 +36,7 @@ class GaussInput(Source):
     - out0: jnp.array(shape)
     """
     _center = None
-    def __init__(self, name : str, shape : tuple, sigma : tuple, amplitude : float, center : Union[tuple, None] = _center):
+    def __init__(self, name : str, shape : tuple, sigma : tuple, amplitude : float, center : tuple | None = _center):
         params = locals().copy()
         mandatory_params = ["shape", "sigma", "amplitude"]
         super().__init__(name, params, mandatory_params)

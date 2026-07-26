@@ -1,18 +1,25 @@
 import functools
+import io
 import json
 import os
 import shutil
+import sys
 import tempfile
-import juniper as jp
-import numpy as np
-import pytest
 import time
 from contextlib import contextmanager
-import io
-import sys
 
-from juniper.core.backend.Exceptions import JuniperError
+import numpy as np
+import pytest
+
+import juniper as jp
 from juniper.core.backend.DataClasses import Recording
+from juniper.core.backend.Exceptions import (
+    CircuitConnectionError,
+    CircuitError,
+    JuniperError,
+    JuniperUserError,
+    ShapeInferenceError,
+)
 from juniper.core.backend.Simulation import _tick
 from juniper.core.frontend import CircuitContext
 from juniper.util import util_jax
@@ -73,7 +80,7 @@ class TestJuniper:
         self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
         assert self.arch.is_compiled
 
-        recording, timing = self.arch.run_simulation(num_steps=42, steps_to_record=["in1", in1, in1.out0], print_timing=False, save_buffer=False)
+        recording, _ = self.arch.run_simulation(num_steps=42, steps_to_record=["in1", in1, in1.out0], print_timing=False, save_buffer=False)
         full_recording = recording.slice(["in1", in1, in1.out0], (0, 42))
         assert len(full_recording.recording) == 42
         assert np.isclose(recorded_array(recording, "in1", 0), 1)
@@ -187,7 +194,7 @@ class TestJuniper:
         self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
         assert self.arch.is_compiled
 
-        recording, timing = self.arch.run_simulation(num_steps=3, steps_to_record=["out"], print_timing=False, save_buffer=False)
+        recording, _ = self.arch.run_simulation(num_steps=3, steps_to_record=["out"], print_timing=False, save_buffer=False)
 
         last_out = recorded_array(recording, "out")
         res = np.sum(last_out)
@@ -215,7 +222,7 @@ class TestJuniper:
         self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
         assert self.arch.is_compiled
 
-        recording, timing = self.arch.run_simulation(num_steps=5, steps_to_record=["out", "out2"], print_timing=False, save_buffer=False)
+        recording, _ = self.arch.run_simulation(num_steps=5, steps_to_record=["out", "out2"], print_timing=False, save_buffer=False)
 
         last_out = recorded_array(recording, "out")
         last_out2 = recorded_array(recording, "out2")
@@ -265,7 +272,7 @@ class TestJuniper:
         assert self.arch.is_compiled
 
         self.arch.reset_state()
-        recording, timing = self.arch.run_simulation(num_steps=1, steps_to_record=[circ, "circ2"], print_timing=False, save_buffer=False)
+        recording, _ = self.arch.run_simulation(num_steps=1, steps_to_record=[circ, "circ2"], print_timing=False, save_buffer=False)
 
         last_out = recorded_array(recording, circ)
         last_out2 = recorded_array(recording, "circ2")
@@ -323,7 +330,7 @@ class TestJuniper:
     def test_duplicate_element_name_fails(self):
         """Circuit construction should reject duplicate element names."""
         jp.CustomInput("in1", (1,))
-        with pytest.raises(Exception):
+        with pytest.raises(CircuitError):
             jp.CustomInput("in1", (1,))
 
     @function_test
@@ -333,7 +340,7 @@ class TestJuniper:
         in2 = jp.CustomInput("in2", (1,))
         out = jp.AddConstant("out", 1)
         in1 >> out
-        with pytest.raises(Exception):
+        with pytest.raises(CircuitConnectionError):
             in2 >> out
 
     @function_test
@@ -347,15 +354,15 @@ class TestJuniper:
         assert self.arch.is_compiled
 
         t_comp = time.time()
-        compile_recording, _ = self.arch.run_simulation(num_steps=1, steps_to_record=["nf1"], print_timing=False, save_buffer=False)
+        _, _ = self.arch.run_simulation(num_steps=1, steps_to_record=["nf1"], print_timing=False, save_buffer=False)
         t_comp = time.time() - t_comp
-        compile_recording, _ = self.arch.run_simulation(num_steps=5, steps_to_record=["nf1"], print_timing=False, save_buffer=False)
+        _, _ = self.arch.run_simulation(num_steps=5, steps_to_record=["nf1"], print_timing=False, save_buffer=False)
         cache_size = getattr(_tick, "_cache_size", None)
         cache_after_compile = cache_size() if cache_size is not None else None
 
         self.arch.reset_state()
         t1 = time.time()
-        recording1, timing1 = self.arch.run_simulation(num_steps=1, steps_to_record=["nf1"], print_timing=False, save_buffer=False)
+        recording1, _ = self.arch.run_simulation(num_steps=1, steps_to_record=["nf1"], print_timing=False, save_buffer=False)
         t1 = time.time()-t1
         cache_after_first_reset = cache_size() if cache_size is not None else None
 
@@ -391,9 +398,8 @@ class TestJuniper:
     def test_dnn_prompting(self):
         """Tests DNN download prompting."""
 
-        with pytest.raises(Exception):
-            with simulate_user_input("n"):
-                jp.DNN("dnn2", "4_3")
+        with pytest.raises(JuniperUserError), simulate_user_input("n"):
+            jp.DNN("dnn2", "4_3")
 
     @function_test
     def test_buffer_save_and_load(self):
@@ -489,7 +495,7 @@ class TestJuniper:
         in2 = jp.CustomInput("in2", (2,2))
         in1 >> out
         in2 >> out
-        with pytest.raises(Exception):
+        with pytest.raises(ShapeInferenceError):
             self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
         clean_arch(self.arch)
 
@@ -520,7 +526,7 @@ class TestJuniper:
         in1 >> out
         in2 >> out
         out >> proj >> out
-        with pytest.raises(Exception):
+        with pytest.raises(ShapeInferenceError):
             self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
         clean_arch(self.arch)
 
@@ -566,7 +572,7 @@ class TestJuniper:
         self.arch.compile(warmup=3, print_compile_info=False, load_buffer=False)
         assert self.arch.is_compiled
         
-        recording, timing = self.arch.run_simulation(num_steps=1, steps_to_record=["c.s", "c.s.out0"], print_timing=False, save_buffer=False)
+        recording, _ = self.arch.run_simulation(num_steps=1, steps_to_record=["c.s", "c.s.out0"], print_timing=False, save_buffer=False)
 
         out_array = np.asanyarray(recorded_array(recording, "c.s"))
         explicit_out_array = np.asanyarray(recorded_array(recording, "c.s.out0"))

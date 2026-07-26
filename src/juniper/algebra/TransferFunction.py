@@ -1,8 +1,8 @@
 import logging
-from ..core.frontend.Step import Step
-from ..util import util
-from ..math.Sigmoid import Sigmoid
 
+from ..core.frontend.Step import Step
+from ..math.Sigmoid import Sigmoid
+from ..util import util
 
 logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, trans_func):

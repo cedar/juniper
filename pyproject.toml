@@ -40,3 +40,6 @@ filterwarnings = [
     'ignore:.*use of fork\(\) may lead to deadlocks in the child\.:DeprecationWarning',
     'ignore:.*os\.fork\(\) was called\. os\.fork\(\) is incompatible with multithreaded code.*:RuntimeWarning',
 ]
+
+[tool.ruff.lint]
+ignore = ["N999", "RUF046"]

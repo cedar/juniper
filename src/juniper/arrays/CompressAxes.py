@@ -1,10 +1,10 @@
 import logging
-from ..core.backend.Exceptions import JuniperConfigurationError
 
 import jax.numpy as jnp
+
+from ..core.backend.Exceptions import JuniperConfigurationError
 from ..core.frontend.Step import Step
 from ..util import util
-
 
 logger = logging.getLogger(__name__)
 COMPRESSION_TYPE_MAP = {

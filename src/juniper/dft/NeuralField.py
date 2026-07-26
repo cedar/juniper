@@ -1,19 +1,21 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..math.LateralKernel import LateralKernel
 
-from ..core.frontend.Step import Step
-from ..core.backend.Exceptions import ShapeInferenceError
-from ..util import util
-from ..util import util_jax
+import logging
+
+import jax
 import jax.numpy as jnp
 import numpy as np
-import jax
-from ..math.Sigmoid import Sigmoid
 
-import logging
+from ..core.backend.Exceptions import ShapeInferenceError
+from ..core.frontend.Step import Step
+from ..math.Sigmoid import Sigmoid
+from ..util import util, util_jax
+
 logger = logging.getLogger(__name__)
 
 # This singleton construct is needed as we need to specify the static_argnames in the compiler directive depending on the user input
@@ -27,7 +29,7 @@ def eulerStep(passedTime, input_mat, u_activation, prng_key, resting_level, glob
     d_u = -u_activation + resting_level + lateral_interaction + global_inhibition * sum_sigmoided_u + input_mat
 
     input_noise = jax.random.normal(prng_key, jnp.asarray(input_mat).shape)
-    u_activation += (passedTime / tau) * d_u + ((jnp.sqrt(passedTime*1000) / tau/1000)) * input_noise_gain * input_noise
+    u_activation += (passedTime / tau) * d_u + (jnp.sqrt(passedTime*1000) / tau/1000) * input_noise_gain * input_noise
 
     sigmoided_u = sigmoid(u_activation, beta, theta)
 

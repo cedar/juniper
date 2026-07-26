@@ -1,10 +1,10 @@
 import logging
-from ..core.frontend.Step import Step
-from ..util import util
-from ..util import util_jax
-import jax.numpy as jnp
-from ..core.backend.Exceptions import JuniperConfigurationError
 
+import jax.numpy as jnp
+
+from ..core.backend.Exceptions import JuniperConfigurationError
+from ..core.frontend.Step import Step
+from ..util import util, util_jax
 
 logger = logging.getLogger(__name__)
 def no_reward_gating(passedTime, reward_signal, reward_onset, reward_timer, reward_duration):
@@ -19,11 +19,11 @@ def reward_interval(passedTime, reward_signal, reward_onset, reward_timer, rewar
 
     reward_onset = jnp.select(
         condlist=[cond1, cond2],
-        choicelist=[1 - ( reward_timer >= (reward_duration[0] + reward_duration[1]) ), util_jax.ones((1))]
+        choicelist=[1 - ( reward_timer >= (reward_duration[0] + reward_duration[1]) ), util_jax.ones(1)]
     )
     reward_timer = jnp.select(
         condlist=[cond1, cond2],
-        choicelist=[reward_timer, util_jax.zeros((1))]
+        choicelist=[reward_timer, util_jax.zeros(1)]
     )
 
     reward = reward_onset * jnp.logical_and(
@@ -39,7 +39,7 @@ def outstar_learning_rule(target_exp, source_exp, w):
     return (source_exp - w) * target_exp
 
 def reverse_output(w, target, source_ndim, weight_ndim):
-    return jnp.tensordot(w, target, axes=(list(range(source_ndim, weight_ndim)), list(range(0, target.ndim))))
+    return jnp.tensordot(w, target, axes=(list(range(source_ndim, weight_ndim)), list(range(target.ndim))))
 
 def no_reverse_output(w, target, *_):
     return target * 0
@@ -95,7 +95,7 @@ def make_euler_func(params, static):
 
         # output and reverse output
         output = jnp.tensordot(wheight_mat, source_mat,
-            axes=(list(range(0, source_mat.ndim)), list(range(0,source_mat.ndim))))
+            axes=(list(range(source_mat.ndim)), list(range(source_mat.ndim))))
         output_rev = output_rev_func(wheight_mat, target_mat, source_mat.ndim, wheight_mat.ndim)
 
         source_expanded = source_mat.reshape(*source_mat.shape, *([1] * target_mat.ndim))

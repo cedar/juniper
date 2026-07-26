@@ -1,9 +1,10 @@
 import logging
-from ..core.frontend.Step import Step
-from ..util import util
-from ..math.Gaussian import Gaussian
+
 import jax.numpy as jnp
 
+from ..core.frontend.Step import Step
+from ..math.Gaussian import Gaussian
+from ..util import util
 
 logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, limits, gaussian, scaling_factor):

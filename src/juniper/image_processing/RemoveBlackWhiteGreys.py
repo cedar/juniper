@@ -2,10 +2,11 @@
 
 
 import logging
+
 import jax.numpy as jnp
+
 from ..core.frontend.Step import Step
 from ..util import util
-
 
 logger = logging.getLogger(__name__)
 def rgb_to_hsv(rgb):
@@ -54,7 +55,7 @@ def compute_kernel_factory(params):
         rgb01 = jnp.where(is_255_range, rgb / 255.0, rgb)
 
         # Convert RGB → HSV in [0,1]
-        hue, sat, val = rgb_to_hsv(rgb01)
+        _, sat, val = rgb_to_hsv(rgb01)
 
         # Mask greys/whites/blacks (in HSV space)
         mask = (sat < sat_threshold) | (val < val_threshold)

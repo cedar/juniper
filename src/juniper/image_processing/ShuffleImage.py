@@ -1,11 +1,11 @@
 import logging
-from ..core.frontend.Step import Step
-from ..util import util, util_jax
 
-import jax.numpy as jnp
 import jax
+import jax.numpy as jnp
 import numpy as np
 
+from ..core.frontend.Step import Step
+from ..util import util, util_jax
 
 logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, delta_t):

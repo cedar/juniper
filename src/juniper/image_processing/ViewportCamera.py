@@ -1,11 +1,10 @@
 import logging
-from ..core.frontend.Step import Step
-from ..util import util, util_jax
 
 import jax.numpy as jnp
 from jax import lax
 
-
+from ..core.frontend.Step import Step
+from ..util import util, util_jax
 
 logger = logging.getLogger(__name__)
 def _argmax_center_jax(activation: jnp.ndarray):

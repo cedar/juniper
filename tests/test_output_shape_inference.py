@@ -1,10 +1,9 @@
-import pytest
 import jax.numpy as jnp
+import pytest
 
 import juniper as jp
 from juniper.core.frontend import CircuitContext
-from juniper.util import util
-from juniper.util import util_jax
+from juniper.util import util, util_jax
 
 
 @pytest.fixture

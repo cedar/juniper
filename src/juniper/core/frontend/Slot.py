@@ -1,6 +1,6 @@
 import logging
-from .Connectable import Connectable
 
+from .Connectable import Connectable
 
 logger = logging.getLogger(__name__)
 class Slot(Connectable):

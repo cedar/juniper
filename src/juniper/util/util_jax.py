@@ -1,16 +1,18 @@
-import logging
-from ..core.backend.Exceptions import JuniperConfigurationError
-import os
-from . import util
 import json
-import numpy as np
-import jax.numpy as jnp
-import jax
+import logging
+import os
 
+import jax
+import jax.numpy as jnp
+import numpy as np
+
+from ..core.backend.Exceptions import JuniperConfigurationError
+from . import util
 
 logger = logging.getLogger(__name__)
 def _load_config():
-    cfg = json.load(open(os.path.join(util.root(), "run_config.json"), "r"))
+    with open(os.path.join(util.root(), "run_config.json"), "r") as f:
+        cfg = json.load(f)
 
     # Parse dtype
     unsupported_dtypes = ["float64"]
@@ -51,7 +53,7 @@ def next_random_keys(num):
 def build_prng_tree(kernel_map, dynamic_paths, static_key):
     tree = {}
     slots = []
-    for element_path in kernel_map.keys():
+    for element_path in kernel_map:
         tree[element_path] = static_key
         if element_path in dynamic_paths:
             slots.append((tree, element_path))

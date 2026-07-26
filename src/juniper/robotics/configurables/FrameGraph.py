@@ -1,11 +1,10 @@
 import logging
-from ...core.frontend.Configurable import Configurable
-from .Transform import Transform
-from collections import deque
+from collections import defaultdict, deque
 
 import jax.numpy as jnp
-from collections import defaultdict
 
+from ...core.frontend.Configurable import Configurable
+from .Transform import Transform
 
 logger = logging.getLogger(__name__)
 def find_path(edges, start, goal): 
@@ -88,17 +87,17 @@ class FrameGraph(Configurable):
 
         """
         self.edges[(source, target)] = transform
-        if (source, target) not in self.edges.keys():
+        if (source, target) not in self.edges:
             self.edges[(source, target)] = transform
-        elif (target, source) not in self.edges.keys():
+        elif (target, source) not in self.edges:
             self.edges[(target, source)] = Transform(params={"M_func": lambda joint_state: jnp.linalg.inv(transform.M_func(joint_state))})
 
     def lookup(self, source, target):
         if target == source:
             return Transform(params={"M_func": lambda joint_state: jnp.eye(4)})
-        elif (source, target) in self.edges.keys():
+        elif (source, target) in self.edges:
             return self.edges[(source,target)]
-        elif (target, source) in self.edges.keys():
+        elif (target, source) in self.edges:
             inv_trans = self.edges[(target, source)]
             trans = Transform(params={"M_func": lambda joint_state: jnp.linalg.inv(inv_trans.M_func(joint_state))})
             self.add_edge(source, target, trans)

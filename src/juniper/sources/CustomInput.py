@@ -1,8 +1,9 @@
 import logging
-from ..core.frontend.Source import Source
-from ..util import util
+
 import jax.numpy as jnp
 
+from ..core.frontend.Source import Source
+from ..util import util
 
 logger = logging.getLogger(__name__)
 def compute_kernel_factory():

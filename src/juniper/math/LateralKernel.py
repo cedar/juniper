@@ -1,10 +1,12 @@
 ### ToDo find a better name for this file and class
+import logging
+
 import jax.numpy as jnp
+
+from ..core.backend.Exceptions import JuniperConfigurationError
 from ..core.frontend.Configurable import Configurable
 from .Convolution import convolve_func_singleton
-from ..core.backend.Exceptions import JuniperConfigurationError
 
-import logging
 logger = logging.getLogger(__name__)
 
 class LateralKernel(Configurable):

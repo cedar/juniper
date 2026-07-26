@@ -1,11 +1,9 @@
 import logging
+
+from ...util import util, util_jax
 from ..backend.Exceptions import CircuitError
-
-from ...util import util
-from ...util import util_jax
-from .Element import Element
 from .Buffer import Buffer
-
+from .Element import Element
 
 logger = logging.getLogger(__name__)
 class Step(Element):
@@ -19,7 +17,7 @@ class Step(Element):
         self.parent.add_element(self)
 
     def register_buffer(self, buf_id : str, shape : tuple, permanent : bool  = False):
-        if buf_id in self.buffer_map.keys():
+        if buf_id in self.buffer_map:
             raise CircuitError(f"Buffer {buf_id} already registered in step {self.get_path_str()}")
         buffer = Buffer(self, buf_id, shape, permanent)
         self.buffer_map[buf_id] = buffer
@@ -32,10 +30,10 @@ class Step(Element):
         shape = {}
         for i, out_slot_id in enumerate(self.output_slot_map.keys()):
             in_slot_id = util.DEFAULT_INPUT_SLOT[:-1] + f"{i}"
-            if in_slot_id in input_specs.keys() and input_specs[in_slot_id] is not None:
+            if in_slot_id in input_specs and input_specs[in_slot_id] is not None:
                 shape[out_slot_id] = input_specs[in_slot_id][0]
         return shape
 
     def infer_output_dtypes(self, input_specs):
-        dtypes = {slot_id: util_jax.cfg["jdtype"] for slot_id in self.output_slot_map.keys()}
+        dtypes = {slot_id: util_jax.cfg["jdtype"] for slot_id in self.output_slot_map}
         return dtypes

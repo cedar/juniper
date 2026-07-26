@@ -1,11 +1,11 @@
 import logging
+import warnings
+
+from ..core.backend.Exceptions import JuniperConfigurationError
+from ..core.backend.Warnings import JuniperConfigurationWarning
 from ..core.frontend.Source import Source
 from ..math.Gaussian import Gaussian
 from ..util import util
-import warnings
-from ..core.backend.Exceptions import JuniperConfigurationError
-from ..core.backend.Warnings import JuniperConfigurationWarning
-
 
 logger = logging.getLogger(__name__)
 def compute_kernel_factory(params):

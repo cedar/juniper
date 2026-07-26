@@ -1,22 +1,10 @@
 # Expose Juniper api
 # api
-from .core.frontend.Circuit import Circuit
-from .core.backend.Simulation import SimulationRuntime
-from .core.backend.Simulation import close_connections
-from .core.backend.Simulation import init_prng
-from .core.backend.Simulation import load_buffers
-from .core.backend.Simulation import open_connections
-from .core.backend.Simulation import refresh_prng
-from .core.backend.Simulation import reset_state
-from .core.backend.Simulation import run_simulation
-from .core.backend.Simulation import save_buffers
-from .core.backend.Simulation import trace
+# loggingimport logging
+import logging
 
-# architecture
-from .core.Architecture import delete_arch
-from .core.Architecture import get_arch
-from .core.Architecture import init_logging
-from .core.Architecture import init_logging_to_file
+# robotics
+from . import robotics
 
 # algebra
 from .algebra.AddConstant import AddConstant
@@ -34,35 +22,51 @@ from .arrays.ExpandAxes import ExpandAxes
 from .arrays.Flip import Flip
 from .arrays.MatrixPadding import MatrixPadding
 from .arrays.MatrixSlice import MatrixSlice
+from .arrays.Projection import Projection
 from .arrays.ReorderAxes import ReorderAxes
 from .arrays.Resize import Resize
-from .arrays.Projection import Projection
-from .arrays.VectorToScalars import VectorToScalars
 from .arrays.ScalarsToVector import ScalarsToVector
+from .arrays.VectorToScalars import VectorToScalars
 
-# configurable math classes
-from .math.Gaussian import Gaussian
-from .math.LateralKernel import LateralKernel
+# architecture
+from .core.Architecture import delete_arch, get_arch, init_logging, init_logging_to_file
+from .core.backend.Simulation import (
+    SimulationRuntime,
+    close_connections,
+    init_prng,
+    load_buffers,
+    open_connections,
+    refresh_prng,
+    reset_state,
+    run_simulation,
+    save_buffers,
+    trace,
+)
+from .core.frontend.Circuit import Circuit
+from .dft.BCMConnection import BCMConnection
 
 # dft
 from .dft.HebbianConnection import HebbianConnection
 from .dft.NeuralField import NeuralField
-from .dft.SpaceToRateCode import SpaceToRateCode
 from .dft.RateToSpaceCode import RateToSpaceCode
-from .dft.BCMConnection import BCMConnection
+from .dft.SpaceToRateCode import SpaceToRateCode
 
 # image_processing
 from .image_processing.ColorConversion import ColorConversion
-from .image_processing.DNN import DNN
 from .image_processing.ColorFMap import ColorFMap
-from .image_processing.ViewportCamera import ViewportCamera
-from .image_processing.ShuffleImage import ShuffleImage
+from .image_processing.DNN import DNN
 from .image_processing.RemoveBlackWhiteGreys import RemoveBlackWhiteGreys
 from .image_processing.RGB2HSV import RGB2HSV
+from .image_processing.ShuffleImage import ShuffleImage
+from .image_processing.ViewportCamera import ViewportCamera
+
+# configurable math classes
+from .math.Gaussian import Gaussian
+from .math.LateralKernel import LateralKernel
+from .sinks.StaticDebug import StaticDebug
 
 # sinks
 from .sinks.TCPWriter import TCPWriter
-from .sinks.StaticDebug import StaticDebug
 
 # sources
 from .sources.CustomInput import CustomInput
@@ -72,69 +76,64 @@ from .sources.ImageLoader import ImageLoader
 from .sources.TCPReader import TCPReader
 from .sources.TimedBoost import TimedBoost
 
-# robotics
-from . import robotics
-
-# loggingimport logging
-import logging
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
 __all__ =[
-    "SimulationRuntime",
-    "trace",
-    "init_prng",
-    "refresh_prng",
-    "load_buffers",
-    "save_buffers",
-    "reset_state",
-    "run_simulation",
-    "close_connections",
-    "open_connections",
-    "Circuit",
-    "AddConstant",
-    "ComponentMultiply",
-    "Convolution",
-    "Normalization",
-    "StaticGain",
-    "Sum",
-    "TransferFunction",
-    "Clamp",
-    "CompressAxes",
-    "ExpandAxes",
-    "Flip",
-    "MatrixPadding",
-    "MatrixSlice",
-    "ReorderAxes",
-    "Resize",
-    "Projection",
-    "Gaussian",
-    "LateralKernel",
-    "HebbianConnection",
-    "BCMConnection",
-    "NeuralField",
-    "SpaceToRateCode",
-    "RateToSpaceCode",
     "DNN",
+    "RGB2HSV",
+    "AddConstant",
+    "BCMConnection",
+    "Circuit",
+    "Clamp",
     "ColorConversion",
     "ColorFMap",
-    "ViewportCamera",
-    "ShuffleImage",
-    "RemoveBlackWhiteGreys",
-    "RGB2HSV",
-    "TCPWriter",
-    "StaticDebug",
+    "ComponentMultiply",
+    "CompressAxes",
+    "Convolution",
     "CustomInput",
     "DemoInput",
+    "ExpandAxes",
+    "Flip",
     "GaussInput",
+    "Gaussian",
+    "HebbianConnection",
     "ImageLoader",
+    "LateralKernel",
+    "MatrixPadding",
+    "MatrixSlice",
+    "NeuralField",
+    "Normalization",
+    "Projection",
+    "RateToSpaceCode",
+    "RemoveBlackWhiteGreys",
+    "ReorderAxes",
+    "Resize",
+    "ScalarsToVector",
+    "ShuffleImage",
+    "SimulationRuntime",
+    "SpaceToRateCode",
+    "StaticDebug",
+    "StaticGain",
+    "Sum",
     "TCPReader",
+    "TCPWriter",
     "TimedBoost",
-    "robotics",
-    "get_arch",
+    "TransferFunction",
+    "VectorToScalars",
+    "ViewportCamera",
+    "close_connections",
     "delete_arch",
+    "get_arch",
     "init_logging",
     "init_logging_to_file",
-    "VectorToScalars",
-    "ScalarsToVector"
+    "init_prng",
+    "load_buffers",
+    "open_connections",
+    "refresh_prng",
+    "reset_state",
+    "robotics",
+    "run_simulation",
+    "save_buffers",
+    "trace"
 ]

@@ -1,32 +1,24 @@
 from __future__ import annotations
-import logging
-from typing import Any
-import warnings
-import os
-
-from .DataClasses import ElementRef
-from .DataClasses import CompileInfo
-from .DataClasses import ElementPath
-from .DataClasses import StateTree
-
-from .Exceptions import LoadBufferError
-from .Exceptions import SaveBufferError
-from .Warnings import LoadBufferWarning
 
 import json
+import logging
+import os
+import warnings
+from typing import Any
+
 import jax.numpy as jnp
 import numpy as np
 
-from ..frontend.Circuit import Circuit
-from ..frontend.Element import Element
-from ..frontend.Buffer import Buffer
-from ..frontend.Connectable import Connectable
 from ...dft.NeuralField import NeuralField
-from ...util import util
-from ...util import util_jax
-from ...util.util_jax import constant
-from ...util.util_jax import zeros
-
+from ...util import util, util_jax
+from ...util.util_jax import constant, zeros
+from ..frontend.Buffer import Buffer
+from ..frontend.Circuit import Circuit
+from ..frontend.Connectable import Connectable
+from ..frontend.Element import Element
+from .DataClasses import CompileInfo, ElementPath, ElementRef, StateTree
+from .Exceptions import LoadBufferError, SaveBufferError
+from .Warnings import LoadBufferWarning
 
 logger = logging.getLogger(__name__)
 class RuntimeState:
@@ -180,7 +172,7 @@ def load_permanent_buffers(compile_info: CompileInfo, runtime_state: RuntimeStat
 
             runtime_state.set(ref, step_state)
             loaded_buffer[path_str] = loaded_step_buffer
-        except Exception as e:
+        except (KeyError, LoadBufferError, TypeError, ValueError) as e:
             logger.error("-- Error during Engine::load_buffers('{data_file}') -- Buffer for step " + path_str + " could not be loaded.")
             logger.error(e)
             warnings.warn("Buffer for step " + path_str + " could not be loaded")
@@ -199,7 +191,7 @@ def save_permanent_buffers(compile_info: CompileInfo, runtime_state: RuntimeStat
                     buffers[buffer_id] = np.array(step_state[buffer_id]).tolist()
             if len(buffers) > 0:
                 tree[".".join(ref.path)] = {"BUFFER": buffers}
-    except Exception as e:
+    except (KeyError, TypeError, ValueError) as e:
         raise SaveBufferError("Failed to construct buffer tree.") from e
 
     try:
@@ -207,5 +199,5 @@ def save_permanent_buffers(compile_info: CompileInfo, runtime_state: RuntimeStat
             data_file = util_jax.cfg["arch_file_path"] + compile_info.circuit.get_local_circuit_id() + ".data"
             with open(data_file, "w") as f:
                 f.write(json.dumps(tree, indent=4))
-    except Exception as e:
+    except (OSError, TypeError, ValueError) as e:
         raise SaveBufferError("Failed to save buffer tree.") from e

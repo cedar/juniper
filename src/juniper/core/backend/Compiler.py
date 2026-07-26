@@ -1,22 +1,20 @@
 from __future__ import annotations
+
 import logging
+import warnings
 from dataclasses import dataclass
 from typing import Any
-from .DataClasses import CompileInfo
-from .DataClasses import ElementRef
-from .RuntimeState import RuntimeState
-from .Exceptions import CompilerError
-from .Exceptions import ShapeInferenceError
-from .Warnings import TypeInferenceWarning
-import warnings
 
+from ...util import util, util_jax
+from ..frontend.Buffer import Buffer
 from ..frontend.Circuit import Circuit
 from ..frontend.Element import Element
 from ..frontend.Slot import Slot
-from ..frontend.Buffer import Buffer
 from ..frontend.Step import Step
-from ...util import util_jax
-from ...util import util
+from .DataClasses import CompileInfo, ElementRef
+from .Exceptions import CompilerError, ShapeInferenceError
+from .RuntimeState import RuntimeState
+from .Warnings import TypeInferenceWarning
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +68,7 @@ def _compile_circuit(circuit : Circuit, input_slots : dict[str, list[Slot]]) -> 
             state_updated = True
 
         sub_state_updated = False
-        for element_name, element in circuit.element_map.items():
+        for element in circuit.element_map.values():
 
             element_input_slots = {
                 slot.get_local_circuit_id(): circuit.connection_map_reversed[slot.get_local_circuit_id()]
@@ -106,7 +104,7 @@ def _compile_step(step : Step, input_slots : dict[str, list[Slot]]) -> bool:
 def _compile_buffers(step : Step):
     """Resolve a step's buffer specs after slot shapes are known."""
     buffer_updated = False
-    for buffer_id, buffer in step.buffer_map.items():
+    for buffer in step.buffer_map.values():
         shape = buffer.shape
         dtype = util_jax.cfg["jdtype"] if buffer.dtype is None else buffer.dtype
         permanent = False if buffer.permanent is None else buffer.permanent
@@ -239,7 +237,7 @@ def _merge_incoming_slot_specs(element : Element, sources : list[Slot]):
     if raise_dtype_warning:
         warnings.warn(f"Step {element.get_path_str()} received incompatible input types {[source.dtype for source in known_sources]}.", TypeInferenceWarning, stacklevel=6)
     if dtype is None:
-        dtype = dtype = util_jax.cfg["jdtype"]
+        dtype = util_jax.cfg["jdtype"]
     return shape, dtype
 
 
@@ -260,7 +258,7 @@ def _collect_compile_info(circuit : Circuit) -> CompileInfo:
     if not circuit.is_compiled:
         raise CompilerError(f"Cannot generate compile info. The circuit {circuit.get_path_str()} is not compiled.")
 
-    for element_name, element in circuit.element_map.items():
+    for element in circuit.element_map.values():
         if not element.is_compiled:
             continue
 

@@ -1,18 +1,18 @@
 import logging
 import os
-import numpy as np
-import matplotlib.pyplot as plt
-from . import util
-from matplotlib import colors
-from matplotlib import gridspec
 import time
-from ..core.backend.Exceptions import JuniperError
 
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib import colors, gridspec
+
+from ..core.backend.Exceptions import JuniperError
+from . import util
 
 logger = logging.getLogger(__name__)
 def truncate_colormap(cmap, minval=0.0, maxval=1.0, n=100):
     new_cmap = colors.LinearSegmentedColormap.from_list(
-        'trunc({n},{a:.2f},{b:.2f})'.format(n=cmap.name, a=minval, b=maxval),   
+        f'trunc({cmap.name},{minval:.2f},{maxval:.2f})',   
         cmap(np.linspace(minval, maxval, n)))
     return new_cmap
 

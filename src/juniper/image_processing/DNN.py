@@ -1,14 +1,13 @@
 import logging
-from ..core.backend.Exceptions import JuniperUserError
+import os
 
+import flaxmodels as fm
 import jax
 import jax.numpy as jnp
-import flaxmodels as fm
-import os
-from ..core.frontend.Step import Step
-from ..util import util
-from ..util import util_jax
 
+from ..core.backend.Exceptions import JuniperUserError
+from ..core.frontend.Step import Step
+from ..util import util, util_jax
 
 logger = logging.getLogger(__name__)
 def compute_kernel_factory(params, model, variables):
@@ -120,11 +119,10 @@ class DNN(Step):
 def _check_vgg16_presents(params, name):
     if not os.path.exists(params["model_dir"]+"/flaxmodels/vgg16_weights.h5"):
         download_request = 0
-        while not download_request == 2:
+        while download_request != 2:
             res = input(f"The DNN step '{name}' attempts to download vgg16 weights. Do you want to continue? (y/n)\n")
             if res == "y" or res=="Y":
                 download_request = 2
-                pass
             elif res=="n" or res=="N":
                 raise JuniperUserError(f"DNN::__init__: User declined to download DNN. '{name}' unable to load vgg16 weights.")
             else:

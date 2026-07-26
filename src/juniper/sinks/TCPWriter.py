@@ -1,14 +1,14 @@
-import numpy as np
-from multiprocessing import Process, shared_memory, Queue
 import logging
 from logging.handlers import QueueListener
+from multiprocessing import Process, Queue, shared_memory
 
-from ..core.frontend.Sink import Sink
-from ..core.backend.TCPWorker import TCPWorker
-from ..util import util
+import numpy as np
+
 from ..core.backend.Exceptions import TCPError
+from ..core.backend.TCPWorker import TCPWorker
+from ..core.frontend.Sink import Sink
 from ..sources.TCPReader import ForwardingHandler
-
+from ..util import util
 
 logger = logging.getLogger(__name__)
 

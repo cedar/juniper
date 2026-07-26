@@ -9,21 +9,13 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from .Compiler import compile
-from .DataClasses import CompileInfo
-from .DataClasses import Recording
-from .DataClasses import RecKey
-from .DataClasses import StateTree
-from .DataClasses import TimingInfo
-from .Exceptions import EngineError
-from .Exceptions import NotCompiledError
-from .RuntimeState import RuntimeState
-from .RuntimeState import load_permanent_buffers
-from .RuntimeState import save_permanent_buffers
-from ..frontend.Circuit import Circuit
 from ...util import util_jax
 from ...util.util import timer
-
+from ..frontend.Circuit import Circuit
+from .Compiler import compile
+from .DataClasses import CompileInfo, RecKey, Recording, StateTree, TimingInfo
+from .Exceptions import EngineError, NotCompiledError
+from .RuntimeState import RuntimeState, load_permanent_buffers, save_permanent_buffers
 
 JAXTRACECOUNTER = 1
 
@@ -137,11 +129,13 @@ def open_connections(runtime: SimulationRuntime) -> None:
 def run_simulation(
     runtime: SimulationRuntime,
     num_steps: int,
-    steps_to_record: list[RecKey] = [],
+    steps_to_record: list[RecKey] | None = None,
     print_timing: bool = True,
     save_buffer: bool = False,
 ) -> tuple[Recording, TimingInfo]:
     """Run the simulation loop for a fixed number of ticks."""
+    if steps_to_record is None:
+        steps_to_record = []
     global JAXTRACECOUNTER
     _ensure_compiled(runtime)
 
@@ -213,7 +207,7 @@ def _tick(runtime: SimulationRuntime, state: StateTree, prng_keys: StateTree) ->
         step_state = kernel(
             element_input,
             state[element_path],
-            **{"prng_key": prng_keys[element_path], "prng_keys": prng_keys[element_path]},
+            prng_key=prng_keys[element_path], prng_keys=prng_keys[element_path],
         )
         new_state[element_path] = _normalize_step_state(
             state[element_path],

@@ -1,11 +1,11 @@
 import logging
-from ..core.backend.Exceptions import JuniperConfigurationError
 
 import jax.numpy as jnp
-from ..util import util_jax
-from ..core.frontend.Configurable import Configurable
-from .Convolution import convolve_func_singleton
 
+from ..core.backend.Exceptions import JuniperConfigurationError
+from ..core.frontend.Configurable import Configurable
+from ..util import util_jax
+from .Convolution import convolve_func_singleton
 
 logger = logging.getLogger(__name__)
 class Gaussian(Configurable):
