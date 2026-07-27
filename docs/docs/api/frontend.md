@@ -16,6 +16,8 @@ The frontend is the graph-building layer. Most user code interacts with the clas
 | `close_connections()` | Close runtime I/O endpoints such as TCP workers. |
 | `set_arch_name(name)` | Change the architecture name used in paths and buffer files. |
 
+After `compile()`, the architecture stores its `CompiledCircuit` at `arch.runtime`. Advanced users can pass that compiled circuit to the public simulation functions documented in the [Backend API](backend.md).
+
 ## Elements And Steps
 
 `Element` is the base class for graph nodes. It owns input and output slots, stores parameters, and carries compiler metadata.

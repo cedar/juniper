@@ -36,3 +36,5 @@ recording.plot(keys=["field.activation"])
 4. [Configurables](configurables/index.md)
 5. [API Reference](api/index.md)
 6. [Changelog](changelog.md)
+
+For most simulations, use `arch.compile()` and `arch.run_simulation()`. For finer control, `compile(circuit)` returns a `CompiledCircuit` that can be passed to public functions such as `trace`, `reset_state`, and `run_simulation`.

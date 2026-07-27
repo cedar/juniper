@@ -15,11 +15,12 @@ from .DataClasses import CompileInfo, ElementRef
 from .Exceptions import CompilerError, ShapeInferenceError
 from .RuntimeState import RuntimeState
 from .Warnings import TypeInferenceWarning
+from .Simulation import CompiledCircuit
 
 logger = logging.getLogger(__name__)
 
-def compile(circuit : Circuit) -> tuple[RuntimeState, CompileInfo]:
-        """Compile a circuit and return its runtime state and CompileInfo.
+def compile(circuit : Circuit) -> CompiledCircuit:
+        """Compile a circuit and return a CompiledCircuit.
         """
         circuit.generate_kernel()
         _compile_circuit(circuit, {})
@@ -33,8 +34,10 @@ def compile(circuit : Circuit) -> tuple[RuntimeState, CompileInfo]:
         
         compile_info = _collect_compile_info(circuit)
         runtime_state = RuntimeState.from_compile_info(compile_info)
+
+        compiled_circuit = CompiledCircuit.from_compile_info(runtime_state, compile_info)
         
-        return runtime_state, compile_info
+        return compiled_circuit
 
 
 ################ Loops through circuit structure and update shapes and dtypes until all elements are compiled ##################

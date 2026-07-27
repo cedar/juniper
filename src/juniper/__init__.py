@@ -31,7 +31,7 @@ from .arrays.VectorToScalars import VectorToScalars
 # architecture
 from .core.Architecture import delete_arch, get_arch, init_logging, init_logging_to_file
 from .core.backend.Simulation import (
-    SimulationRuntime,
+    CompiledCircuit,
     close_connections,
     init_prng,
     load_buffers,
@@ -42,6 +42,7 @@ from .core.backend.Simulation import (
     save_buffers,
     trace,
 )
+from .core.backend.Compiler import compile
 from .core.frontend.Circuit import Circuit
 from .dft.BCMConnection import BCMConnection
 
@@ -111,7 +112,7 @@ __all__ =[
     "Resize",
     "ScalarsToVector",
     "ShuffleImage",
-    "SimulationRuntime",
+    "CompiledCircuit",
     "SpaceToRateCode",
     "StaticDebug",
     "StaticGain",
@@ -135,5 +136,6 @@ __all__ =[
     "robotics",
     "run_simulation",
     "save_buffers",
-    "trace"
+    "trace",
+    "compile"
 ]

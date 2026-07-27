@@ -19,6 +19,7 @@
 ### Compilation And Simulation
 
 - Architectures are compiled with `arch.compile(...)` and simulated with `arch.run_simulation(...)`.
+- Advanced users can use the function-based backend directly: `compile(...)` returns a `CompiledCircuit`, and functions such as `trace(...)`, `run_simulation(...)`, `reset_state(...)`, `load_buffers(...)`, and `save_buffers(...)` operate on that compiled circuit.
 - `run_simulation` returns `(Recording, TimingInfo)`.
 - `arch.reset_state()` restores the post-compilation initial state for repeated runs.
 - `arch.close_connections()` closes runtime I/O endpoints such as TCP workers.

@@ -13,7 +13,7 @@ from .backend.Exceptions import (
     NotCompiledError,
 )
 from .backend.Simulation import (
-    SimulationRuntime,
+    CompiledCircuit,
     close_connections,
     load_buffers,
     open_connections,
@@ -75,7 +75,7 @@ class Architecture(Circuit):
             Circuit._current = self
             CircuitContext.set_current(self)
         super().__init__(name = name)
-        self.runtime: SimulationRuntime | None = None
+        self.runtime: CompiledCircuit | None = None
 
     def set_arch_name(self, name : str):
         self._name = name
@@ -84,8 +84,8 @@ class Architecture(Circuit):
         if self.is_compiled:
             raise CompilerError(f"The circuit {self.get_local_circuit_id()} is already compiled.")
 
-        t_compile, (runtime_state, compile_info) = timer(compile_circuit)(self)
-        self.runtime = SimulationRuntime.from_compiled_circuit(runtime_state, compile_info)
+        t_compile, self.runtime = timer(compile_circuit)(self)
+        compile_info = self.runtime.compile_info
 
         if load_buffer:
             load_buffers(self.runtime)

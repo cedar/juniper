@@ -12,7 +12,6 @@ import numpy as np
 from ...util import util_jax
 from ...util.util import timer
 from ..frontend.Circuit import Circuit
-from .Compiler import compile
 from .DataClasses import CompileInfo, RecKey, Recording, StateTree, TimingInfo
 from .Exceptions import EngineError, NotCompiledError
 from .RuntimeState import RuntimeState, load_permanent_buffers, save_permanent_buffers
@@ -22,8 +21,8 @@ JAXTRACECOUNTER = 1
 logger = logging.getLogger(__name__)
 
 @dataclass(eq=False)
-class SimulationRuntime:
-    """Mutable runtime bundle used by simulation helper functions."""
+class CompiledCircuit:
+    """Compiled circuit metadata and mutable runtime state."""
 
     compile_info: CompileInfo
     init_state: RuntimeState
@@ -41,17 +40,22 @@ class SimulationRuntime:
         return self.compile_info.kernel_map
 
     @classmethod
-    def from_circuit(cls, circuit: Circuit, static_prng_key: Any | None = None) -> SimulationRuntime:
-        runtime_state, compile_info = compile(circuit)
-        return cls.from_compiled_circuit(runtime_state, compile_info, static_prng_key=static_prng_key)
+    def from_circuit(cls, circuit: Circuit, static_prng_key: Any | None = None) -> CompiledCircuit:
+        from .Compiler import compile
+
+        compiled_circuit = compile(circuit)
+        if static_prng_key is not None:
+            compiled_circuit.static_prng_key = static_prng_key
+            init_prng(compiled_circuit)
+        return compiled_circuit
 
     @classmethod
-    def from_compiled_circuit(
+    def from_compile_info(
         cls,
         runtime_state: RuntimeState,
         compile_info: CompileInfo,
         static_prng_key: Any | None = None,
-    ) -> SimulationRuntime:
+    ) -> CompiledCircuit:
         static_prng_key = util_jax.next_random_key() if static_prng_key is None else static_prng_key
         runtime = cls(
             compile_info=compile_info,
@@ -65,7 +69,7 @@ class SimulationRuntime:
         return runtime
 
 
-def trace(runtime: SimulationRuntime, warmup : int = 0) -> StateTree:
+def trace(runtime: CompiledCircuit, warmup : int = 0) -> StateTree:
     """Trace the jitted tick function once without mutating runtime state."""
     global JAXTRACECOUNTER
     _ensure_compiled(runtime)
@@ -81,7 +85,7 @@ def trace(runtime: SimulationRuntime, warmup : int = 0) -> StateTree:
     return state_tree
 
 
-def init_prng(runtime: SimulationRuntime) -> tuple[StateTree, list]:
+def init_prng(runtime: CompiledCircuit) -> tuple[StateTree, list]:
     """Initialize the runtime PRNG tree from its compile info."""
     runtime.prng_tree, runtime.prng_slots = util_jax.build_prng_tree(
         runtime.kernel_map,
@@ -91,43 +95,43 @@ def init_prng(runtime: SimulationRuntime) -> tuple[StateTree, list]:
     return runtime.prng_tree, runtime.prng_slots
 
 
-def refresh_prng(runtime: SimulationRuntime) -> StateTree:
+def refresh_prng(runtime: CompiledCircuit) -> StateTree:
     """Refresh PRNG keys for dynamic steps and return the updated key tree."""
     runtime.prng_tree = util_jax.update_prng_tree(runtime.prng_tree, runtime.prng_slots)
     return runtime.prng_tree
 
 
-def load_buffers(runtime: SimulationRuntime) -> dict[str, dict[str, Any]]:
+def load_buffers(runtime: CompiledCircuit) -> dict[str, dict[str, Any]]:
     """Load permanent buffers into the runtime state."""
     _ensure_compiled(runtime)
     return load_permanent_buffers(runtime.compile_info, runtime.state)
 
 
-def save_buffers(runtime: SimulationRuntime) -> None:
+def save_buffers(runtime: CompiledCircuit) -> None:
     """Save permanent buffers from the runtime state."""
     _ensure_compiled(runtime)
     save_permanent_buffers(runtime.compile_info, runtime.state)
 
 
-def reset_state(runtime: SimulationRuntime) -> None:
+def reset_state(runtime: CompiledCircuit) -> None:
     """Reset runtime state to the post-compilation initial state."""
     runtime.state = runtime.init_state.copy()
 
 
-def close_connections(runtime: SimulationRuntime) -> None:
+def close_connections(runtime: CompiledCircuit) -> None:
     """Close all runtime IO endpoints."""
     for ref in runtime.compile_info.gather_connections():
         ref.element.close()
 
 
-def open_connections(runtime: SimulationRuntime) -> None:
+def open_connections(runtime: CompiledCircuit) -> None:
     """Open all runtime IO endpoints."""
     for ref in runtime.compile_info.gather_connections():
         ref.element.open()
 
 
 def run_simulation(
-    runtime: SimulationRuntime,
+    runtime: CompiledCircuit,
     num_steps: int,
     steps_to_record: list[RecKey] | None = None,
     print_timing: bool = True,
@@ -189,7 +193,7 @@ def run_simulation(
     return Recording(history, steps_to_record), timing_info
 
 @partial(jax.jit, static_argnames=["runtime"])
-def _tick(runtime: SimulationRuntime, state: StateTree, prng_keys: StateTree) -> StateTree:
+def _tick(runtime: CompiledCircuit, state: StateTree, prng_keys: StateTree) -> StateTree:
     """Execute one compiled tick inside JAX."""
     new_state = state.copy()
 
@@ -217,7 +221,7 @@ def _tick(runtime: SimulationRuntime, state: StateTree, prng_keys: StateTree) ->
 
     return new_state
 
-def _gather_element_input(runtime: SimulationRuntime, state: StateTree, element: Circuit) -> dict[str, Any]:
+def _gather_element_input(runtime: CompiledCircuit, state: StateTree, element: Circuit) -> dict[str, Any]:
     """Build a state input dict for one element."""
     element_input = {}
     for slot_id, input_slot in element.input_slot_map.items():
@@ -237,7 +241,7 @@ def _gather_element_input(runtime: SimulationRuntime, state: StateTree, element:
     return element_input
 
 def _aggregate_slot_values(
-    runtime: SimulationRuntime,
+    runtime: CompiledCircuit,
     state: StateTree,
     slots: list[Any],
     aggregation: str,
@@ -255,7 +259,7 @@ def _aggregate_slot_values(
             value = value + slot_value
     return value
 
-def _read_source_slot(runtime: SimulationRuntime, state: StateTree, slot: Any) -> Any:
+def _read_source_slot(runtime: CompiledCircuit, state: StateTree, slot: Any) -> Any:
     """Read a source slot from flat state, following circuit input bridges."""
     source = slot.parent
     slot_id = slot.get_slot_id()
@@ -266,7 +270,7 @@ def _read_source_slot(runtime: SimulationRuntime, state: StateTree, slot: Any) -
 
     return state[source.get_path()][slot_id]
 
-def _push_sources(runtime: SimulationRuntime) -> None:
+def _push_sources(runtime: CompiledCircuit) -> None:
     """Copy CPU-side source data into runtime state before a tick."""
     for ref in runtime.compile_info.sources:
         element = ref.element
@@ -275,12 +279,12 @@ def _push_sources(runtime: SimulationRuntime) -> None:
             continue
         runtime.state.write_source_output(ref, data)
 
-def _pull_sinks(runtime: SimulationRuntime) -> None:
+def _pull_sinks(runtime: CompiledCircuit) -> None:
     """Copy sink outputs from runtime state back to their Python objects."""
     for ref in runtime.compile_info.sinks:
         ref.element.set_data(runtime.state.read_slot(ref))
 
-def _pull_recordings(runtime: SimulationRuntime, steps_to_record: list[RecKey]) -> list[np.ndarray]:
+def _pull_recordings(runtime: CompiledCircuit, steps_to_record: list[RecKey]) -> list[np.ndarray]:
     """Read requested recording targets from runtime state."""
     data = []
     for to_record in steps_to_record:
@@ -334,6 +338,6 @@ def _normalize_step_state(expected_state: StateTree, returned_state: StateTree, 
         normalized_state[state_id] = jnp.asarray(returned_value, dtype=expected_value.dtype)
     return normalized_state
 
-def _ensure_compiled(runtime: SimulationRuntime) -> None:
+def _ensure_compiled(runtime: CompiledCircuit) -> None:
     if runtime is None or not runtime.circuit.is_compiled:
         raise NotCompiledError("Can't run simulation. The circuit is not compiled.")

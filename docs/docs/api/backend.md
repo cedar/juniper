@@ -4,7 +4,11 @@ Most applications use the backend through `Architecture.compile()` and `Architec
 
 ## Compiler
 
-The compiler traverses the architecture, including nested circuits, and builds a `CompileInfo` object. During compilation it validates connections, resolves element paths, infers shapes and dtypes, collects sources and sinks, identifies dynamic elements, and stores the execution order and compute kernels.
+The public compiler function is available as `juniper.compile(circuit)`. It traverses the architecture, including nested circuits, and returns a `CompiledCircuit`. During compilation it validates connections, resolves element paths, infers shapes and dtypes, collects sources and sinks, identifies dynamic elements, and stores the execution order, compute kernels, initial runtime state, and current runtime state.
+
+```python
+compiled = jp.compile(arch)
+```
 
 `CompileInfo` contains:
 
@@ -14,11 +18,47 @@ The compiler traverses the architecture, including nested circuits, and builds a
 | `compiled_elements` | Mapping from path tuples to `ElementRef` objects. |
 | `dynamic` / `static` | Elements with and without evolving runtime state. |
 | `sources` / `sinks` | Runtime I/O endpoints. |
-| `kernel_map` | Ordered path-to-kernel mapping used by the engine. |
+| `kernel_map` | Ordered path-to-kernel mapping used by the simulation runtime. |
 
-## Engine
+## Compiled Circuit
 
-`Engine` owns the simulation loop. It allocates runtime state, manages PRNG keys, opens and closes runtime I/O, executes the JAX-jitted tick, records requested values, and saves or loads permanent buffers.
+`CompiledCircuit` is the explicit runtime object used by the simulation functions. It stores the compiled metadata, initial state, current state, PRNG tree, dynamic PRNG slots, and static PRNG key.
+
+Most applications do not need to call `compile(...)` manually because `Architecture.compile()` does it and stores the result at `arch.runtime`. Use the function-based API when you want lower-level control:
+
+```python
+compiled = jp.compile(arch)
+
+jp.load_buffers(compiled)
+jp.open_connections(compiled)
+jp.trace(compiled, warmup=1)
+jp.reset_state(compiled)
+
+recording, timing = jp.run_simulation(
+    compiled,
+    num_steps=100,
+    steps_to_record=["field", "field.activation"],
+)
+
+jp.save_buffers(compiled)
+jp.close_connections(compiled)
+```
+
+Available simulation functions:
+
+| Function | Description |
+|----------|-------------|
+| `CompiledCircuit.from_circuit(circuit)` | Compile a circuit and return a compiled circuit. |
+| `CompiledCircuit.from_compile_info(runtime_state, compile_info)` | Create a compiled circuit from existing compiler internals. |
+| `trace(compiled, warmup=0)` | Trace the JAX tick and optionally run warmup ticks. |
+| `init_prng(compiled)` | Initialize the PRNG tree and dynamic PRNG slots. |
+| `refresh_prng(compiled)` | Refresh keys for dynamic elements before a tick. |
+| `load_buffers(compiled)` | Load permanent buffers into runtime state. |
+| `save_buffers(compiled)` | Save permanent buffers from runtime state. |
+| `reset_state(compiled)` | Restore the compiled circuit to its initial state. |
+| `open_connections(compiled)` | Open runtime I/O endpoints. |
+| `close_connections(compiled)` | Close runtime I/O endpoints. |
+| `run_simulation(compiled, num_steps, ...)` | Run fixed-step simulation and return `(Recording, TimingInfo)`. |
 
 A simulation tick does this work:
 

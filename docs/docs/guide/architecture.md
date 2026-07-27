@@ -102,6 +102,8 @@ Compilation performs the background work needed for fast simulation:
 - traces the JAX tick function,
 - optionally runs warmup ticks and resets the state afterward.
 
+The resulting `CompiledCircuit` is stored on `arch.runtime`. It contains the compiled metadata, initial state, current state, and PRNG data used by the simulation functions.
+
 Keep shapes and dtypes stable after compilation. Changing the shape or dtype of a source can force JAX retracing or raise a runtime error.
 
 ## Simulation
@@ -126,6 +128,15 @@ Each tick performs the following steps:
 5. Save permanent buffers at the end when `save_buffer=True`.
 
 Use `arch.reset_state()` to return to the post-compilation initial state. Use `arch.close_connections()` to close TCP workers or other runtime connections.
+
+For lower-level control, use `jp.compile(...)` directly or pass `arch.runtime` to the public simulation functions:
+
+```python
+compiled = jp.compile(arch)
+jp.trace(compiled, warmup=1)
+jp.reset_state(compiled)
+recording, timing = jp.run_simulation(compiled, num_steps=100)
+```
 
 ## Recording, Plotting, And Saving
 

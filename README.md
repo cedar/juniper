@@ -73,6 +73,7 @@ fig = recording.plot(keys=["field.activation"])
 - **Circuits**: reusable nested graphs built from steps and slots.
 - **Configurables**: helper objects such as `Gaussian`, `LateralKernel`, `FrameGraph`, and `Transform`.
 - **Recording**: the result object returned by `run_simulation`, with access, plotting, save, and load helpers.
+- **CompiledCircuit**: the explicit runtime object returned by `compile()` and stored by `arch.compile()` for advanced control with functions such as `trace`, `reset_state`, and `run_simulation`.
 
 ## CLI
 

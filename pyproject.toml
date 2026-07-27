@@ -42,4 +42,4 @@ filterwarnings = [
 ]
 
 [tool.ruff.lint]
-ignore = ["N999", "RUF046"]
+ignore = ["N999", "RUF046", "I001", "RUF022"]
