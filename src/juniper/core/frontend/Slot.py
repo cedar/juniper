@@ -14,6 +14,15 @@ class Slot(Connectable):
         self.max_incoming_connections = max_incoming_connections
         self.is_compiled = False
 
+    @property
+    def parent_circuit(self):
+        if hasattr(self, "parent"):
+            return self.parent.parent_circuit
+        return self._parent_circuit
+
+    @parent_circuit.setter
+    def parent_circuit(self, circuit):
+        self._parent_circuit = circuit
 
     def get_slot_id(self) -> str:
         return self.slot_id

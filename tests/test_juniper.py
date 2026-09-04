@@ -307,6 +307,47 @@ class TestJuniper:
         assert ("circ", "summed_inputs") in compile_info.kernel_map
 
     @function_test
+    def test_circuit_slot_parent_circuit_is_context_independent(self):
+        """Circuit boundary slots should use the circuit's parent, not creation context."""
+        inside_context = jp.Circuit("inside_context")
+        with inside_context as c:
+            c.register_output_slot("out_slot")
+
+        before_context = jp.Circuit("before_context")
+        before_context.register_output_slot("out_slot")
+        with before_context:
+            pass
+
+        assert inside_context.out_slot.parent_circuit is self.arch
+        assert before_context.out_slot.parent_circuit is self.arch
+
+    @function_test
+    def test_circuit_output_slot_connects_to_parent_step(self):
+        """A circuit output slot should connect to a step in the parent architecture."""
+        circuit = jp.Circuit("circuit")
+        with circuit as c:
+            summed_inputs = jp.Sum("summed_inputs")
+            c.register_input_slot("in0")
+            c.register_output_slot("out_slot")
+            c.in0 >> summed_inputs >> c.out_slot
+
+        source = jp.CustomInput("source", (1,))
+        source.set_data(np.array([3], dtype=np.float32))
+        target = jp.Sum("target")
+
+        assert summed_inputs.out0 in circuit.connection_map_reversed[circuit.out_slot.get_local_circuit_id()]
+
+        source >> circuit.in0
+        circuit.out_slot >> target
+
+        assert circuit.out_slot in self.arch.connection_map_reversed[target.in0.get_local_circuit_id()]
+
+        self.arch.compile(warmup=0, print_compile_info=False, load_buffer=False)
+        recording, _ = self.arch.run_simulation(num_steps=1, steps_to_record=["target"], print_timing=False)
+
+        assert np.isclose(np.sum(recorded_array(recording, "target")), 3)
+
+    @function_test
     def test_component_multiply_product_aggregation(self):
         """ComponentMultiply should multiply multiple incoming values instead of summing them."""
         in1 = jp.CustomInput("in1", (1,))

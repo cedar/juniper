@@ -46,6 +46,10 @@ class Connectable(Configurable, ABC):
         current = CircuitContext.get_current()
         if source.parent is current or dest.parent is current:
             return current
+        source_parent = source.parent.parent_circuit
+        dest_parent = dest.parent.parent_circuit
+        if source_parent is dest_parent:
+            return source_parent
         return self.parent_circuit
         
     def get_slot_from_identifier(self, connectable : Connectable | str, dir : str = "out") -> Slot:
