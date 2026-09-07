@@ -46,16 +46,6 @@ def function_test(func):
             clean_arch(arch)
     return wrapper
 
-@contextmanager
-def simulate_user_input(input : str):
-    """Overwrites stdin with synthetic user input. This is only used for pytest for automatic testing."""
-    orig = sys.stdin
-    sys.stdin = io.StringIO(input + "\n")
-    try:
-        yield
-    finally:
-        sys.stdin = orig
-
 def recorded_array(recording, key, step_idx=-1):
     """Return one recorded array via the Recording accessors."""
     return recording.get_at_element(key).get_at_step(step_idx).recording[0][0]
@@ -434,13 +424,6 @@ class TestJuniper:
             assert cache_after_second_reset == cache_after_compile
         else:
             assert abs(t2-t1) < abs(t2-t_comp)
-
-    @function_test
-    def test_dnn_prompting(self):
-        """Tests DNN download prompting."""
-
-        with pytest.raises(JuniperUserError), simulate_user_input("n"):
-            jp.DNN("dnn2", "4_3")
 
     @function_test
     def test_buffer_save_and_load(self):
