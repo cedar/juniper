@@ -1,12 +1,9 @@
 import functools
-import io
 import json
 import os
 import shutil
-import sys
 import tempfile
 import time
-from contextlib import contextmanager
 
 import numpy as np
 import pytest
@@ -17,7 +14,6 @@ from juniper.core.backend.Exceptions import (
     CircuitConnectionError,
     CircuitError,
     JuniperError,
-    JuniperUserError,
     ShapeInferenceError,
 )
 from juniper.core.backend.Simulation import _tick

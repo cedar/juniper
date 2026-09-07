@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ..math.LateralKernel import LateralKernel
+    from ..math.Gaussian import Gaussian
 
 import logging
 
@@ -85,7 +86,7 @@ class NeuralField(Step):
                  global_inhibition : float = _global_inhibition,
                  input_noise_gain : float = _input_noise_gain,
                  tau : float = _tau,
-                 lateral_kernel : LateralKernel | None = _lateral_kernel
+                 lateral_kernel : LateralKernel | Gaussian | None = _lateral_kernel
                  ):
         params = locals().copy()
         mandatory_params = ["shape"]
