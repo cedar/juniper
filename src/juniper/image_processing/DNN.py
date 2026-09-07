@@ -101,7 +101,7 @@ class DNN(Step):
         self._params["layer_shapes"] = {"relu4_3":(28,28,512), "relu5_3": (7,7,512)}
         self._params["shape"] = self._params["layer_shapes"][self._layer]
 
-        _check_vgg16_presents(self._params, self.get_local_circuit_id())
+        #_check_vgg16_presents(self._params, self.get_local_circuit_id())
         self._model = fm.VGG16(output="activations", include_head=False, pretrained="imagenet", ckpt_dir=self._params["model_dir"])
         self._variables = self._model.init(jax.random.PRNGKey(0), jnp.zeros((1, 224, 224, 3), dtype=jnp.float16))
 
