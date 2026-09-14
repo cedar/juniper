@@ -334,6 +334,31 @@ class TestJuniper:
         assert np.isclose(np.sum(recorded_array(recording, "target")), 3)
 
     @function_test
+    def test_connection_error_uses_connectable_paths(self):
+        """Connection errors should show the source and destination paths."""
+        circuit = jp.Circuit("circuit")
+        with circuit as c:
+            summed_inputs = jp.Sum("summed_inputs")
+            c.register_input_slot("in0")
+            c.register_output_slot("out_slot")
+            c.in0 >> summed_inputs >> c.out_slot
+
+        target = jp.Sum("target")
+
+        assert str(circuit.out_slot) == "circuit.out_slot"
+        assert str(summed_inputs) == "circuit.summed_inputs"
+        assert str(target.in0) == "target.in0"
+
+        circuit.out_slot >> target
+        with pytest.raises(CircuitConnectionError) as exc_info:
+            circuit.out_slot >> target
+
+        message = str(exc_info.value)
+        assert "circuit.out_slot" in message
+        assert "target" in message
+        assert "circuit.circuit.out_slot" not in message
+
+    @function_test
     def test_component_multiply_product_aggregation(self):
         """ComponentMultiply should multiply multiple incoming values instead of summing them."""
         in1 = jp.CustomInput("in1", (1,))

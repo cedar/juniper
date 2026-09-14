@@ -23,6 +23,25 @@ class Connectable(Configurable, ABC):
         super().__init__(name=name, params=params, mandatory_params=mandatory_params)
         self.parent_circuit : Circuit = CircuitContext.get_current()
 
+    def __str__(self) -> str:
+        path = self._display_path()
+        return path if path else type(self).__name__
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}({str(self)!r})"
+
+    def _display_path(self) -> str:
+        try:
+            path = self.get_path_str()
+        except (AttributeError, RuntimeError):
+            path = ""
+        if path:
+            return path
+        try:
+            return self.get_local_circuit_id()
+        except AttributeError:
+            return ""
+
     def __rshift__(self, other : Connectable | str) -> Connectable:
         try:
             other_slot = self.get_slot_from_identifier(other, dir="in" if other is not CircuitContext.get_current() else "out")
@@ -30,7 +49,7 @@ class Connectable(Configurable, ABC):
             self._connection_circuit(self_slot, other_slot).connect_to(self_slot, other_slot)
             return other
         except Exception as e:
-            raise CircuitConnectionError(f"Connectable::>>: Can't connect '{self.get_path_str()}' to '{other.get_path_str()}' of type {type(other)}") from e
+            raise CircuitConnectionError(f"Connectable::>>: Can't connect '{self}' to '{other}'") from e
 
     def __lshift__(self, other : Connectable | str) -> Connectable:
         try:
@@ -39,7 +58,7 @@ class Connectable(Configurable, ABC):
             self._connection_circuit(other_slot, self_slot).connect_to(other_slot, self_slot)
             return self
         except Exception as e:
-            raise CircuitConnectionError(f"Connectable::<<: Can't connect '{self.get_path_str()}' to '{other.get_path_str()}' of type ({type(other)})") from e
+            raise CircuitConnectionError(f"Connectable::<<: Can't connect '{self}' to '{other}'") from e
 
     def _connection_circuit(self, source: Slot, dest: Slot) -> Circuit:
         """Return the circuit that owns a connection between two slots."""
