@@ -58,6 +58,10 @@ def nd_norm(
         p = float(ord)
         n = jnp.power(jnp.sum(jnp.power(jnp.abs(x), p), axis=axes, keepdims=keepdims), 1.0 / p)
 
+    elif ord == "softmax":
+        eps = 1e-10
+        n = jnp.exp(x) / (eps + jnp.sum(jnp.exp(x)) )
+
     # Fallback: flatten over axes
     else:
         flat = jnp.reshape(x, (-1,))
@@ -70,17 +74,27 @@ NORM_ORDER_MAP = {
     "InfinityNorm": jnp.inf,
     "L1Norm": 1,
     "L2Norm": 2,
+    "Softmax": "softmax"
 }
 
 def compute_kernel_factory(params, ord):
-    def compute_kernel(input_mats, buffer, **kwargs):
-        input = input_mats[util.DEFAULT_INPUT_SLOT]
-        axis = [i for i in range(len(input.shape))]
-        input_norm = nd_norm(input, ord, axis=axis)
+    if ord != "softmax":
+        def compute_kernel(input_mats, buffer, **kwargs):
+            input = input_mats[util.DEFAULT_INPUT_SLOT]
+            axis = [i for i in range(len(input.shape))]
+            input_norm = nd_norm(input, ord, axis=axis)
 
-        output = input / input_norm
-        
-        return {util.DEFAULT_OUTPUT_SLOT: output}
+            output = input / input_norm
+            
+            return {util.DEFAULT_OUTPUT_SLOT: output}
+    else:
+        def compute_kernel(input_mats, buffer, **kwargs):
+            input = input_mats[util.DEFAULT_INPUT_SLOT]
+
+            output = jnp.exp(input) / (1e-12 + jnp.sum(jnp.exp(input)) )
+            
+            return {util.DEFAULT_OUTPUT_SLOT: output}
+
     return compute_kernel
 
 class Normalization(Step):
